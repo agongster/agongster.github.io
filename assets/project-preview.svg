@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450" role="img" aria-labelledby="title desc">
+  <title id="title">Portfolio website preview placeholder</title>
+  <desc id="desc">A simple browser-window illustration used as a placeholder project screenshot.</desc>
+  <rect width="800" height="450" fill="#eef2f6"/>
+  <rect x="70" y="50" width="660" height="350" rx="12" fill="#ffffff" stroke="#c9d1da" stroke-width="3"/>
+  <path d="M70 105h660" stroke="#c9d1da" stroke-width="3"/>
+  <circle cx="100" cy="78" r="8" fill="#d87979"/><circle cx="128" cy="78" r="8" fill="#ddbd70"/><circle cx="156" cy="78" r="8" fill="#79b989"/>
+  <rect x="115" y="148" width="250" height="22" rx="5" fill="#205e98"/>
+  <rect x="115" y="190" width="440" height="13" rx="4" fill="#d9dde3"/>
+  <rect x="115" y="216" width="370" height="13" rx="4" fill="#d9dde3"/>
+  <rect x="115" y="260" width="115" height="35" rx="5" fill="#205e98"/>
+  <circle cx="613" cy="240" r="78" fill="#dce8f4"/>
+  <text x="400" y="355" fill="#5c6470" font-family="system-ui, sans-serif" font-size="19" text-anchor="middle">Portfolio project preview</text>
+</svg>
