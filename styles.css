@@ -111,7 +111,7 @@ h3 { font-size: 1.4rem; margin-bottom: .45rem; }
 .section-head { margin-bottom: 2.5rem; max-width: 100%; }
 .section-head h2, .section-head h3 { max-width: 60rem; transition: color .2s ease-out; }
 
-.community-list a, .experience-more a, .project-content a, .game-card a, .games-intro a, .contact-links a, footer .credits a {
+.community-list a, .experience-more a, .card-details-inner a, .games-intro a, .contact-links a, footer .credits a {
   color: var(--accent-dark);
   font-weight: 700;
   text-decoration: underline;
@@ -119,16 +119,16 @@ h3 { font-size: 1.4rem; margin-bottom: .45rem; }
   text-underline-offset: .2rem;
   transition: color .2s ease, text-decoration-color .2s ease;
 }
-.community-list a:hover, .experience-more a:hover, .project-content a:hover, .game-card a:hover, .games-intro a:hover, .contact-links a:hover, footer .credits a:hover,
-.community-list a:focus-visible, .experience-more a:focus-visible, .project-content a:focus-visible, .game-card a:focus-visible, .games-intro a:focus-visible, .contact-links a:focus-visible {
+.community-list a:hover, .experience-more a:hover, .card-details-inner a:hover, .games-intro a:hover, .contact-links a:hover, footer .credits a:hover,
+.community-list a:focus-visible, .experience-more a:focus-visible, .card-details-inner a:focus-visible, .games-intro a:focus-visible, .contact-links a:focus-visible {
   color: var(--accent);
   text-decoration-color: var(--accent);
 }
-.community-list a span, .experience-more a span, .project-content a span, .game-card a span, .games-intro a span, .contact-links a span {
+.community-list a span, .experience-more a span, .card-details-inner a span, .games-intro a span, .contact-links a span {
   display: inline-block;
   transition: transform .2s ease;
 }
-.community-list a:hover span, .experience-more a:hover span, .project-content a:hover span, .game-card a:hover span, .games-intro a:hover span, .contact-links a:hover span {
+.community-list a:hover span, .experience-more a:hover span, .card-details-inner a:hover span, .games-intro a:hover span, .contact-links a:hover span {
   transform: translateX(.2rem);
 }
 
@@ -247,6 +247,45 @@ h1 .accent-dot { color: var(--hero-accent); }
   padding: .4rem .9rem;
 }
 
+/* ---------- expandable card reveal (hover / focus / click-to-pin) ---------- */
+.card-details {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows .4s ease;
+}
+.card-details-inner {
+  overflow: hidden;
+  opacity: 0;
+  padding: 1.35rem 1.5rem;
+  transition: opacity .3s ease;
+}
+.community-list .card-details-inner, .experience-list .card-details-inner, .project-placeholder-card .card-details-inner {
+  padding: .6rem 0 0;
+}
+.card-details-inner p { color: var(--muted); }
+.expand-card:hover .card-details, .expand-card:focus-within .card-details, .expand-card.is-open .card-details {
+  grid-template-rows: 1fr;
+}
+.expand-card:hover .card-details-inner, .expand-card:focus-within .card-details-inner, .expand-card.is-open .card-details-inner {
+  opacity: 1;
+  transition-delay: .08s;
+}
+.expand-card { cursor: pointer; }
+
+.card-media { position: relative; border-bottom: 1px solid var(--line); }
+.card-media img { display: block; width: 100%; object-fit: cover; }
+.card-media h3, .card-media h4 {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 2.25rem 1.4rem 1rem;
+  background: linear-gradient(180deg, transparent, rgba(8, 20, 20, .78));
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, .4);
+}
+
 /* ---------- community / experience ---------- */
 .community-list, .experience-list { display: grid; gap: 1.1rem; }
 .community-list article, .experience-list article {
@@ -286,17 +325,15 @@ h1 .accent-dot { color: var(--hero-accent); }
   transform: translateY(-4px);
   scale: 1.03;
 }
-.project-card img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border-bottom: 1px solid var(--line); object-fit: cover; }
-.project-content { padding: 1.35rem 1.5rem; }
-.project-content p, .games-intro, .game-card p { color: var(--muted); }
-.project-placeholder-card { border-style: dashed; background: color-mix(in srgb, var(--paper-alt) 70%, var(--paper)); }
+.project-card .card-media img { height: auto; aspect-ratio: 16 / 9; }
+.project-card .card-media h3 { font-size: 1.6rem; }
+.project-placeholder-card { border-style: dashed; background: color-mix(in srgb, var(--paper-alt) 70%, var(--paper)); padding: 1.35rem 1.5rem; }
 
 .games { margin-top: 5rem; }
 .games > .section-head { margin-bottom: 1.75rem; }
-.games-intro { max-width: 42rem; margin-bottom: 2.5rem; }
-.game-card { padding: 1.25rem; }
-.game-card img { display: block; width: calc(100% + 2.5rem); height: 190px; margin: -1.25rem -1.25rem 1.25rem; border-bottom: 1px solid var(--line); border-radius: .9rem .9rem 0 0; object-fit: cover; }
-.game-card h4 { margin: 0 0 .45rem; font-size: 1.75rem; font-weight: 700; font-family: "Caveat", cursive; }
+.games-intro { color: var(--muted); max-width: 42rem; margin-bottom: 2.5rem; }
+.game-card .card-media img { height: 190px; }
+.game-card h4 { font-size: 1.75rem; font-weight: 700; font-family: "Caveat", cursive; }
 
 /* ---------- contact / footer ---------- */
 .contact-links { display: flex; flex-wrap: wrap; gap: .8rem; }

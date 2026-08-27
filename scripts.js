@@ -102,7 +102,7 @@ if (!prefersReducedMotion) {
       const rect = el.getBoundingClientRect();
       const elCenter = rect.top + rect.height / 2;
       const progress = Math.min(1, Math.max(0, 1 - elCenter / viewportH));
-      el.style.color = `color-mix(in srgb, var(--heading-scroll-end) ${(progress * 32).toFixed(1)}%, var(--ink))`;
+      el.style.color = `color-mix(in srgb, var(--heading-scroll-end) ${(progress * 58).toFixed(1)}%, var(--ink))`;
     });
 
     scrollTicking = false;
@@ -119,3 +119,11 @@ if (!prefersReducedMotion) {
   window.addEventListener("resize", onScroll);
   updateScrollEffects();
 }
+
+// Cards reveal their details on hover; clicking one pins it open
+document.querySelectorAll(".expand-card").forEach((card) => {
+  card.addEventListener("click", (event) => {
+    if (event.target.closest("a")) return;
+    card.classList.toggle("is-open");
+  });
+});
