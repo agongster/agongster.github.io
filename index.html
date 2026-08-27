@@ -29,16 +29,18 @@
         </feMerge>
       </filter>
     </svg>
+    <div class="stars-bg" id="stars-bg" aria-hidden="true"></div>
+    <div class="petals-bg" id="petals-bg" aria-hidden="true"></div>
     <header class="site-header">
       <nav class="nav" aria-label="Primary navigation">
         <a class="wordmark" href="#home">April Gong</a>
         <ul>
           <li><a href="#about">About</a></li>
           <li><a href="#experience">Experience</a></li>
-          <li><a href="#community">Community</a></li>
           <li><a href="#projects">Projects</a></li>
           <li><a href="#games">Games</a></li>
           <li><a href="#contact">Contact</a></li>
+          <li><a href="#community">Community</a></li>
         </ul>
         <button class="theme-toggle" type="button" aria-pressed="false">
           Dark mode
@@ -68,42 +70,6 @@
             <path d="M2 20 C 10 5, 25 5, 30 18 S 50 32, 58 15" />
           </svg>
           <p class="portrait-label">CS + creative stuff</p>
-        </div>
-      </section>
-
-      <section id="community" aria-labelledby="community-heading">
-        <div class="section-head reveal">
-          <p class="eyebrow">Community</p>
-          <h2 id="community-heading">Building community at CMU</h2>
-        </div>
-        <div class="community-list">
-          <article class="reveal expand-card">
-            <h3>Student Leader · Asian Christian Fellowship</h3>
-            <div class="card-details">
-              <div class="card-details-inner">
-                <p>Supporting a student-led Christian community that brings together college students in Pittsburgh for fellowship, worship, Bible study, and care for one another.</p>
-                <a href="https://acfpcc.org/">Learn about ACF <span aria-hidden="true">→</span></a>
-              </div>
-            </div>
-          </article>
-          <article class="reveal expand-card">
-            <h3>President · Inter-Fellowship Association</h3>
-            <div class="card-details">
-              <div class="card-details-inner">
-                <p>Leading an organization that connects Christian fellowships at CMU through campus-wide activities, service, and inter-fellowship collaboration.</p>
-                <a href="https://cmuifa.com/">Learn about IFA <span aria-hidden="true">→</span></a>
-              </div>
-            </div>
-          </article>
-          <article class="reveal expand-card">
-            <h3>Design Chair · CMIMC</h3>
-            <div class="card-details">
-              <div class="card-details-inner">
-                <p>Led design for the Carnegie Mellon Informatics and Mathematics Competition from 2024 to 2026, a student-run organization that hosts math and computer science competitions for high school students worldwide.</p>
-                <a href="https://cmimc.math.cmu.edu/">Learn about CMIMC <span aria-hidden="true">→</span></a>
-              </div>
-            </div>
-          </article>
         </div>
       </section>
 
@@ -332,6 +298,42 @@
           <a href="https://www.aprilgong.com/">Art portfolio <span aria-hidden="true">→</span></a>
         </div>
       </section>
+
+      <section id="community" aria-labelledby="community-heading">
+        <div class="section-head reveal">
+          <p class="eyebrow">Community</p>
+          <h2 id="community-heading">Building community at CMU</h2>
+        </div>
+        <div class="community-list">
+          <article class="reveal expand-card">
+            <h3>Student Leader · Asian Christian Fellowship</h3>
+            <div class="card-details">
+              <div class="card-details-inner">
+                <p>Supporting a student-led Christian community that brings together college students in Pittsburgh for fellowship, worship, Bible study, and care for one another.</p>
+                <a href="https://acfpcc.org/">Learn about ACF <span aria-hidden="true">→</span></a>
+              </div>
+            </div>
+          </article>
+          <article class="reveal expand-card">
+            <h3>President · Inter-Fellowship Association</h3>
+            <div class="card-details">
+              <div class="card-details-inner">
+                <p>Leading an organization that connects Christian fellowships at CMU through campus-wide activities, service, and inter-fellowship collaboration.</p>
+                <a href="https://cmuifa.com/">Learn about IFA <span aria-hidden="true">→</span></a>
+              </div>
+            </div>
+          </article>
+          <article class="reveal expand-card">
+            <h3>Design Chair · CMIMC</h3>
+            <div class="card-details">
+              <div class="card-details-inner">
+                <p>Led design for the Carnegie Mellon Informatics and Mathematics Competition from 2024 to 2026, a student-run organization that hosts math and computer science competitions for high school students worldwide.</p>
+                <a href="https://cmimc.math.cmu.edu/">Learn about CMIMC <span aria-hidden="true">→</span></a>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
     </main>
 
     <footer>
@@ -340,7 +342,10 @@
         Image credits: header photo supplied by April Gong; Bobtutor photo from
         <a href="https://bobtutor.org/">bobtutor.org</a>; game artwork from
         <a href="https://aprilg.itch.io/">April’s itch.io games</a>. Organization
-        descriptions are based on the linked ACF, IFA, and CMIMC websites.
+        descriptions are based on the linked ACF, IFA, and CMIMC websites. Background
+        music: Debussy’s “Clair de Lune” performed by Gregor Quendel, courtesy of
+        <a href="https://www.classicals.de/">classicals.de</a>, used under a
+        CC BY-NC 4.0 license.
       </p>
       <!--
         AI assistance note: an AI coding assistant helped draft the initial HTML,
@@ -348,5 +353,13 @@
         the projects, and directed the revisions for this personal portfolio.
       -->
     </footer>
+
+    <div class="music-widget" id="music-widget" role="button" tabindex="0" aria-pressed="false" aria-label="Play music">
+      <span class="music-drag-hint" id="music-drag-hint" aria-hidden="true">drag me ✥</span>
+      <img class="music-guy-img" src="assets/little-guy.gif" alt="" draggable="false" />
+      <button class="music-mute" type="button" aria-pressed="false" aria-label="Mute music">🔊</button>
+      <input class="music-volume" type="range" min="0" max="1" step="0.05" value="0.6" aria-label="Music volume" />
+      <audio id="bg-music" src="assets/music.mp3" loop preload="none"></audio>
+    </div>
   </body>
 </html>
