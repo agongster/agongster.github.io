@@ -79,7 +79,7 @@ if (!prefersReducedMotion) {
     for (let i = 0; i < 70; i++) {
       const star = document.createElement("span");
       star.className = "star";
-      const size = 1 + Math.random() * 2;
+      const size = 1.5 + Math.random() * 2.5;
       star.style.left = `${(Math.random() * 100).toFixed(2)}%`;
       star.style.top = `${(Math.random() * 100).toFixed(2)}%`;
       star.style.width = `${size.toFixed(1)}px`;
@@ -89,23 +89,44 @@ if (!prefersReducedMotion) {
       starFragment.appendChild(star);
     }
     starsBg.appendChild(starFragment);
+
+    // A handful of shooting stars that streak by rarely, each on its own long loop
+    const shootingFragment = document.createDocumentFragment();
+    for (let i = 0; i < 4; i++) {
+      const shootingStar = document.createElement("span");
+      shootingStar.className = "shooting-star";
+      const dx = 30 + Math.random() * 25; // vw
+      const dy = 12 + Math.random() * 20; // vh
+      const rot = (Math.atan2(dy, dx) * 180) / Math.PI;
+      const duration = 7 + Math.random() * 9;
+      shootingStar.style.top = `${(Math.random() * 55).toFixed(1)}%`;
+      shootingStar.style.left = `${(Math.random() * 55).toFixed(1)}%`;
+      shootingStar.style.width = `${(70 + Math.random() * 60).toFixed(0)}px`;
+      shootingStar.style.setProperty("--dx", `${dx.toFixed(1)}vw`);
+      shootingStar.style.setProperty("--dy", `${dy.toFixed(1)}vh`);
+      shootingStar.style.setProperty("--rot", `${rot.toFixed(1)}deg`);
+      shootingStar.style.animationDuration = `${duration.toFixed(1)}s`;
+      shootingStar.style.animationDelay = `${(-Math.random() * duration).toFixed(1)}s`;
+      shootingFragment.appendChild(shootingStar);
+    }
+    starsBg.appendChild(shootingFragment);
   }
 
   const petalsBg = document.getElementById("petals-bg");
   if (petalsBg) {
-    const petalColors = ["#ffd3e6", "#ffb8d6", "#ffe8f0", "#ffc2da"];
+    const petalColors = ["#ff9dc4", "#ff7fb3", "#ffbcd9", "#ff8fc7"];
     const petalFragment = document.createDocumentFragment();
-    for (let i = 0; i < 22; i++) {
+    for (let i = 0; i < 26; i++) {
       const petal = document.createElement("span");
       petal.className = `petal${Math.random() < 0.5 ? " drift-b" : ""}`;
-      const size = 10 + Math.random() * 10;
+      const size = 14 + Math.random() * 14;
       const duration = 9 + Math.random() * 10;
       petal.style.left = `${(Math.random() * 100).toFixed(2)}%`;
       petal.style.width = `${size.toFixed(0)}px`;
       petal.style.height = `${size.toFixed(0)}px`;
       petal.style.animationDuration = `${duration.toFixed(1)}s`;
       petal.style.animationDelay = `${(-Math.random() * duration).toFixed(1)}s`;
-      petal.style.opacity = (0.35 + Math.random() * 0.3).toFixed(2);
+      petal.style.opacity = (0.65 + Math.random() * 0.3).toFixed(2);
       const color = petalColors[Math.floor(Math.random() * petalColors.length)];
       petal.innerHTML = `<svg viewBox="0 0 20 28" aria-hidden="true"><ellipse cx="10" cy="14" rx="9" ry="13" fill="${color}" /></svg>`;
       petalFragment.appendChild(petal);
@@ -200,12 +221,24 @@ if (musicWidget) {
   const volumeSlider = musicWidget.querySelector(".music-volume");
   audio.volume = Number(volumeSlider.value);
 
-  // Show a "drag me" hint every visit: fades out on its own after a few
-  // seconds, or immediately once the visitor actually starts dragging.
+  // Show a hint every visit that cycles between "drag me" and "click me for
+  // music": fades out on its own after a few seconds, or immediately once
+  // the visitor actually drags the cat or clicks it to start the music.
+  const dragHint = document.getElementById("music-drag-hint");
+  const hintMessages = ["drag me ✥", "♪ click for music"];
+  let hintMessageIndex = 0;
+  let hintCycleTimer = null;
+  if (dragHint) {
+    hintCycleTimer = setInterval(() => {
+      hintMessageIndex = (hintMessageIndex + 1) % hintMessages.length;
+      dragHint.textContent = hintMessages[hintMessageIndex];
+    }, 2200);
+  }
   function hideDragHint() {
     musicWidget.classList.add("hint-hidden");
+    clearInterval(hintCycleTimer);
   }
-  setTimeout(hideDragHint, 5000);
+  setTimeout(hideDragHint, 7500);
 
   function setPlaying(isPlaying) {
     musicWidget.classList.toggle("is-playing", isPlaying);
@@ -214,6 +247,7 @@ if (musicWidget) {
   }
 
   function togglePlay() {
+    hideDragHint();
     if (audio.paused) {
       audio.play().catch(() => {});
       setPlaying(true);
