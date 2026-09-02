@@ -76,7 +76,7 @@ if (!prefersReducedMotion) {
   const starsBg = document.getElementById("stars-bg");
   if (starsBg) {
     const starFragment = document.createDocumentFragment();
-    for (let i = 0; i < 70; i++) {
+    for (let i = 0; i < 48; i++) {
       const star = document.createElement("span");
       star.className = "star";
       const size = 1.5 + Math.random() * 2.5;
@@ -116,7 +116,7 @@ if (!prefersReducedMotion) {
   if (petalsBg) {
     const petalColors = ["#ff9dc4", "#ff7fb3", "#ffbcd9", "#ff8fc7"];
     const petalFragment = document.createDocumentFragment();
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 17; i++) {
       const petal = document.createElement("span");
       petal.className = `petal${Math.random() < 0.5 ? " drift-b" : ""}`;
       const size = 14 + Math.random() * 14;
