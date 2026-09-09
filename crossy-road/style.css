@@ -1,0 +1,267 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: linear-gradient(180deg, #3a2150 0%, #7a3b5e 45%, #ff7e5f 78%, #ffb37a 100%);
+  font-family: 'Baloo 2', 'Segoe UI', sans-serif;
+}
+
+#game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+#gameCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#death-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0;
+  background: transparent;
+}
+
+/* ── HUD ───────────────────────────── */
+
+#hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 18px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+#score {
+  font-size: 3.4rem;
+  font-weight: 800;
+  color: #ffffff;
+  -webkit-text-stroke: 3px #2b2b2b;
+  paint-order: stroke fill;
+  text-shadow: 0 4px 0 rgba(0,0,0,0.15);
+  line-height: 1;
+}
+
+#best-badge {
+  margin-top: 4px;
+  background: rgba(0,0,0,0.35);
+  color: #ffe082;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 4px 14px;
+  border-radius: 20px;
+}
+
+/* ── Overlays ──────────────────────── */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(70,25,45,0.55) 0%, rgba(35,12,30,0.8) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  z-index: 10;
+  text-align: center;
+}
+
+.title-wrap h1 {
+  font-size: 3.2rem;
+  font-weight: 800;
+  color: #ffcc33;
+  -webkit-text-stroke: 3px #7a3b00;
+  paint-order: stroke fill;
+  text-shadow: 0 6px 0 rgba(0,0,0,0.35);
+  letter-spacing: 1px;
+}
+
+.pause-title {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #ffcc33;
+  -webkit-text-stroke: 3px #7a3b00;
+  paint-order: stroke fill;
+  text-shadow: 0 6px 0 rgba(0,0,0,0.35);
+  letter-spacing: 1px;
+}
+
+.secondary-btn {
+  background: rgba(255,255,255,0.14);
+  border: 2px solid rgba(255,255,255,0.3);
+  box-shadow: none;
+  color: #fff;
+  -webkit-text-stroke: 0;
+  padding: 12px 40px;
+}
+
+.secondary-btn:hover {
+  background: rgba(255,255,255,0.24);
+}
+
+.secondary-btn:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.go-title {
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: #ff6b6b;
+  -webkit-text-stroke: 3px #5a0000;
+  paint-order: stroke fill;
+  text-shadow: 0 6px 0 rgba(0,0,0,0.35);
+  animation: goPop 0.5s cubic-bezier(.2,1.6,.4,1) both;
+}
+
+@keyframes goPop {
+  0%   { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+  55%  { transform: scale(1.15) rotate(4deg); opacity: 1; }
+  80%  { transform: scale(0.95) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.controls-info {
+  background: rgba(255,255,255,0.12);
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 14px;
+  padding: 14px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.swipe-hint {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: #cfd8dc;
+  font-weight: 500;
+}
+
+.difficulty-select {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.difficulty-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #ffd8b0;
+}
+
+.diff-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.diff-btn {
+  font-family: 'Baloo 2', sans-serif;
+  padding: 8px 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background 0.15s, border-color 0.15s, transform 0.08s;
+}
+
+.diff-btn:hover {
+  background: rgba(255,255,255,0.22);
+  transform: none;
+}
+
+.diff-btn.active {
+  background: linear-gradient(180deg, #ffb15e 0%, #f07a3d 100%);
+  border-color: #ffdca8;
+  color: #4a2200;
+  -webkit-text-stroke: 0;
+}
+
+.go-scores {
+  display: flex;
+  gap: 16px;
+}
+
+.go-score-box {
+  background: rgba(255,255,255,0.12);
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 14px;
+  padding: 10px 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 90px;
+}
+
+.go-label {
+  font-size: 0.85rem;
+  color: #cfd8dc;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.go-score-box span:last-child {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #ffe082;
+}
+
+button {
+  font-family: 'Baloo 2', sans-serif;
+  padding: 14px 46px;
+  font-size: 1.3rem;
+  font-weight: 800;
+  border: none;
+  border-radius: 40px;
+  background: linear-gradient(180deg, #8bd53a 0%, #5fa626 100%);
+  color: #fff;
+  -webkit-text-stroke: 1.5px #2f5c0e;
+  paint-order: stroke fill;
+  cursor: pointer;
+  box-shadow: 0 6px 0 #3f7a15, 0 10px 18px rgba(0,0,0,0.35);
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
+
+button:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #3f7a15, 0 4px 10px rgba(0,0,0,0.35);
+}
+
+.hidden {
+  display: none !important;
+}

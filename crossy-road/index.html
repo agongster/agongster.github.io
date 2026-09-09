@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Crossy Road</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    <div id="death-flash"></div>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+      <div id="score">0</div>
+      <div id="best-badge">🏆 <span id="best">0</span></div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="overlay">
+      <div class="title-wrap">
+        <h1>Crossy Road</h1>
+      </div>
+      <div class="controls-info">
+        <div>⬆️ / W &nbsp;Forward</div>
+        <div>⬇️ / S &nbsp;Back</div>
+        <div>⬅️➡️ / A D &nbsp;Strafe</div>
+        <div class="swipe-hint">or swipe on mobile</div>
+        <div class="swipe-hint">Esc to pause</div>
+      </div>
+      <div class="difficulty-select" id="difficulty-select">
+        <span class="difficulty-label">Difficulty</span>
+        <div class="diff-btns">
+          <button class="diff-btn" data-diff="easy">Easy</button>
+          <button class="diff-btn" data-diff="normal">Normal</button>
+          <button class="diff-btn" data-diff="hard">Hard</button>
+        </div>
+      </div>
+      <button id="start-btn">Play</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="overlay hidden">
+      <h1 class="go-title">Game Over</h1>
+      <div class="go-scores">
+        <div class="go-score-box">
+          <span class="go-label">Score</span>
+          <span id="final-score">0</span>
+        </div>
+        <div class="go-score-box">
+          <span class="go-label">Best</span>
+          <span id="final-best">0</span>
+        </div>
+      </div>
+      <button id="restart-btn">Play Again</button>
+    </div>
+
+    <!-- Pause Screen -->
+    <div id="pause-screen" class="overlay hidden">
+      <h1 class="pause-title">Paused</h1>
+      <button id="resume-btn">Resume</button>
+      <button id="pause-restart-btn" class="secondary-btn">Restart</button>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
