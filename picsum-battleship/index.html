@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Picture Battleship: Grid Hunter — a 2-player local guessing game built with the keyless Picsum Photos API."
+    />
+    <title>Picture Battleship: Grid Hunter | April Gong</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="battleship-page">
+    <header class="site-header">
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="wordmark" href="../index.html#projects">&larr; April Gong</a>
+        <span class="page-title">Picture Battleship: Grid Hunter</span>
+        <button class="theme-toggle" type="button" aria-pressed="false">🌙 Night mode</button>
+      </nav>
+    </header>
+
+    <main class="battleship-main">
+      <section class="game-intro">
+        <p class="eyebrow">Browser Game</p>
+        <h1>Picture Battleship: Grid Hunter</h1>
+        <p class="game-blurb">
+          Two players share this screen. You secretly build the puzzle your opponent has to
+          solve — pick their real target photo and 7 decoys from a pool of 20 pulled from the
+          keyless <a href="https://picsum.photos/" target="_blank" rel="noopener">Picsum Photos API</a>
+          and hide a fleet of ships on their 12x12 board — while they do the same for you.
+          There's no ammo to pick: misses reveal a maximally blurry grayscale glimpse, ship
+          hits are a little clearer, and a fully sunk ship is clearer still — always at least
+          a little blurry. A hit keeps your turn going; a miss passes it. Take turns firing on
+          your own board until you can name the hidden photo.
+        </p>
+      </section>
+
+      <section class="game-shell" aria-label="Game">
+        <div class="scoreboard">
+          <div class="player-badge" id="player1-badge" data-player="0">
+            <span class="player-name">Player 1</span>
+            <span class="player-score" id="player1-score">0</span>
+          </div>
+          <div class="round-turn-info">
+            <p class="turn-indicator" id="turn-indicator">Setting up&hellip;</p>
+          </div>
+          <div class="player-badge" id="player2-badge" data-player="1">
+            <span class="player-name">Player 2</span>
+            <span class="player-score" id="player2-score">0</span>
+          </div>
+        </div>
+
+        <p class="status-banner" id="status-banner" role="status" aria-live="polite">Loading images from Picsum&hellip;</p>
+
+        <!-- Pass-device interstitial between setup phases -->
+        <div class="pass-gate" id="pass-gate" hidden>
+          <h2 id="pass-gate-heading">Pass the device</h2>
+          <p id="pass-gate-desc"></p>
+          <button type="button" class="action-btn" id="pass-gate-continue-btn">I&rsquo;m ready</button>
+        </div>
+
+        <!-- Setup: opponent's board (candidate curation + ship placement) -->
+        <div class="setup-panel" id="setup-panel" hidden>
+          <h2 id="setup-heading"></h2>
+
+          <div class="setup-step" id="setup-step-candidates">
+            <h3>Step 1 &middot; Pick the target &amp; decoys</h3>
+            <p class="setup-hint" id="candidate-hint">
+              Click a photo below to make it the real target your opponent has to guess.
+            </p>
+            <div class="candidate-pool" id="candidate-pool-grid"></div>
+            <div class="setup-actions">
+              <span class="setup-progress" id="decoy-count-label">No target chosen yet</span>
+              <button type="button" class="restart-btn" id="auto-pick-decoys-btn">Auto-pick</button>
+              <button type="button" class="action-btn" id="candidates-next-btn" disabled>Next: Place Ships</button>
+            </div>
+          </div>
+
+          <div class="setup-step" id="setup-step-ships" hidden>
+            <h3>Step 2 &middot; Deploy your opponent&rsquo;s fleet</h3>
+            <p class="setup-hint">
+              Your fleet starts placed randomly. <strong>Drag</strong> a ship to move it, or
+              <strong>click</strong> one (without dragging) to rotate it in place. If your
+              opponent lands a shot on one of your ships, <strong>you</strong> lose points
+              &mdash; so spread them out.
+            </p>
+            <div class="ship-tray" id="ship-tray"></div>
+            <div class="grid-wrap">
+              <div class="placement-grid" id="placement-grid" aria-label="Ship placement grid, 12 by 12"></div>
+            </div>
+            <div class="setup-actions">
+              <button type="button" class="restart-btn" id="shuffle-ships-btn">Shuffle Ships</button>
+              <button type="button" class="action-btn" id="confirm-setup-btn" disabled>Confirm Setup</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Play: firing on your own board -->
+        <div class="play-panel" id="play-panel" hidden>
+          <div class="grid-wrap">
+            <div class="tile-grid" id="tile-grid" aria-label="Hidden image grid, 12 by 12 tiles"></div>
+          </div>
+
+          <div class="turn-actions" id="turn-actions">
+            <button type="button" class="action-btn guess-btn" id="guess-btn" disabled>Guess Now</button>
+            <button type="button" class="action-btn pass-btn" id="pass-btn" disabled>Pass Turn</button>
+          </div>
+
+          <div class="guess-panel" id="guess-panel" hidden>
+            <h2>Which image is it?</h2>
+            <div class="guess-candidates" id="guess-candidates"></div>
+          </div>
+        </div>
+
+        <div class="game-controls">
+          <button type="button" class="restart-btn" id="restart-btn">Restart Game</button>
+        </div>
+      </section>
+
+      <section class="rules-panel">
+        <h2>How to play</h2>
+        <ul>
+          <li><strong>Setup:</strong> you build your opponent's board &mdash; choose their real target photo plus 7 decoys from a pool of 20, then rearrange your fleet (Cruiser 3, Destroyer 3, Frigate 2, Submarine 2, Corvette 2, Scout 1), which starts randomly placed on their 12x12 grid. Drag a ship to move it, or click one to rotate it. They build yours the same way.</li>
+          <li><strong>Fire:</strong> on your turn, click any tile on your own board. There's no ammo to choose &mdash; a <strong>miss</strong> reveals a maximally blurry grayscale glimpse, a <strong>ship hit</strong> reveals a slightly clearer (still grayscale) glimpse, and a <strong>fully sunk ship</strong> stays grayscale but gets sharper still &mdash; it's always at least a little blurry.</li>
+          <li>If your shot lands on one of your opponent's hidden ships, <strong>they</strong> lose points, and the tile shakes.</li>
+          <li><strong>A hit earns another shot</strong> &mdash; keep firing until you miss. After any shot, either <strong>Guess Now</strong> from your 8 candidates or continue. Correct guess: <strong>+100</strong> minus 2 per tile revealed so far. Wrong guess: <strong>&minus;20</strong>, and your turn ends regardless of your streak.</li>
+          <li>Once your board is solved (or fully revealed with no correct guess), you sit out while your opponent keeps going. The game ends when both boards are resolved. Highest score wins!</li>
+        </ul>
+      </section>
+    </main>
+
+    <div class="modal-overlay" id="victory-modal" hidden>
+      <div class="confetti-layer" id="confetti-layer" aria-hidden="true"></div>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="victory-title">
+        <h2 id="victory-title">Game Over</h2>
+        <p class="victory-result" id="victory-result"></p>
+        <div class="victory-scores" id="victory-scores"></div>
+        <button type="button" class="action-btn" id="play-again-btn">Play Again</button>
+      </div>
+    </div>
+
+    <script src="game.js" defer></script>
+  </body>
+</html>
