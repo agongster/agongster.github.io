@@ -59,7 +59,8 @@
 .player-score { font-family: "Caveat", cursive; font-size: 2.1rem; font-weight: 700; line-height: 1; }
 
 .round-turn-info { text-align: center; }
-.turn-indicator { margin: 0; font-family: "Caveat", cursive; font-size: 1.5rem; font-weight: 700; }
+.round-indicator { margin: 0; color: var(--muted); font-size: .85rem; font-weight: 700; }
+.turn-indicator { margin: .15rem 0 0; font-family: "Caveat", cursive; font-size: 1.5rem; font-weight: 700; }
 
 .status-banner {
   text-align: center;

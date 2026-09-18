@@ -31,14 +31,14 @@
         <p class="eyebrow">Browser Game</p>
         <h1>Picture Battleship: Grid Hunter</h1>
         <p class="game-blurb">
-          Two players share this screen. You secretly build the puzzle your opponent has to
-          solve — pick their real target photo and 7 decoys from a pool of 20 pulled from the
-          keyless <a href="https://picsum.photos/" target="_blank" rel="noopener">Picsum Photos API</a>
-          and hide a fleet of ships on their 12x12 board — while they do the same for you.
-          There's no ammo to pick: misses reveal a maximally blurry grayscale glimpse, ship
-          hits are a little clearer, and a fully sunk ship is clearer still — always at least
-          a little blurry. A hit keeps your turn going; a miss passes it. Take turns firing on
-          your own board until you can name the hidden photo.
+          Two players share this screen. Over 3 rounds, you secretly build the puzzle your
+          opponent has to solve — choose their 8 candidate photos from a pool of 20 pulled from
+          the keyless <a href="https://picsum.photos/" target="_blank" rel="noopener">Picsum Photos API</a>,
+          pick which one is the real target, and hide a fleet of ships on their 12x12 board —
+          while they do the same for you. There's no ammo to pick: misses reveal a maximally
+          blurry grayscale glimpse, ship hits are a little clearer, and a fully sunk ship is
+          clearer still — always at least a little blurry. A hit keeps your turn going; a miss
+          passes it. Each round ends the moment either of you guesses correctly, so be quick.
         </p>
       </section>
 
@@ -49,6 +49,7 @@
             <span class="player-score" id="player1-score">0</span>
           </div>
           <div class="round-turn-info">
+            <p class="round-indicator" id="round-indicator">Round 1 of 3</p>
             <p class="turn-indicator" id="turn-indicator">Setting up&hellip;</p>
           </div>
           <div class="player-badge" id="player2-badge" data-player="1">
@@ -70,21 +71,37 @@
         <div class="setup-panel" id="setup-panel" hidden>
           <h2 id="setup-heading"></h2>
 
-          <div class="setup-step" id="setup-step-candidates">
-            <h3>Step 1 &middot; Pick the target &amp; decoys</h3>
-            <p class="setup-hint" id="candidate-hint">
-              Click a photo below to make it the real target your opponent has to guess.
+          <div class="setup-step" id="setup-step-pool">
+            <h3>Step 1 &middot; Choose 8 candidate photos</h3>
+            <p class="setup-hint" id="pool-hint">
+              Click 8 photos below. Your opponent will guess from these 8 &mdash; you'll pick
+              which one is the real target next.
             </p>
             <div class="candidate-pool" id="candidate-pool-grid"></div>
             <div class="setup-actions">
-              <span class="setup-progress" id="decoy-count-label">No target chosen yet</span>
-              <button type="button" class="restart-btn" id="auto-pick-decoys-btn">Auto-pick</button>
-              <button type="button" class="action-btn" id="candidates-next-btn" disabled>Next: Place Ships</button>
+              <span class="setup-progress" id="pool-count-label">0 / 8 selected</span>
+              <button type="button" class="restart-btn" id="auto-pick-pool-btn">Auto-pick</button>
+              <button type="button" class="action-btn" id="pool-next-btn" disabled>Next: Choose Target</button>
+            </div>
+          </div>
+
+          <div class="setup-step" id="setup-step-target" hidden>
+            <h3>Step 2 &middot; Choose the target</h3>
+            <p class="setup-hint" id="target-hint">
+              Click one of your 8 photos to make it the real target your opponent has to guess.
+              The other 7 become decoys.
+            </p>
+            <div class="candidate-pool" id="target-pick-grid"></div>
+            <div class="setup-actions">
+              <button type="button" class="restart-btn" id="target-back-btn">&larr; Back</button>
+              <span class="setup-progress" id="target-status-label">No target chosen yet</span>
+              <button type="button" class="restart-btn" id="auto-pick-target-btn">Auto-pick</button>
+              <button type="button" class="action-btn" id="target-next-btn" disabled>Next: Place Ships</button>
             </div>
           </div>
 
           <div class="setup-step" id="setup-step-ships" hidden>
-            <h3>Step 2 &middot; Deploy your opponent&rsquo;s fleet</h3>
+            <h3>Step 3 &middot; Deploy your opponent&rsquo;s fleet</h3>
             <p class="setup-hint">
               Your fleet starts placed randomly. <strong>Drag</strong> a ship to move it, or
               <strong>click</strong> one (without dragging) to rotate it in place. If your
@@ -127,11 +144,12 @@
       <section class="rules-panel">
         <h2>How to play</h2>
         <ul>
-          <li><strong>Setup:</strong> you build your opponent's board &mdash; choose their real target photo plus 7 decoys from a pool of 20, then rearrange your fleet (Cruiser 3, Destroyer 3, Frigate 2, Submarine 2, Corvette 2, Scout 1), which starts randomly placed on their 12x12 grid. Drag a ship to move it, or click one to rotate it. They build yours the same way.</li>
+          <li><strong>Setup:</strong> you build your opponent's board &mdash; click 8 candidate photos from a pool of 20, then pick which of those 8 is the real target (the rest become decoys), then rearrange your fleet (Cruiser 3, Destroyer 3, Frigate 2, Submarine 2, Corvette 2, Scout 1), which starts randomly placed on their 12x12 grid. Drag a ship to move it, or click one to rotate it. They build yours the same way.</li>
           <li><strong>Fire:</strong> on your turn, click any tile on your own board. There's no ammo to choose &mdash; a <strong>miss</strong> reveals a maximally blurry grayscale glimpse, a <strong>ship hit</strong> reveals a slightly clearer (still grayscale) glimpse, and a <strong>fully sunk ship</strong> stays grayscale but gets sharper still &mdash; it's always at least a little blurry.</li>
           <li>If your shot lands on one of your opponent's hidden ships, <strong>they</strong> lose points, and the tile shakes.</li>
           <li><strong>A hit earns another shot</strong> &mdash; keep firing until you miss. After any shot, either <strong>Guess Now</strong> from your 8 candidates or continue. Correct guess: <strong>+100</strong> minus 2 per tile revealed so far. Wrong guess: <strong>&minus;20</strong>, and your turn ends regardless of your streak.</li>
-          <li>Once your board is solved (or fully revealed with no correct guess), you sit out while your opponent keeps going. The game ends when both boards are resolved. Highest score wins!</li>
+          <li><strong>A round ends the instant either player guesses correctly</strong> &mdash; the other player doesn't get to finish their own board that round. If neither of you ever guesses right, the round ends once both boards are fully revealed instead.</li>
+          <li>The game runs 3 rounds, each with a fresh pair of boards. Highest total score after all 3 wins!</li>
         </ul>
       </section>
     </main>

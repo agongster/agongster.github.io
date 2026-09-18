@@ -32,10 +32,11 @@
 
   // ------------------------------------------------------------- constants
   const GRID_SIZE = 12;
+  const MAX_ROUNDS = 3;
   const CORRECT_BASE_POINTS = 100;
   const POINTS_LOST_PER_TILE = 2;
   const WRONG_GUESS_PENALTY = 20;
-  const NUM_DECOY_CHOICES = 7; // builder picks this many decoys, plus their chosen target = 8 shown to the solver
+  const NUM_CANDIDATES_TO_PICK = 8; // builder picks this many photos total; one of them becomes the target
   const POOL_SIZE = 20; // photos shown to the builder to pick a target + decoys from
   const SHIP_HIT_PENALTY = 10; // points the ship's owner (builder) loses per hit cell
   const SHAKE_DURATION_MS = 400;
@@ -68,6 +69,7 @@
     player2Score: document.getElementById("player2-score"),
     player1Badge: document.getElementById("player1-badge"),
     player2Badge: document.getElementById("player2-badge"),
+    roundIndicator: document.getElementById("round-indicator"),
     turnIndicator: document.getElementById("turn-indicator"),
     statusBanner: document.getElementById("status-banner"),
 
@@ -78,13 +80,20 @@
 
     setupPanel: document.getElementById("setup-panel"),
     setupHeading: document.getElementById("setup-heading"),
-    setupStepCandidates: document.getElementById("setup-step-candidates"),
+    setupStepPool: document.getElementById("setup-step-pool"),
+    setupStepTarget: document.getElementById("setup-step-target"),
     setupStepShips: document.getElementById("setup-step-ships"),
-    candidateHint: document.getElementById("candidate-hint"),
+    poolHint: document.getElementById("pool-hint"),
     candidatePoolGrid: document.getElementById("candidate-pool-grid"),
-    decoyCountLabel: document.getElementById("decoy-count-label"),
-    autoPickDecoysBtn: document.getElementById("auto-pick-decoys-btn"),
-    candidatesNextBtn: document.getElementById("candidates-next-btn"),
+    poolCountLabel: document.getElementById("pool-count-label"),
+    autoPickPoolBtn: document.getElementById("auto-pick-pool-btn"),
+    poolNextBtn: document.getElementById("pool-next-btn"),
+    targetHint: document.getElementById("target-hint"),
+    targetPickGrid: document.getElementById("target-pick-grid"),
+    targetStatusLabel: document.getElementById("target-status-label"),
+    targetBackBtn: document.getElementById("target-back-btn"),
+    autoPickTargetBtn: document.getElementById("auto-pick-target-btn"),
+    targetNextBtn: document.getElementById("target-next-btn"),
     shipTray: document.getElementById("ship-tray"),
     placementGrid: document.getElementById("placement-grid"),
     shuffleShipsBtn: document.getElementById("shuffle-ships-btn"),
@@ -126,6 +135,7 @@
         { name: "Player 1", score: 0 },
         { name: "Player 2", score: 0 },
       ],
+      round: 1,
       startingPlayerIdx: Math.random() < 0.5 ? 0 : 1,
       currentPlayerIdx: 0,
       boards: [freshBoard(), freshBoard()], // boards[i] is solved by player i, built by player (1 - i)
@@ -135,9 +145,9 @@
 
       // setup sub-state
       setupBuilderIdx: null, // which player is currently building (for the OTHER player's board)
-      setupTargetIndex: null, // pool index the builder has designated as the real target
-      setupSelectedDecoyIndices: null, // Set of pool indices chosen as decoys this build
-      setupRequiredDecoys: NUM_DECOY_CHOICES,
+      setupSelectedPoolIndices: null, // Set of pool indices chosen as the 8 candidates this build
+      setupRequiredPoolPicks: NUM_CANDIDATES_TO_PICK,
+      setupTargetIndex: null, // pool index the builder has designated as the real target (must be one of the 8)
       setupShipsPlaced: null, // [{ id, name, cells, orientation }] in progress
       setupArmedShipId: null,
     };
@@ -194,6 +204,7 @@
   function updateScoreboard() {
     el.player1Score.textContent = state.players[0].score;
     el.player2Score.textContent = state.players[1].score;
+    el.roundIndicator.textContent = `Round ${state.round} of ${MAX_ROUNDS}`;
   }
 
   function clearActiveBadges() {
@@ -247,15 +258,15 @@
 
   function startBuilderPhase(builderIdx) {
     state.setupBuilderIdx = builderIdx;
+    state.setupSelectedPoolIndices = new Set();
     state.setupTargetIndex = null;
-    state.setupSelectedDecoyIndices = new Set();
     state.setupShipsPlaced = randomFleetPlacement();
 
     const builderName = state.players[builderIdx].name;
     const solverName = state.players[otherPlayer(builderIdx)].name;
 
     el.passGateHeading.textContent = `Pass the device to ${builderName}`;
-    el.passGateDesc.textContent = `${builderName} will secretly build ${solverName}'s board: pick their real target photo, choose decoys, and hide a fleet on their grid. ${solverName}, don't peek!`;
+    el.passGateDesc.textContent = `${builderName} will secretly build ${solverName}'s board: pick their candidate photos, choose the target, and hide a fleet on their grid. ${solverName}, don't peek!`;
     showOnly("passGate");
     el.turnIndicator.textContent = `${builderName} is building ${solverName}'s board`;
     clearActiveBadges();
@@ -265,7 +276,7 @@
   el.passGateContinueBtn.addEventListener("click", () => {
     showOnly("setupPanel");
     el.setupPanel.hidden = false;
-    renderCandidateStep();
+    renderPoolStep();
   });
 
   // ------------------------------------------------- builder: candidates
@@ -274,36 +285,27 @@
     return state.boards[otherPlayer(state.setupBuilderIdx)];
   }
 
-  function renderCandidateStep() {
+  // ---- Step 1: choose 8 candidate photos from the pool ----
+
+  function renderPoolStep() {
     const board = targetBoard();
     const builderName = state.players[state.setupBuilderIdx].name;
     const solverName = state.players[otherPlayer(state.setupBuilderIdx)].name;
     el.setupHeading.textContent = `${builderName}: Build ${solverName}'s Board`;
-    el.setupStepCandidates.hidden = false;
+    el.setupStepPool.hidden = false;
+    el.setupStepTarget.hidden = true;
     el.setupStepShips.hidden = true;
 
-    if (state.setupTargetIndex === null) {
-      el.candidateHint.innerHTML = "Click a photo below to make it the <strong>real target</strong> your opponent has to guess.";
-    } else if (board.targetOk === null) {
-      el.candidateHint.textContent = "Loading the target image…";
-    } else {
-      const validDecoyCount = board.poolImages.filter((p, i) => i !== state.setupTargetIndex && p.ok).length;
-      state.setupRequiredDecoys = Math.max(0, Math.min(NUM_DECOY_CHOICES, validDecoyCount));
-      el.candidateHint.innerHTML = `The gold-starred photo is locked in as the target. Pick <strong>${state.setupRequiredDecoys}</strong> more decoys — ones that look similar make it harder to guess! (Click the target again to change your mind.)`;
-    }
+    const validCount = board.poolImages.filter((p) => p.ok).length;
+    state.setupRequiredPoolPicks = Math.max(0, Math.min(NUM_CANDIDATES_TO_PICK, validCount));
+    el.poolHint.innerHTML = `Click <strong>${state.setupRequiredPoolPicks}</strong> photos below. Your opponent will guess from these &mdash; you'll pick which one is the real target next.`;
 
     el.candidatePoolGrid.innerHTML = "";
     board.poolImages.forEach((entry, index) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "pool-thumb";
-      const isTarget = index === state.setupTargetIndex;
-      if (isTarget) {
-        btn.classList.add("is-target");
-        btn.setAttribute("aria-label", "Real target photo (click again to unset)");
-      } else {
-        btn.setAttribute("aria-label", `Candidate photo ${index + 1}`);
-      }
+      btn.setAttribute("aria-label", `Candidate photo ${index + 1}`);
       if (!entry.ok) {
         btn.classList.add("mode-error");
         btn.textContent = "Image\nunavailable";
@@ -311,41 +313,106 @@
       } else {
         btn.style.backgroundImage = `url("${thumbImageUrl(entry.id)}")`;
       }
-      if (isTarget) {
-        const star = document.createElement("span");
-        star.className = "target-star";
-        star.textContent = "★";
-        btn.appendChild(star);
-        if (board.targetOk === null) btn.classList.add("is-loading");
-      }
-      btn.addEventListener("click", () => onPoolThumbClick(index));
+      btn.addEventListener("click", () => togglePoolPick(index));
       el.candidatePoolGrid.appendChild(btn);
     });
 
-    updateCandidateSelectionUI();
+    updatePoolSelectionUI();
   }
 
-  function onPoolThumbClick(index) {
+  function togglePoolPick(index) {
     const board = targetBoard();
-    const entry = board.poolImages[index];
-    if (!entry.ok) return;
+    if (!board.poolImages[index].ok) return;
+    const selected = state.setupSelectedPoolIndices;
+    if (selected.has(index)) {
+      selected.delete(index);
+    } else if (selected.size < state.setupRequiredPoolPicks) {
+      selected.add(index);
+    }
+    updatePoolSelectionUI();
+  }
 
-    if (state.setupTargetIndex === index) {
-      // unset target
+  function updatePoolSelectionUI() {
+    const buttons = Array.from(el.candidatePoolGrid.children);
+    buttons.forEach((btn, index) => {
+      btn.classList.toggle("is-selected", state.setupSelectedPoolIndices.has(index));
+    });
+    const count = state.setupSelectedPoolIndices.size;
+    el.poolCountLabel.textContent = `${count} / ${state.setupRequiredPoolPicks} selected`;
+    el.poolNextBtn.disabled = state.setupRequiredPoolPicks === 0 || count < state.setupRequiredPoolPicks;
+  }
+
+  el.autoPickPoolBtn.addEventListener("click", () => {
+    const board = targetBoard();
+    const validIndices = board.poolImages.map((e, i) => ({ e, i })).filter(({ e }) => e.ok).map(({ i }) => i);
+    state.setupSelectedPoolIndices = new Set(shuffled(validIndices).slice(0, state.setupRequiredPoolPicks));
+    updatePoolSelectionUI();
+  });
+
+  el.poolNextBtn.addEventListener("click", () => {
+    // If the builder went Back and changed their 8 picks such that the
+    // previous target isn't one of them anymore, it can't stay selected.
+    if (state.setupTargetIndex !== null && !state.setupSelectedPoolIndices.has(state.setupTargetIndex)) {
+      const board = targetBoard();
       state.setupTargetIndex = null;
       board.targetId = null;
       board.targetOk = null;
-      state.setupSelectedDecoyIndices = new Set();
-      renderCandidateStep();
-      return;
     }
+    renderTargetStep();
+  });
+
+  // ---- Step 2: choose the target from the 8 selected photos ----
+
+  function renderTargetStep() {
+    const board = targetBoard();
+    el.setupStepPool.hidden = true;
+    el.setupStepTarget.hidden = false;
+    el.setupStepShips.hidden = true;
 
     if (state.setupTargetIndex === null) {
-      chooseTarget(index);
-      return;
+      el.targetHint.innerHTML = "Click one of your 8 photos to make it the real target your opponent has to guess. The other 7 become decoys.";
+    } else if (board.targetOk === null) {
+      el.targetHint.textContent = "Loading the target image…";
+    } else {
+      el.targetHint.innerHTML = "The gold-starred photo is locked in as the target. (Click it again to change your mind.)";
     }
 
-    toggleDecoy(index);
+    el.targetPickGrid.innerHTML = "";
+    Array.from(state.setupSelectedPoolIndices)
+      .sort((a, b) => a - b)
+      .forEach((index) => {
+        const entry = board.poolImages[index];
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "pool-thumb";
+        const isTarget = index === state.setupTargetIndex;
+        btn.classList.toggle("is-target", isTarget);
+        btn.setAttribute("aria-label", isTarget ? "Real target photo (click to unset)" : "Click to make this the real target");
+        btn.style.backgroundImage = `url("${thumbImageUrl(entry.id)}")`;
+        if (isTarget) {
+          const star = document.createElement("span");
+          star.className = "target-star";
+          star.textContent = "★";
+          btn.appendChild(star);
+          if (board.targetOk === null) btn.classList.add("is-loading");
+        }
+        btn.addEventListener("click", () => onTargetPick(index));
+        el.targetPickGrid.appendChild(btn);
+      });
+
+    updateTargetStepUI();
+  }
+
+  function onTargetPick(index) {
+    if (state.setupTargetIndex === index) {
+      const board = targetBoard();
+      state.setupTargetIndex = null;
+      board.targetId = null;
+      board.targetOk = null;
+      renderTargetStep();
+      return;
+    }
+    chooseTarget(index);
   }
 
   async function chooseTarget(index) {
@@ -353,65 +420,46 @@
     state.setupTargetIndex = index;
     board.targetId = board.poolImages[index].id;
     board.targetOk = null; // loading
-    state.setupSelectedDecoyIndices = new Set();
-    renderCandidateStep();
+    renderTargetStep();
 
     const ok = await preloadImage(targetImageUrl(board.targetId));
     // the builder may have changed their mind (or we moved to a different board) while this loaded
     if (state.setupTargetIndex === index && targetBoard() === board) {
       board.targetOk = ok;
-      renderCandidateStep();
+      renderTargetStep();
     }
   }
 
-  function toggleDecoy(index) {
+  function updateTargetStepUI() {
     const board = targetBoard();
-    if (index === state.setupTargetIndex) return;
-    if (!board.poolImages[index].ok) return;
-    const selected = state.setupSelectedDecoyIndices;
-    if (selected.has(index)) {
-      selected.delete(index);
-    } else if (selected.size < state.setupRequiredDecoys) {
-      selected.add(index);
-    }
-    updateCandidateSelectionUI();
-  }
-
-  function updateCandidateSelectionUI() {
-    const board = targetBoard();
-    const buttons = Array.from(el.candidatePoolGrid.children);
-    buttons.forEach((btn, index) => {
-      btn.classList.toggle("is-selected", state.setupSelectedDecoyIndices.has(index));
-    });
-    const count = state.setupSelectedDecoyIndices.size;
-    const targetChosen = state.setupTargetIndex !== null;
-    const targetReady = targetChosen && board.targetOk !== null;
-    el.decoyCountLabel.textContent = targetChosen ? `${count} / ${state.setupRequiredDecoys} decoys selected` : "No target chosen yet";
-    el.candidatesNextBtn.disabled = !targetReady || count < state.setupRequiredDecoys;
-  }
-
-  el.autoPickDecoysBtn.addEventListener("click", async () => {
-    let board = targetBoard();
     if (state.setupTargetIndex === null) {
-      const validIndices = board.poolImages.map((e, i) => ({ e, i })).filter(({ e }) => e.ok).map(({ i }) => i);
-      if (validIndices.length === 0) return;
-      const randomIndex = validIndices[Math.floor(Math.random() * validIndices.length)];
-      await chooseTarget(randomIndex);
-      board = targetBoard();
+      el.targetStatusLabel.textContent = "No target chosen yet";
+      el.targetNextBtn.disabled = true;
+    } else if (board.targetOk === null) {
+      el.targetStatusLabel.textContent = "Loading target image…";
+      el.targetNextBtn.disabled = true;
+    } else {
+      el.targetStatusLabel.textContent = "Target locked in";
+      el.targetNextBtn.disabled = false;
     }
-    const validDecoyIndices = board.poolImages
-      .map((entry, index) => ({ entry, index }))
-      .filter(({ entry, index }) => index !== state.setupTargetIndex && entry.ok)
-      .map(({ index }) => index);
-    state.setupSelectedDecoyIndices = new Set(shuffled(validDecoyIndices).slice(0, state.setupRequiredDecoys));
-    renderCandidateStep();
+  }
+
+  el.targetBackBtn.addEventListener("click", () => {
+    renderPoolStep();
   });
 
-  el.candidatesNextBtn.addEventListener("click", () => {
+  el.autoPickTargetBtn.addEventListener("click", () => {
+    const indices = Array.from(state.setupSelectedPoolIndices);
+    if (indices.length === 0) return;
+    const randomIndex = indices[Math.floor(Math.random() * indices.length)];
+    chooseTarget(randomIndex);
+  });
+
+  el.targetNextBtn.addEventListener("click", () => {
     const board = targetBoard();
-    const chosen = [board.poolImages[state.setupTargetIndex], ...Array.from(state.setupSelectedDecoyIndices).map((i) => board.poolImages[i])];
+    const chosen = Array.from(state.setupSelectedPoolIndices).map((i) => board.poolImages[i]);
     board.candidates = shuffled(chosen);
-    el.setupStepCandidates.hidden = true;
+    el.setupStepTarget.hidden = true;
     el.setupStepShips.hidden = false;
     renderShipStep();
   });
@@ -864,7 +912,7 @@
   });
 
   // Shared end-of-shot bookkeeping: checks for board exhaustion and a
-  // finished game, then either switches the active player or lets them
+  // finished round, then either switches the active player or lets them
   // keep firing on the same board (the "hit streak" rule).
   function resolveAfterShot(switchPlayer) {
     const board = currentBoard();
@@ -873,8 +921,13 @@
       showStatus(`${state.players[state.currentPlayerIdx].name}'s board is fully revealed with no correct guess.`);
     }
 
-    if (state.boards[0].resolved && state.boards[1].resolved) {
-      endGame();
+    // The round ends the instant either player guesses correctly — the other
+    // player doesn't get to finish their own board that round — or, if
+    // nobody ever guesses right, once both boards are fully revealed.
+    const someoneSolved = state.boards[0].solved || state.boards[1].solved;
+    const bothExhausted = state.boards[0].resolved && state.boards[1].resolved;
+    if (someoneSolved || bothExhausted) {
+      advanceRoundOrEndGame();
       return;
     }
 
@@ -892,6 +945,16 @@
       state.currentPlayerIdx = other;
     }
     startPlayerTurn();
+  }
+
+  function advanceRoundOrEndGame() {
+    if (state.round >= MAX_ROUNDS) {
+      endGame();
+      return;
+    }
+    state.round += 1;
+    state.startingPlayerIdx = otherPlayer(state.startingPlayerIdx);
+    beginSetup();
   }
 
   // ---------------------------------------------------------------- end
@@ -921,7 +984,7 @@
       el.victoryScores.appendChild(line);
     });
     spawnConfetti(winnerIdx !== null);
-    showStatus("Game over.");
+    showStatus(`Game over after ${MAX_ROUNDS} rounds.`);
     el.turnIndicator.textContent = "Game over";
     el.victoryModal.hidden = false;
   }
@@ -945,7 +1008,7 @@
   // -------------------------------------------------------------- restart
 
   function resetGame() {
-    const hasProgress = state.players.some((p) => p.score !== 0);
+    const hasProgress = state.round > 1 || state.players.some((p) => p.score !== 0);
     if (hasProgress && !state.gameOver) {
       const confirmed = window.confirm("Restart the game? Current scores and progress will be lost.");
       if (!confirmed) return;
