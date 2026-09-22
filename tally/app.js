@@ -224,7 +224,7 @@ $("login-form").addEventListener("submit", async (event) => {
   const form = new FormData(event.target);
   try {
     await signIn("/api/auth/login", {
-      username: form.get("username"),
+      email: form.get("email"),
       password: form.get("password"),
     });
     toast(`Welcome back, ${state.user.name}.`, "success");
@@ -238,7 +238,7 @@ $("register-form").addEventListener("submit", async (event) => {
   const form = new FormData(event.target);
   try {
     await signIn("/api/auth/register", {
-      username: form.get("username"),
+      email: form.get("email"),
       name: form.get("name"),
       password: form.get("password"),
     });
@@ -250,11 +250,11 @@ $("register-form").addEventListener("submit", async (event) => {
 
 $("demo-button").addEventListener("click", async () => {
   // A throwaway account so the page can be tried without signing up. The random
-  // suffix keeps repeat visits from colliding on the unique username index.
+  // suffix keeps repeat visits from colliding on the unique email index.
   const suffix = Math.random().toString(36).slice(2, 8);
   try {
     await signIn("/api/auth/register", {
-      username: `demo-${suffix}`,
+      email: `demo-${suffix}@tally.example`,
       name: "Demo User",
       password: `demo-${suffix}-password`,
     });
@@ -619,7 +619,7 @@ $("add-member-form").addEventListener("submit", async (event) => {
   try {
     await api(`/api/groups/${state.group.detail.id}/members`, {
       method: "POST",
-      body: { username: form.get("username") },
+      body: { email: form.get("email") },
     });
     event.target.reset();
     toast("Added to the group.", "success");
