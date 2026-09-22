@@ -76,6 +76,57 @@
               <input type="password" name="password" autocomplete="current-password" required />
             </label>
             <button class="button" type="submit">Sign in <span aria-hidden="true">&rarr;</span></button>
+            <p class="forgot-row">
+              <button type="button" class="link-button" id="forgot-link">Forgot your password?</button>
+            </p>
+          </form>
+
+          <!-- Step 1 of a reset: ask where to send the link. -->
+          <form class="stack" id="forgot-form" hidden>
+            <p class="hint">
+              Enter the email you signed up with and we'll send a link to choose a new
+              password.
+            </p>
+            <label>
+              Email
+              <input type="email" name="email" autocomplete="email" required />
+            </label>
+            <button class="button" type="submit">Send reset link <span aria-hidden="true">&rarr;</span></button>
+            <p class="forgot-row">
+              <button type="button" class="link-button" id="back-to-login">&larr; Back to sign in</button>
+            </p>
+          </form>
+
+          <!-- Step 2: reached by clicking the emailed link, which carries ?reset_token=. -->
+          <form class="stack" id="reset-form" hidden>
+            <p class="hint">Choose a new password for <strong id="reset-email">your account</strong>.</p>
+            <label>
+              New password
+              <input
+                type="password"
+                name="password"
+                autocomplete="new-password"
+                minlength="8"
+                maxlength="72"
+                required
+              />
+              <small>At least 8 characters.</small>
+            </label>
+            <label>
+              Confirm new password
+              <input
+                type="password"
+                name="confirm"
+                autocomplete="new-password"
+                minlength="8"
+                maxlength="72"
+                required
+              />
+            </label>
+            <button class="button" type="submit">Set new password <span aria-hidden="true">&rarr;</span></button>
+            <p class="forgot-row">
+              <button type="button" class="link-button" id="cancel-reset">&larr; Back to sign in</button>
+            </p>
           </form>
 
           <form class="stack" id="register-form" hidden>
@@ -119,6 +170,18 @@
             <h1 id="greeting">Hello</h1>
           </div>
           <button class="ghost-button" type="button" id="sign-out">Sign out</button>
+        </div>
+
+        <div class="verify-banner" id="verify-banner" hidden>
+          <span>
+            <strong>Confirm your email.</strong> We sent a link to
+            <span id="verify-address">your address</span>. It's how you'd get back in if you
+            ever forget your password.
+          </span>
+          <span class="verify-actions">
+            <button type="button" class="ghost-button tiny" id="resend-verification">Resend</button>
+            <button type="button" class="icon-button" id="dismiss-verify" aria-label="Hide this notice">&times;</button>
+          </span>
         </div>
 
         <div class="totals-row" id="totals-row"></div>

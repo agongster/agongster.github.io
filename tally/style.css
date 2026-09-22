@@ -244,6 +244,30 @@ input:focus-visible, select:focus-visible {
 
 .demo-hint { margin: 1.25rem 0 0; font-size: .85rem; color: var(--muted); }
 
+/* ---------- password reset + verification ---------- */
+
+.forgot-row { margin: .9rem 0 0; text-align: center; font-size: .88rem; }
+
+#forgot-form .hint,
+#reset-form .hint { margin-bottom: 1.25rem; }
+#reset-form .hint strong { color: var(--ink); }
+
+.verify-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  padding: .85rem 1.1rem;
+  border: 1px solid var(--accent-dark);
+  border-radius: .9rem;
+  background: var(--accent-soft);
+  font-size: .9rem;
+}
+.verify-banner strong { color: var(--accent-dark); }
+.verify-actions { display: flex; align-items: center; gap: .4rem; flex: none; }
+
 /* ---------- groups view ---------- */
 
 .view { padding-top: 2.5rem; }

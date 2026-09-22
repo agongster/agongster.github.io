@@ -197,18 +197,43 @@ function showView(name) {
 
 $("api-link").href = `${API_BASE}/docs`;
 
+/* The auth card shows exactly one of four panels. The two tabs cover sign-in and
+   registration; the other two are steps of a password reset and are reached by a
+   link or by arriving with a token in the URL, so neither gets a tab. */
+function showAuthPanel(panel) {
+  const onTab = panel === "login" || panel === "register";
+  $("tab-login").classList.toggle("is-active", panel === "login");
+  $("tab-register").classList.toggle("is-active", panel === "register");
+  $("tab-login").setAttribute("aria-selected", String(panel === "login"));
+  $("tab-register").setAttribute("aria-selected", String(panel === "register"));
+  // With no tab selected, leaving one looking active would be misleading.
+  $("tab-login").disabled = false;
+  $("tab-register").disabled = false;
+
+  $("login-form").hidden = panel !== "login";
+  $("register-form").hidden = panel !== "register";
+  $("forgot-form").hidden = panel !== "forgot";
+  $("reset-form").hidden = panel !== "reset";
+  $("demo-button").closest(".demo-hint").hidden = !onTab;
+}
+
 function selectTab(which) {
-  const loginActive = which === "login";
-  $("tab-login").classList.toggle("is-active", loginActive);
-  $("tab-register").classList.toggle("is-active", !loginActive);
-  $("tab-login").setAttribute("aria-selected", String(loginActive));
-  $("tab-register").setAttribute("aria-selected", String(!loginActive));
-  $("login-form").hidden = !loginActive;
-  $("register-form").hidden = loginActive;
+  showAuthPanel(which);
 }
 
 $("tab-login").addEventListener("click", () => selectTab("login"));
 $("tab-register").addEventListener("click", () => selectTab("register"));
+$("forgot-link").addEventListener("click", () => {
+  // Carry across whatever they already typed, so they don't retype it.
+  $("forgot-form").elements.email.value = $("login-form").elements.email.value;
+  showAuthPanel("forgot");
+  $("forgot-form").elements.email.focus();
+});
+$("back-to-login").addEventListener("click", () => showAuthPanel("login"));
+$("cancel-reset").addEventListener("click", () => {
+  clearTokenFromUrl();
+  showAuthPanel("login");
+});
 
 async function signIn(path, body) {
   const result = await api(path, { method: "POST", body, auth: false });
@@ -286,8 +311,162 @@ $("demo-button").addEventListener("click", async () => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Password reset and email verification
+// ---------------------------------------------------------------------------
+
+/** Strip the token out of the address bar once it has been used.
+
+    A reset link is a temporary key to the account. Leaving it in the URL means
+    it ends up in history, and in the referrer of anything the page later loads. */
+function clearTokenFromUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("reset_token");
+  url.searchParams.delete("verify_token");
+  window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+}
+
+let pendingResetToken = null;
+
+$("forgot-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const email = new FormData(event.target).get("email");
+  try {
+    const result = await api("/api/auth/forgot-password", {
+      method: "POST",
+      body: { email },
+      auth: false,
+    });
+    // The server says the same thing whether or not the address is registered,
+    // and so does this page — showing "no such account" here would undo that.
+    toast(result.detail, "success");
+    showAuthPanel("login");
+    $("login-form").elements.email.value = email;
+  } catch (error) {
+    toast(error.message, "error");
+  }
+});
+
+$("reset-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = new FormData(event.target);
+  const password = form.get("password");
+
+  if (password !== form.get("confirm")) {
+    toast("Those two passwords don't match.", "error");
+    return;
+  }
+
+  try {
+    const result = await api("/api/auth/reset-password", {
+      method: "POST",
+      body: { token: pendingResetToken, password },
+      auth: false,
+    });
+    // The reset signs them in, so there's no reason to make them type the
+    // password they just chose all over again.
+    localStorage.setItem(TOKEN_KEY, result.access_token);
+    state.user = result.user;
+    pendingResetToken = null;
+    clearTokenFromUrl();
+    event.target.reset();
+    await loadGroups();
+    showView("groups");
+    toast("Password updated. You're signed in.", "success");
+  } catch (error) {
+    toast(error.message, "error");
+    if (error.status === 400) {
+      // Expired or already used: a new link is the only way forward.
+      pendingResetToken = null;
+      clearTokenFromUrl();
+      showAuthPanel("forgot");
+    }
+  }
+});
+
+$("resend-verification").addEventListener("click", async () => {
+  try {
+    const result = await api("/api/auth/resend-verification", { method: "POST" });
+    toast(result.detail, "success");
+  } catch (error) {
+    toast(error.message, "error");
+  }
+});
+
+$("dismiss-verify").addEventListener("click", () => {
+  $("verify-banner").hidden = true;
+  // Per-browser convenience only; the server still knows it's unverified.
+  try {
+    localStorage.setItem("tally.verifyDismissed", "1");
+  } catch {
+    // Private browsing can refuse storage. Hiding it for this visit is enough.
+  }
+});
+
+function renderVerifyBanner() {
+  const banner = $("verify-banner");
+  if (!state.user || state.user.email_verified) {
+    banner.hidden = true;
+    return;
+  }
+  let dismissed = false;
+  try {
+    dismissed = localStorage.getItem("tally.verifyDismissed") === "1";
+  } catch {
+    dismissed = false;
+  }
+  $("verify-address").textContent = state.user.email;
+  banner.hidden = dismissed;
+}
+
+/** Handle a token in the query string on page load. */
+async function handleUrlToken() {
+  const params = new URLSearchParams(window.location.search);
+  const resetToken = params.get("reset_token");
+  const verifyToken = params.get("verify_token");
+
+  if (resetToken) {
+    // Don't check it with the server first: that would spend a single-use token
+    // before they have typed anything. Validity is decided on submit.
+    pendingResetToken = resetToken;
+    $("reset-email").textContent = "your account";
+    showView("auth");
+    showAuthPanel("reset");
+    $("reset-form").elements.password.focus();
+    return true;
+  }
+
+  if (verifyToken) {
+    clearTokenFromUrl();
+    try {
+      const user = await api("/api/auth/verify-email", {
+        method: "POST",
+        body: { token: verifyToken },
+        auth: false,
+      });
+      if (state.user && state.user.id === user.id) state.user = user;
+      try {
+        localStorage.removeItem("tally.verifyDismissed");
+      } catch {
+        // Nothing to clean up if storage is unavailable.
+      }
+      toast(`${user.email} confirmed. Thanks!`, "success");
+      renderVerifyBanner();
+    } catch (error) {
+      toast(error.message, "error");
+    }
+  }
+  return false;
+}
+
 $("sign-out").addEventListener("click", () => {
   localStorage.removeItem(TOKEN_KEY);
+  // Scoped to the account that dismissed it, not the browser.
+  try {
+    localStorage.removeItem("tally.verifyDismissed");
+  } catch {
+    // Storage can be unavailable; nothing to clean up in that case.
+  }
   state.user = null;
   state.groups = [];
   state.group = null;
@@ -307,6 +486,7 @@ async function loadGroups() {
 
 function renderGroups() {
   $("greeting").textContent = `Hello, ${state.user ? state.user.name : "there"}`;
+  renderVerifyBanner();
 
   // "Owed to you" and "you owe" are summed across groups here purely for
   // display; each group's own number came from the server.
@@ -860,11 +1040,23 @@ $("settle-form").addEventListener("submit", async (event) => {
 // ---------------------------------------------------------------------------
 
 (async function start() {
+  const params = new URLSearchParams(window.location.search);
+  const arrivingWithResetLink = params.has("reset_token");
+
   if (!getToken()) {
     showView("auth");
     // Nudge the sleeping Render instance now, so signing in isn't the thing
     // that has to wait for it.
     api("/api/health", { auth: false }).catch(() => {});
+    await handleUrlToken();
+    return;
+  }
+
+  if (arrivingWithResetLink) {
+    // Someone signed in on this browser clicked a reset link — most likely
+    // because they are locked out somewhere else, or someone else's session is
+    // still here. Reset takes priority over restoring that session.
+    await handleUrlToken();
     return;
   }
 
@@ -872,8 +1064,10 @@ $("settle-form").addEventListener("submit", async (event) => {
     state.user = await api("/api/auth/me");
     await loadGroups();
     showView("groups");
+    await handleUrlToken();
   } catch {
     // A stale token, or the server is unreachable — either way, show the form.
     showView("auth");
+    await handleUrlToken();
   }
 })();
