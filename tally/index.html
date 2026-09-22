@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Tally — a shared-expense tracker. Create a group, log what people paid for, and see who owes whom."
+    />
+    <title>Tally | April Gong</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="tally-page">
+    <header class="site-header">
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="wordmark" href="../index.html#projects">&larr; April Gong</a>
+        <span class="page-title">Tally</span>
+        <button class="theme-toggle" type="button" aria-pressed="false">🌙 Night mode</button>
+      </nav>
+    </header>
+
+    <main class="tally-main">
+      <!-- Shown while the Render free tier wakes from sleep. -->
+      <div class="wake-banner" id="wake-banner" hidden>
+        <span class="spinner" aria-hidden="true"></span>
+        <span
+          >Waking the server up&hellip; the backend sleeps when idle on Render's free tier, so
+          the first request takes up to a minute.</span
+        >
+      </div>
+
+      <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+      <!-- ============================ signed out ============================ -->
+      <section class="view" id="view-auth">
+        <div class="auth-intro">
+          <p class="eyebrow">Full-stack project</p>
+          <h1>Tally</h1>
+          <p class="blurb">
+            A shared-expense tracker for the awkward part of group trips. Make a group, log what
+            everyone paid for, split it evenly or by exact amounts, and Tally works out who owes
+            whom &mdash; then lets you mark it settled once the money actually moves.
+          </p>
+          <p class="blurb small">
+            A static page on GitHub Pages talking to a
+            <a id="api-link" href="#" target="_blank" rel="noopener">FastAPI backend on Render</a>,
+            backed by a Neon Postgres database. Accounts are real: passwords are hashed with bcrypt
+            on the server and never stored or sent back in plain text.
+          </p>
+        </div>
+
+        <div class="auth-card">
+          <div class="tabs" role="tablist" aria-label="Sign in or create an account">
+            <button class="tab is-active" id="tab-login" role="tab" aria-selected="true" type="button">
+              Sign in
+            </button>
+            <button class="tab" id="tab-register" role="tab" aria-selected="false" type="button">
+              Create account
+            </button>
+          </div>
+
+          <form class="stack" id="login-form">
+            <label>
+              Email
+              <input type="email" name="email" autocomplete="email" required />
+            </label>
+            <label>
+              Password
+              <input type="password" name="password" autocomplete="current-password" required />
+            </label>
+            <button class="button" type="submit">Sign in <span aria-hidden="true">&rarr;</span></button>
+          </form>
+
+          <form class="stack" id="register-form" hidden>
+            <label>
+              Name
+              <input type="text" name="name" autocomplete="name" maxlength="120" required />
+            </label>
+            <label>
+              Email
+              <input type="email" name="email" autocomplete="email" required />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                name="password"
+                autocomplete="new-password"
+                minlength="8"
+                maxlength="72"
+                required
+              />
+              <small>At least 8 characters.</small>
+            </label>
+            <button class="button" type="submit">
+              Create account <span aria-hidden="true">&rarr;</span>
+            </button>
+          </form>
+
+          <p class="demo-hint">
+            Just looking around? <button type="button" class="link-button" id="demo-button">Use a demo account</button>
+            &mdash; it creates a throwaway login and a sample group.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============================ group list ============================ -->
+      <section class="view" id="view-groups" hidden>
+        <div class="view-head">
+          <div>
+            <p class="eyebrow">Your groups</p>
+            <h1 id="greeting">Hello</h1>
+          </div>
+          <button class="ghost-button" type="button" id="sign-out">Sign out</button>
+        </div>
+
+        <div class="totals-row" id="totals-row"></div>
+
+        <div class="group-grid" id="group-grid"></div>
+
+        <form class="card new-group-card" id="new-group-form">
+          <h2>Start a group</h2>
+          <label>
+            Name
+            <input type="text" name="name" placeholder="Beach trip" maxlength="120" required />
+          </label>
+          <label>
+            Description <small>(optional)</small>
+            <input type="text" name="description" placeholder="Summer 2026" maxlength="500" />
+          </label>
+          <button class="button" type="submit">Create group <span aria-hidden="true">&rarr;</span></button>
+        </form>
+      </section>
+
+      <!-- =========================== group detail =========================== -->
+      <section class="view" id="view-group" hidden>
+        <div class="view-head">
+          <div>
+            <button type="button" class="link-button" id="back-to-groups">&larr; All groups</button>
+            <h1 id="group-name">Group</h1>
+            <p class="group-description" id="group-description"></p>
+          </div>
+          <button class="ghost-button danger" type="button" id="delete-group" hidden>Delete group</button>
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-main">
+            <section class="card">
+              <div class="card-head">
+                <h2>Who owes whom</h2>
+                <button class="ghost-button" type="button" id="settle-button">Settle up</button>
+              </div>
+              <div id="debts"></div>
+              <div class="balance-strip" id="balance-strip"></div>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Activity</h2>
+              </div>
+              <ul class="activity-list" id="activity-list"></ul>
+            </section>
+          </div>
+
+          <div class="detail-side">
+            <form class="card" id="expense-form">
+              <h2>Add an expense</h2>
+              <label>
+                What was it for?
+                <input type="text" name="description" placeholder="Dinner" maxlength="200" required />
+              </label>
+              <label>
+                Amount
+                <div class="amount-input">
+                  <span aria-hidden="true">$</span>
+                  <input type="number" name="amount" step="0.01" min="0.01" placeholder="0.00" required />
+                </div>
+              </label>
+              <label>
+                Paid by
+                <select name="paid_by" id="paid-by"></select>
+              </label>
+              <fieldset class="split-toggle">
+                <legend>Split</legend>
+                <label class="radio">
+                  <input type="radio" name="split_type" value="even" checked />
+                  Evenly
+                </label>
+                <label class="radio">
+                  <input type="radio" name="split_type" value="exact" />
+                  Exact amounts
+                </label>
+              </fieldset>
+              <div class="participants" id="participants"></div>
+              <p class="split-summary" id="split-summary"></p>
+              <button class="button" type="submit">Add expense <span aria-hidden="true">&rarr;</span></button>
+            </form>
+
+            <section class="card">
+              <h2>Members</h2>
+              <ul class="member-list" id="member-list"></ul>
+              <form class="inline-form" id="add-member-form">
+                <label class="sr-only" for="member-email">Email of the person to add</label>
+                <input
+                  type="email"
+                  id="member-email"
+                  name="email"
+                  placeholder="their@email.com"
+                  required
+                />
+                <button class="ghost-button" type="submit">Add</button>
+              </form>
+              <small class="hint">They need a Tally account first.</small>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============================ settle modal ============================ -->
+    <div class="modal-overlay" id="settle-modal" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settle-title">
+        <h2 id="settle-title">Record a payment</h2>
+        <p class="hint">
+          This doesn't move real money &mdash; it records that it already moved, and cancels out
+          that much debt.
+        </p>
+        <form class="stack" id="settle-form">
+          <label>
+            Who paid
+            <select name="from_user" id="settle-from"></select>
+          </label>
+          <label>
+            Who they paid
+            <select name="to_user" id="settle-to"></select>
+          </label>
+          <label>
+            Amount
+            <div class="amount-input">
+              <span aria-hidden="true">$</span>
+              <input type="number" name="amount" step="0.01" min="0.01" required />
+            </div>
+          </label>
+          <label>
+            Note <small>(optional)</small>
+            <input type="text" name="note" placeholder="Venmo" maxlength="200" />
+          </label>
+          <div class="modal-actions">
+            <button type="button" class="ghost-button" id="settle-cancel">Cancel</button>
+            <button class="button" type="submit">Record it <span aria-hidden="true">&rarr;</span></button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <footer class="tally-footer">
+      <p>
+        Built by April Gong &mdash;
+        <a href="https://github.com/agongster/tally-backend">backend code</a> ·
+        <a href="../index.html#projects">back to portfolio</a>
+      </p>
+    </footer>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>

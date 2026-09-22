@@ -312,6 +312,9 @@ h1 .accent-dot { color: var(--hero-accent); }
   padding: .6rem 0 0;
 }
 .card-details-inner p { color: var(--muted); }
+/* Cards that link to more than one place: keep the links on their own tight rows. */
+.card-details-inner p.card-links { margin-bottom: .35rem; }
+.card-details-inner p.card-links:last-child { margin-bottom: 0; }
 .expand-card:hover .card-details, .expand-card:focus-within .card-details, .expand-card.is-open .card-details {
   grid-template-rows: 1fr;
 }
