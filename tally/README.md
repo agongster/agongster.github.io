@@ -9,7 +9,7 @@ Open it at [tally/index.html](index.html), linked from the
 
 This folder is the **frontend only**. The API it talks to lives in a separate
 repository: **[agongster/tally-backend](https://github.com/agongster/tally-backend)**,
-deployed at `https://tally-backend.onrender.com` with a Neon Postgres database
+deployed at `https://tally-backend-lusl.onrender.com` with a Neon Postgres database
 behind it. That repo's README documents every endpoint.
 
 ## How it works

@@ -12,7 +12,7 @@
 
 // The deployed backend. Running the page from localhost automatically points at
 // a local uvicorn instead, so development doesn't hit the live database.
-const PRODUCTION_API = "https://tally-backend.onrender.com";
+const PRODUCTION_API = "https://tally-backend-lusl.onrender.com";
 const LOCAL_API = "http://127.0.0.1:8000";
 
 const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
