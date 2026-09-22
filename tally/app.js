@@ -236,15 +236,24 @@ $("login-form").addEventListener("submit", async (event) => {
 $("register-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = new FormData(event.target);
+  const email = form.get("email");
   try {
     await signIn("/api/auth/register", {
-      email: form.get("email"),
+      email,
       name: form.get("name"),
       password: form.get("password"),
     });
     toast(`Account created. Welcome, ${state.user.name}.`, "success");
   } catch (error) {
     toast(error.message, "error");
+    if (error.status === 409) {
+      // The address is already registered, which usually means they forgot.
+      // Move them to the sign-in form with the email already filled in, rather
+      // than leaving them on a form that will keep failing the same way.
+      selectTab("login");
+      $("login-form").elements.email.value = email;
+      $("login-form").elements.password.focus();
+    }
   }
 });
 
