@@ -68,8 +68,8 @@
 
           <form class="stack" id="login-form">
             <label>
-              Email
-              <input type="email" name="email" autocomplete="email" required />
+              Username
+              <input type="text" name="username" autocomplete="username" maxlength="30" required />
             </label>
             <label>
               Password
@@ -80,12 +80,23 @@
 
           <form class="stack" id="register-form" hidden>
             <label>
-              Name
+              Display name
               <input type="text" name="name" autocomplete="name" maxlength="120" required />
+              <small>Shown on expenses and balances &mdash; your real name works.</small>
             </label>
             <label>
-              Email
-              <input type="email" name="email" autocomplete="email" required />
+              Username
+              <input
+                type="text"
+                name="username"
+                autocomplete="username"
+                pattern="[A-Za-z0-9][A-Za-z0-9_\-]{2,29}"
+                minlength="3"
+                maxlength="30"
+                placeholder="ada_l"
+                required
+              />
+              <small>3&ndash;30 characters: letters, digits, underscores or hyphens. This is how friends add you to a group.</small>
             </label>
             <label>
               Password
@@ -207,12 +218,13 @@
               <h2>Members</h2>
               <ul class="member-list" id="member-list"></ul>
               <form class="inline-form" id="add-member-form">
-                <label class="sr-only" for="member-email">Email of the person to add</label>
+                <label class="sr-only" for="member-username">Username of the person to add</label>
                 <input
-                  type="email"
-                  id="member-email"
-                  name="email"
-                  placeholder="their@email.com"
+                  type="text"
+                  id="member-username"
+                  name="username"
+                  placeholder="their_username"
+                  maxlength="30"
                   required
                 />
                 <button class="ghost-button" type="submit">Add</button>
