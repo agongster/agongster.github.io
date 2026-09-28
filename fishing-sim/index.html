@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#2a1a2e" />
+  <title>Tiny Tides — a cozy sunset fishing sim</title>
+  <meta name="description" content="A cozy pixel-art fishing game: dress up your angler, catch 17 kinds of fish across a looping sunset, and spend your earnings on hats, buddies and better rods." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header id="hud">
+      <div class="hud-stats">
+        <span class="pill" title="Coins"><span class="coin-icon" aria-hidden="true"></span><span id="coins">0</span><span class="sr-only"> coins</span></span>
+        <span class="pill" title="Fish in your bucket"><span class="pail-icon" aria-hidden="true"></span><span id="bucket-count">0/6</span></span>
+        <span class="pill phase-pill" id="phase-pill" title="Time of day. Some fish only come out at certain times.">Golden hour</span>
+      </div>
+      <nav class="hud-buttons" aria-label="Menus">
+        <button class="btn" id="btn-bucket">Bucket</button>
+        <button class="btn" id="btn-shop">Shop</button>
+        <button class="btn" id="btn-dex">Fishdex</button>
+        <button class="btn icon-btn" id="btn-sound" aria-pressed="true" title="Sound on/off">
+          <span class="sound-on">Sound on</span><span class="sound-off">Sound off</span>
+        </button>
+      </nav>
+    </header>
+
+    <main id="stage" aria-label="Fishing dock. Hold to cast, tap when a fish bites, hold to reel.">
+      <canvas id="scene" width="320" height="180"></canvas>
+      <div id="prompt" aria-live="polite"></div>
+      <div id="toasts" aria-live="polite"></div>
+    </main>
+
+    <div id="action-row">
+      <button id="action-btn" class="btn big action">Hold to cast</button>
+      <p class="key-hint">or hold <kbd>Space</kbd> / click the water</p>
+      <p class="rotate-hint">Tip: turn your phone sideways for a bigger pond.</p>
+    </div>
+  </div>
+
+  <!-- Title -->
+  <div class="modal" id="modal-title" role="dialog" aria-modal="true" aria-labelledby="title-h" hidden>
+    <div class="panel title-panel">
+      <h1 id="title-h" class="logo">Tiny<br />Tides</h1>
+      <p class="tagline">a cozy little sunset fishing sim</p>
+      <div class="stack">
+        <button class="btn big" id="btn-continue" hidden>Keep fishing</button>
+        <button class="btn big" id="btn-new">New angler</button>
+      </div>
+      <details class="how">
+        <summary>How to play</summary>
+        <ol>
+          <li><b>Hold</b> anywhere on the water (or <kbd>Space</kbd>) to charge a cast. Let go to throw. Further casts reach bigger fish.</li>
+          <li>Wait. Little nibbles are fake-outs. When the bobber sinks and a <b>!</b> pops up, <b>tap fast</b>.</li>
+          <li>Reeling: <b>hold</b> to push the golden glow right, <b>let go</b> and it drifts left. Keep the fish inside the glow until the bar fills.</li>
+          <li>Sell your catch from the <b>Bucket</b>, then spend coins in the <b>Shop</b> on outfits, buddies, rods and bigger buckets.</li>
+          <li>The sky loops from golden hour to night. Some fish only come out at certain times. Fill the <b>Fishdex</b>!</li>
+        </ol>
+      </details>
+      <p class="fine">Made by April Gong · progress saves in this browser</p>
+      <button class="link-btn" id="btn-reset" hidden>Erase save</button>
+    </div>
+  </div>
+
+  <!-- Shop / character creator -->
+  <div class="modal" id="modal-shop" role="dialog" aria-modal="true" aria-labelledby="shop-h" hidden>
+    <div class="panel wide">
+      <header class="panel-head">
+        <h2 id="shop-h">Shop</h2>
+        <span class="pill"><span class="coin-icon" aria-hidden="true"></span><span class="coins-mirror">0</span></span>
+        <button class="close-btn" data-close aria-label="Close">X</button>
+      </header>
+      <div class="tabs" id="shop-tabs" role="tablist">
+        <button role="tab" data-shoptab="wardrobe" aria-selected="true">Wardrobe</button>
+        <button role="tab" data-shoptab="tackle" aria-selected="false">Tackle</button>
+      </div>
+
+      <section id="shop-wardrobe" class="wardrobe">
+        <div class="preview-col">
+          <canvas id="preview" width="64" height="44" aria-label="Your angler"></canvas>
+          <label class="name-field" id="name-field">
+            <span>Name</span>
+            <input id="name-input" maxlength="14" autocomplete="off" placeholder="Your name" />
+          </label>
+          <div id="try-on" class="try-on" aria-live="polite"></div>
+        </div>
+        <div class="items-col">
+          <div class="tabs small" id="cat-tabs" role="tablist"></div>
+          <div id="item-grid" class="item-grid"></div>
+        </div>
+      </section>
+
+      <section id="shop-tackle" class="tackle" hidden></section>
+
+      <footer class="panel-foot" id="creator-foot" hidden>
+        <button class="btn big" id="btn-begin">Start fishing!</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Bucket -->
+  <div class="modal" id="modal-bucket" role="dialog" aria-modal="true" aria-labelledby="bucket-h" hidden>
+    <div class="panel">
+      <header class="panel-head">
+        <h2 id="bucket-h">Bucket</h2>
+        <span class="pill"><span class="coin-icon" aria-hidden="true"></span><span class="coins-mirror">0</span></span>
+        <button class="close-btn" data-close aria-label="Close">X</button>
+      </header>
+      <div class="bucket-summary">
+        <span id="bucket-sub"></span>
+        <button class="btn" id="btn-sell-all">Sell all</button>
+      </div>
+      <ul id="bucket-list" class="bucket-list"></ul>
+    </div>
+  </div>
+
+  <!-- Fishdex -->
+  <div class="modal" id="modal-dex" role="dialog" aria-modal="true" aria-labelledby="dex-h" hidden>
+    <div class="panel wide">
+      <header class="panel-head">
+        <h2 id="dex-h">Fishdex</h2>
+        <span class="pill" id="dex-progress">0/0</span>
+        <button class="close-btn" data-close aria-label="Close">X</button>
+      </header>
+      <p class="dex-stats" id="dex-stats"></p>
+      <div id="dex-grid" class="dex-grid"></div>
+    </div>
+  </div>
+
+  <!-- Catch card -->
+  <div class="modal" id="modal-catch" role="dialog" aria-modal="true" aria-labelledby="catch-name" hidden>
+    <div class="panel catch-panel">
+      <div class="catch-rays"></div>
+      <span class="new-badge" id="catch-new">NEW!</span>
+      <img id="catch-img" class="pixel catch-img" alt="" />
+      <p class="rarity-tag" id="catch-rarity"></p>
+      <h2 id="catch-name"></h2>
+      <p class="catch-meta" id="catch-meta"></p>
+      <p class="catch-blurb" id="catch-blurb"></p>
+      <div class="catch-actions">
+        <button class="btn" id="catch-keep">Keep</button>
+        <button class="btn gold" id="catch-sell">Sell</button>
+        <button class="btn plain" id="catch-release">Release</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="sprites.js"></script>
+  <script src="audio.js"></script>
+  <script src="game.js"></script>
+  <script src="ui.js"></script>
+</body>
+</html>
