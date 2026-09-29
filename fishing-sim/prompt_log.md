@@ -153,3 +153,70 @@ the player cannot sell lebron james but they can keep him in the tank forever. a
 ### Changes I made myself
 
 > ✏️ TODO
+
+---
+
+## Session 7: mystery shadow while reeling (2026-09-29, Claude Code / Claude Opus 5.5)
+
+### Prompt 7 (verbatim)
+
+```
+the player should not be able to see the fish when they are catching it, keep it like a generic shadow figure while catching the fish
+```
+
+### What the AI did in response
+
+- **Mystery shadow:** the chase panel now draws a generic dark fish shadow instead of the fish's sprite. It deliberately doesn't use the fish's own silhouette, which would still give some away (especially LeBron). Its size scales with rarity to match the shadows in the water. The real fish is revealed when it arcs onto the dock.
+- **Dead code:** removed the leftover `miniFish` helper from the tension-reel era.
+- **Dev bug found while testing:** "Win reel" set the catch bar to exactly 100%, but the game drains the bar before checking for a catch. So it only worked when the fish happened to be inside the net. The AI's first theory was that the test script was flaky; state logging showed the real cause. The button now triggers the catch directly.
+
+### Changes I made myself
+
+> ✏️ TODO
+
+---
+
+## Session 8: boat customization (2026-09-29, Claude Code / Claude Opus 5.5)
+
+### Prompt 8 (verbatim)
+
+```
+the user should also be able to customize their boat in the shop
+```
+
+### What the AI did in response
+
+- **Boat tab:** added a Boat tab to the shop with five parts, defined in `BOAT_PARTS` in `data.js`:
+  - Hull colour (up to a 1,500-coin solid gold hull with a moving glint)
+  - Stripe colour
+  - Sail design (stripes, heart, star, fish, rainbow)
+  - Flag (pennant, heart, pirate, fish)
+  - Decor (potted fern, flower box, rubber duck, string lights that glow at night)
+- **Try before you buy:** same as the wardrobe, with a live preview of your angler in the boat with the sail up.
+- **Where the boat shows:** tied up at the home dock, at every boat location, while sailing (with your chosen sail), and as the marker on the sea chart. Old saves get the default boat, and invalid parts are reset.
+- **Thumbnails:** the first version showed the whole boat at thumbnail size, so small decorations were unreadable. Each thumbnail now zooms in on the part that item changes.
+- **Phone bug found while testing:** on phones the dev panel sat on top of menus and covered the "Start fishing!" button. It now sits underneath menus.
+
+### Changes I made myself
+
+> ✏️ TODO
+
+---
+
+## Session 9: silly boat styles (2026-09-29, Claude Code / Claude Opus 5.5)
+
+### Prompt 9 (verbatim)
+
+```
+i want the boat base to have more unique options, like a duck parade boat or a swan, or other random silly options
+```
+
+### What the AI did in response
+
+- **Styles:** added a "Style" part to the boat with nine options: rowboat, cardboard box (soggy at the bottom), banana, watermelon slice, clawfoot bathtub (bubbles and a dripping faucet), teacup on a saucer (steam included), giant sneaker, swan boat, and duck parade (a big rubber duck with three ducklings bobbing behind).
+- **How they're drawn:** each style has a back half (behind the angler) and a front half (in front), all built around the same rim line, so sails, flags and decorations work on every one.
+- **Colours:** hull and stripe colours paint the rowboat, bathtub, teacup and sneaker. For the other styles the shop explains that the style has its own colours. The rubber-duck decoration moves over on the swan and duck boats so it doesn't sit on their heads.
+
+### Changes I made myself
+
+> ✏️ TODO

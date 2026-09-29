@@ -7,7 +7,7 @@ const SAVE_KEY = 'tiny-tides-save-v1';
 
 function freshSave() {
   return {
-    started: false, name: '', look: { ...DEFAULT_LOOK }, owned: [],
+    started: false, name: '', look: { ...DEFAULT_LOOK }, boat: { ...DEFAULT_BOAT }, owned: [],
     coins: 0, bucket: [], aquarium: [], dex: {}, rod: 'twig', rods: ['twig'], bucketLvl: 0, tankLvl: 0,
     location: 'dock', unlocked: ['dock'], newSpot: false,
     clock: 0, muted: false, nextUid: 1,
@@ -25,6 +25,7 @@ function loadSave() {
   if (data && typeof data === 'object') {
     Object.assign(s, data);
     s.look = { ...DEFAULT_LOOK, ...(data.look || {}) };
+    s.boat = { ...DEFAULT_BOAT, ...(data.boat || {}) };
     s.stats = { ...freshSave().stats, ...(data.stats || {}) };
   }
   return sanitizeSave(s);
@@ -34,6 +35,9 @@ function loadSave() {
 function sanitizeSave(s) {
   for (const cat of Object.keys(COSMETICS)) {
     if (!COSMETICS[cat].some(i => i.id === s.look[cat])) s.look[cat] = DEFAULT_LOOK[cat];
+  }
+  for (const cat of Object.keys(BOAT_PARTS)) {
+    if (!BOAT_PARTS[cat].some(i => i.id === s.boat[cat])) s.boat[cat] = DEFAULT_BOAT[cat];
   }
   const inRange = (v, arr, dflt) => (Number.isInteger(v) && v >= 0 && v < arr.length ? v : dflt);
   s.look.skin = inRange(s.look.skin, SKIN_TONES, DEFAULT_LOOK.skin);
@@ -1310,8 +1314,15 @@ function drawPlatform(g, pal, loc) {
     drawAnglerInScene(g);
     drawRod(g);
     drawBoatFront(g, bx, by, pal);
+    drawBoatExtras(g, bx, by, pal, save.boat, { lightsFrom: { x: bx + 6, y: by - 25 } });
   } else {
     drawDock(g, pal);
+    // your boat, tied up at the dock until you unlock somewhere to sail
+    const mx = -2, my = 160 + Math.round(Math.sin(G.time * 1.6) * 0.8);
+    drawBoatBack(g, mx, my);
+    drawBoatFront(g, mx, my, pal);
+    drawBoatExtras(g, mx, my, pal, save.boat, { lightsFrom: { x: mx + 6, y: my - 12 } });
+    curve(g, mx + 78, my - 2, 100, 152, 94, 141, '#e8d0a0');
     drawLantern(g, 20, 92, 126, pal);
     drawBucketProp(g, 40, 122);
     drawBuddy(g, 66);
@@ -1354,30 +1365,309 @@ function drawLantern(g, x, top, bottom, pal) {
   rect(g, x, top - 1, 2, 1, OUTLINE);
 }
 
-// The far side of the boat, drawn behind the angler.
-function drawBoatBack(g, bx, by) {
-  rect(g, bx + 3, by - 5, 74, 2, '#6a3a2e');
-  rect(g, bx + 3, by - 3, 74, 3, '#4a2a26');
+const findBoatPart = (cat, id) => BOAT_PARTS[cat].find(i => i.id === id) || BOAT_PARTS[cat][0];
+
+function boatColors(boat = save.boat) {
+  const hullPart = findBoatPart('hull', boat.hull);
+  return {
+    hull: hullPart.color, hullDark: shade(hullPart.color, -0.22), shiny: !!hullPart.shiny,
+    trim: findBoatPart('trim', boat.trim).color, wood: '#a8603e',
+  };
 }
 
-// The near side of the hull, drawn in front so the angler stands *in* it.
-function drawBoatFront(g, bx, by, pal) {
-  const wood = '#a8603e', cream = '#fff4e0', red = '#e0566e', redDark = '#b83a55';
-  // prow rising at the right
-  for (let i = 0; i < 7; i++) rect(g, bx + 78 + i, by - 6 + i, 2, 8 - i, i < 2 ? wood : red);
-  rect(g, bx, by, 80, 1, wood);
-  rect(g, bx, by - 1, 80, 1, shade(wood, 0.25));
-  rect(g, bx, by + 1, 80, 2, cream);
-  for (let i = 0; i < 6; i++) {
-    const inset = i < 3 ? 0 : (i - 2) * 3;
-    rect(g, bx + inset + (i > 3 ? 1 : 0), by + 3 + i, 80 - inset * 2 + 4, 1, i > 3 ? redDark : red);
+// A bird-shaped body (swan and duck boats): a rounded hull under the rim line.
+function birdBody(g, bx, by, light, dark) {
+  for (let i = 0; i < 9; i++) {
+    const inset = i < 4 ? 0 : (i - 3) * 3;
+    rect(g, bx + inset, by - 1 + i, 86 - inset * 2, 1, i === 0 || i > 6 ? dark : light);
   }
-  rect(g, bx + 10, by + 4, 3, 2, cream);
-  rect(g, bx + 60, by + 4, 3, 2, cream);
-  // waterline: the bottom of the hull is under water
+  for (let k = 0; k < 4; k++) curve(g, bx + 14 + k * 11, by + 1, bx + 20 + k * 11, by + 5, bx + 27 + k * 11, by + 2, dark);
+}
+
+// Every boat style draws a back half (behind the angler) and a front half
+// (in front of them), always around the same rim line at y = by.
+const BOAT_STYLES = {
+  rowboat: {
+    back(g, bx, by) {
+      rect(g, bx + 3, by - 5, 74, 2, '#6a3a2e');
+      rect(g, bx + 3, by - 3, 74, 3, '#4a2a26');
+    },
+    front(g, bx, by, c) {
+      for (let i = 0; i < 7; i++) rect(g, bx + 78 + i, by - 6 + i, 2, 8 - i, i < 2 ? c.wood : c.hull);
+      rect(g, bx, by, 80, 1, c.wood);
+      rect(g, bx, by - 1, 80, 1, shade(c.wood, 0.25));
+      rect(g, bx, by + 1, 80, 2, c.trim);
+      for (let i = 0; i < 6; i++) {
+        const inset = i < 3 ? 0 : (i - 2) * 3;
+        rect(g, bx + inset + (i > 3 ? 1 : 0), by + 3 + i, 80 - inset * 2 + 4, 1, i > 3 ? c.hullDark : c.hull);
+      }
+      rect(g, bx + 10, by + 4, 3, 2, c.trim);
+      rect(g, bx + 60, by + 4, 3, 2, c.trim);
+    },
+  },
+  swan: {
+    back(g, bx, by) {
+      for (let i = 0; i < 10; i++) rect(g, bx + i * 2, by - 12 + i, 3, 12 - i, i % 2 ? '#fbf8ff' : '#d8d0e8');
+      rect(g, bx + 18, by - 4, 60, 4, '#cfc6de');
+    },
+    front(g, bx, by) {
+      const w = '#fbf8ff', s = '#d8d0e8', o = '#6a6080';
+      birdBody(g, bx, by, w, s);
+      for (let t = -1; t <= 3; t++) curve(g, bx + 74 + t, by, bx + 94 + t, by - 10, bx + 81 + t, by - 22, t < 0 || t > 2 ? o : w);
+      disc(g, bx + 84, by - 24, 4, o);
+      disc(g, bx + 84, by - 24, 3, w);
+      rect(g, bx + 87, by - 25, 4, 2, '#ff9a3c');
+      rect(g, bx + 86, by - 26, 1, 3, OUTLINE);
+      rect(g, bx + 84, by - 25, 1, 1, OUTLINE);
+      rect(g, bx + 82, by - 23, 1, 1, '#ff9ec4');
+    },
+  },
+  duck: {
+    back(g, bx, by) {
+      for (let i = 0; i < 6; i++) rect(g, bx + i, by - 7 + i, 3, 7 - i, '#f0c030');
+      rect(g, bx + 6, by - 4, 68, 4, '#e8b030');
+    },
+    front(g, bx, by) {
+      const y = '#ffd84a', s = '#e8b030';
+      birdBody(g, bx, by, y, s);
+      disc(g, bx + 82, by - 10, 7, '#8a6020');
+      disc(g, bx + 82, by - 10, 6, y);
+      rect(g, bx + 78, by - 13, 3, 1, '#fff3a0');
+      rect(g, bx + 87, by - 10, 7, 2, '#ff9a3c');
+      rect(g, bx + 87, by - 8, 6, 1, '#e07020');
+      rect(g, bx + 84, by - 14, 2, 2, OUTLINE);
+      rect(g, bx + 84, by - 14, 1, 1, '#ffffff');
+      // the ducklings, bobbing along behind
+      for (let i = 0; i < 3; i++) {
+        const dx = bx - 9 - i * 11, dy = by + 4 + Math.round(Math.sin(G.time * 4 + i * 1.3));
+        rect(g, dx - 4, dy - 2, 8, 4, '#8a6020'); rect(g, dx - 3, dy - 1, 6, 2, y);
+        rect(g, dx + 1, dy - 5, 4, 4, '#8a6020'); rect(g, dx + 2, dy - 4, 2, 2, y);
+        rect(g, dx + 4, dy - 3, 2, 1, '#ff9a3c'); rect(g, dx + 3, dy - 4, 1, 1, OUTLINE);
+      }
+    },
+  },
+  bathtub: {
+    back(g, bx, by) {
+      rect(g, bx + 3, by - 3, 76, 3, '#a8d8f0');
+      rect(g, bx + 1, by - 11, 2, 10, '#c0c8d8'); rect(g, bx + 1, by - 11, 7, 2, '#c0c8d8');
+      if (Math.floor(G.time * 2) % 3 === 0) rect(g, bx + 7, by - 8 + Math.floor((G.time * 16) % 6), 1, 1, '#a8d8f0');
+    },
+    front(g, bx, by, c) {
+      for (let i = 0; i < 9; i++) {
+        const x = bx + 8 + ((i * 17 + Math.floor(G.time * 3)) % 64);
+        disc(g, x, by - 3 + Math.round(Math.sin(G.time * 2 + i)), 2 + (i % 2), '#ffffff');
+      }
+      rect(g, bx + 1, by - 2, 80, 1, '#fbfbff');
+      rect(g, bx, by - 1, 82, 2, '#fbfbff');
+      for (let i = 0; i < 6; i++) {
+        const inset = i > 3 ? (i - 3) * 2 : 0;
+        rect(g, bx + inset, by + 1 + i, 82 - inset * 2, 1, i === 0 ? c.hullDark : c.hull);
+      }
+      for (const fx of [bx + 7, bx + 71]) { rect(g, fx, by + 6, 4, 2, '#ffd23f'); rect(g, fx - 1, by + 8, 6, 1, '#e0a020'); }
+    },
+  },
+  teacup: {
+    back(g, bx, by) {
+      rect(g, bx + 3, by - 3, 76, 3, '#b8743e');
+      rect(g, bx + 8, by - 3, 20, 1, '#d89a60');
+      for (let k = 0; k < 2; k++) {
+        const t = (G.time * 0.6 + k * 0.5) % 1;
+        curve(g, bx + 70 + k * 6, by - 4, bx + 66 + k * 6 + Math.sin(t * 6) * 3, by - 10 - t * 6, bx + 72 + k * 6, by - 16 - t * 8, `rgba(255,255,255,${(0.5 * (1 - t)).toFixed(2)})`);
+      }
+    },
+    front(g, bx, by, c) {
+      const china = '#fff8f0';
+      ellipse(g, bx + 41, by + 8, 50, 2, shade(china, -0.12));
+      ellipse(g, bx + 41, by + 7, 48, 1, china);
+      rect(g, bx - 7, by - 1, 7, 2, OUTLINE); rect(g, bx - 8, by + 1, 2, 4, OUTLINE); rect(g, bx - 7, by + 5, 7, 2, OUTLINE);
+      rect(g, bx - 6, by, 6, 1, china); rect(g, bx - 7, by + 1, 1, 4, china); rect(g, bx - 6, by + 5, 6, 1, china);
+      rect(g, bx, by - 2, 82, 1, '#ffd23f');
+      for (let i = 0; i < 8; i++) {
+        const inset = i < 3 ? 0 : Math.round((i - 2) * 2.5);
+        rect(g, bx + inset, by - 1 + i, 82 - inset * 2, 1, i === 2 || i === 3 ? c.hull : china);
+      }
+      for (let x = bx + 4; x < bx + 78; x += 7) rect(g, x, by + 2, 2, 1, c.trim === '#fff4e0' ? '#ffd23f' : c.trim);
+    },
+  },
+  banana: {
+    back(g, bx, by) { rect(g, bx + 12, by - 3, 60, 2, '#fff4c0'); },
+    front(g, bx, by) {
+      for (let x = 0; x <= 85; x++) {
+        const t = (x - 42.5) / 42.5;
+        const top = by - Math.round(t * t * 10);
+        let bottom = by + 7 - Math.round(t * t * 5);
+        if (bottom < top + 2) bottom = top + 2;
+        const tip = x < 3 || x > 82;
+        rect(g, bx + x, top, 1, bottom - top, tip ? '#6a4a2a' : '#ffe060');
+        if (!tip) { rect(g, bx + x, top, 1, 1, '#fff3a0'); rect(g, bx + x, bottom - 1, 1, 1, '#e0b830'); }
+        if (!tip && x % 13 === 5) rect(g, bx + x, top + 3, 1, 1, '#8a6a3a');
+      }
+      rect(g, bx + 84, by - 13, 2, 3, '#6a4a2a');
+    },
+  },
+  watermelon: {
+    back(g, bx, by) { rect(g, bx + 3, by - 3, 78, 2, '#ff7a86'); },
+    front(g, bx, by) {
+      for (let x = 0; x <= 85; x++) {
+        const t = (x - 42.5) / 42.5;
+        const depth = Math.max(1, Math.round(9 * Math.sqrt(Math.max(0, 1 - t * t))));
+        rect(g, bx + x, by - 1, 1, depth, '#ff5a6a');
+        rect(g, bx + x, by - 1, 1, 1, '#ff8a94');
+        rect(g, bx + x, by - 1 + depth, 1, 1, '#e8ffd8');
+        rect(g, bx + x, by + depth, 1, 2, x % 4 === 0 ? '#2f8a4a' : '#4aa860');
+        if (x % 8 === 4 && depth > 4) rect(g, bx + x, by + 1 + (x % 3), 1, 2, OUTLINE);
+      }
+    },
+  },
+  box: {
+    back(g, bx, by) {
+      for (let i = 0; i < 8; i++) {
+        rect(g, bx + 2 - i, by - 3 - i, 22, 1, '#b8844a');
+        rect(g, bx + 60 + i, by - 3 - i, 22, 1, '#b8844a');
+      }
+      rect(g, bx + 3, by - 3, 76, 3, '#6a4428');
+    },
+    front(g, bx, by) {
+      rect(g, bx + 1, by - 2, 80, 10, '#c8965a');
+      rect(g, bx + 1, by - 2, 80, 1, '#e0b07a');
+      rect(g, bx + 1, by + 5, 80, 3, '#9a6a3a');
+      rect(g, bx + 34, by - 2, 12, 7, '#e8d8a8');
+      for (const ax of [bx + 10, bx + 17]) {
+        rect(g, ax, by, 1, 1, '#5a3a2a'); rect(g, ax - 1, by + 1, 3, 1, '#5a3a2a'); rect(g, ax, by + 2, 1, 2, '#5a3a2a');
+      }
+      rect(g, bx + 58, by, 14, 4, '#e0566e'); rect(g, bx + 59, by + 1, 12, 2, '#f08a90');
+    },
+  },
+  sneaker: {
+    back(g, bx, by) { rect(g, bx + 28, by - 3, 34, 3, '#4a2a3a'); },
+    front(g, bx, by, c) {
+      const topAt = x => (x < 28 ? by - 6 : x < 60 ? by - 1 : by - 1 + Math.round(((x - 60) / 25) * 3));
+      for (let x = 0; x <= 85; x++) {
+        const top = topAt(x);
+        rect(g, bx + x, top, 1, by + 5 - top, c.hull);
+        rect(g, bx + x, top, 1, 1, shade(c.hull, 0.3));
+        rect(g, bx + x, by + 5, 1, 3, '#f4f4f4');
+        rect(g, bx + x, by + 8, 1, 1, x % 3 ? '#8a8a9a' : '#5a5a6a');
+      }
+      rect(g, bx + 2, by - 9, 3, 3, c.hullDark);
+      curve(g, bx + 8, by + 3, bx + 40, by - 3, bx + 72, by + 3, c.trim === '#fff4e0' ? '#ffffff' : c.trim);
+      curve(g, bx + 8, by + 2, bx + 40, by - 4, bx + 72, by + 2, c.trim === '#fff4e0' ? '#ffffff' : c.trim);
+      for (let k = 0; k < 4; k++) { rect(g, bx + 61 + k * 5, by, 3, 1, '#ffffff'); rect(g, bx + 62 + k * 5, by - 1, 1, 3, '#ffffff'); }
+    },
+  },
+};
+
+const boatStyle = boat => BOAT_STYLES[boat.base] || BOAT_STYLES.rowboat;
+
+// The far side of the boat, drawn behind the angler.
+function drawBoatBack(g, bx, by, boat = save.boat) {
+  boatStyle(boat).back(g, bx, by, boatColors(boat));
+}
+
+// The near side, drawn in front so the angler sits *in* it.
+function drawBoatFront(g, bx, by, pal, boat = save.boat) {
+  const c = boatColors(boat);
+  boatStyle(boat).front(g, bx, by, c);
+  if (c.shiny && findBoatPart('base', boat.base).usesColor) {
+    const sx = bx + ((Math.floor(G.time * 30) % 90) - 5);
+    if (sx > bx && sx < bx + 78) { rect(g, sx, by + 3, 1, 3, '#fffbe0'); rect(g, sx - 1, by + 4, 3, 1, '#fffbe0'); }
+  }
+  // waterline: the bottom of the boat is under water
   g.fillStyle = rgba(pal.water[0], 0.55);
   g.fillRect(bx - 2, by + 7, 90, 3);
   rect(g, bx - 4, by + 7 + Math.round(Math.sin(G.time * 2)), 94, 1, rgba(pal.refl, 0.4));
+}
+
+// Flags hang left from the pole, so column 0 is the edge nearest the pole.
+const FLAG_ART = {
+  pennant: { rows: ['rr.....', 'rrrr...', 'rrrrrr.', 'rrrr...', 'rr.....'], pal: { r: '#e0566e' } },
+  heart: { rows: ['wwwwwww', 'wppwppw', 'wpppppw', 'wwpppww', 'wwwpwww'], pal: { w: '#fff4e0', p: '#ff5c8a' } },
+  pirate: { rows: ['kkkkkkk', 'kkwwwkk', 'kkwkwkk', 'kkkwkkk', 'kwkkkwk'], pal: { k: '#2a1a2e', w: '#fff4e0' } },
+  fish: { rows: ['bbbbbbb', 'obooobb', 'ooooeob', 'obooobb', 'bbbbbbb'], pal: { b: '#7fb8e6', o: '#ff8a3c', e: OUTLINE } },
+};
+
+const SAIL_MOTIFS = {
+  heart: { rows: ['.hh.hh.', 'hhhhhhh', 'hhhhhhh', '.hhhhh.', '..hhh..', '...h...'], col: '#ff5c8a' },
+  star: { rows: ['...s...', '...s...', 'sssssss', '.sssss.', '..sss..', '.ss.ss.', 's.....s'], col: '#ffc83a' },
+  fish: { rows: ['..bbb...', 'f.bbbbb.', 'ffbbbbeb', 'f.bbbbb.', '..bbb...'], col: '#6aa8e0' },
+};
+
+function drawSail(g, bx, by, boat = save.boat) {
+  const { hull, trim } = boatColors(boat);
+  const cream = '#fff4e0';
+  const stripe = trim === cream ? hull : trim;
+  rect(g, bx + 40, by - 40, 2, 38, '#6a3a2e');
+  const top = by - 38, rows = 26;
+  const widthAt = i => Math.round(i * 0.8);
+  for (let i = 0; i < rows; i++) {
+    let col = cream;
+    if (boat.sail === 'plain' && i % 6 === 0) col = '#ffd27a';
+    if (boat.sail === 'stripes' && Math.floor(i / 3) % 2) col = stripe;
+    rect(g, bx + 42, top + i, widthAt(i), 1, col);
+  }
+  const motif = SAIL_MOTIFS[boat.sail];
+  if (motif) {
+    motif.rows.forEach((row, r) => {
+      const i = 13 + r;
+      for (let c = 0; c < row.length; c++) {
+        if (row[c] === '.' || 1 + c >= widthAt(i)) continue;
+        rect(g, bx + 43 + c, top + i, 1, 1, row[c] === 'e' ? OUTLINE : row[c] === 'f' ? shade(motif.col, -0.2) : motif.col);
+      }
+    });
+  }
+}
+
+// Flag, decorations and (while sailing) the sail.
+function drawBoatExtras(g, bx, by, pal, boat = save.boat, { sail = false, lightsFrom = null } = {}) {
+  if (sail) drawSail(g, bx, by, boat);
+  if (boat.flag !== 'none' && FLAG_ART[boat.flag]) {
+    const art = FLAG_ART[boat.flag];
+    rect(g, bx, by - 17, 1, 17, '#6a3a2e');
+    rect(g, bx, by - 18, 1, 1, '#ffd27a');
+    art.rows.forEach((row, r) => {
+      for (let c = 0; c < row.length; c++) {
+        const col = art.pal[row[c]];
+        if (!col) continue;
+        const wave = Math.round(Math.sin(G.time * 5 - c * 0.8) * 0.8);
+        rect(g, bx - 1 - c, by - 17 + r + wave, 1, 1, col);
+      }
+    });
+  }
+  switch (boat.decor) {
+    case 'fern':
+      rect(g, bx + 64, by - 4, 5, 4, '#c07850'); rect(g, bx + 64, by - 4, 5, 1, '#e09a68');
+      for (const [dx, h] of [[-3, 5], [0, 7], [3, 5], [2, 6]]) curve(g, bx + 66, by - 4, bx + 66 + dx / 2, by - 4 - h, bx + 66 + dx, by - 4 - h + 2, '#5aa860');
+      break;
+    case 'flowers':
+      rect(g, bx + 20, by - 3, 14, 3, '#8a5a3a'); rect(g, bx + 20, by - 3, 14, 1, '#b07a50');
+      ['#ff9ec4', '#fff3c4', '#ff8a6b', '#c79bf2', '#ff9ec4'].forEach((col, i) => {
+        rect(g, bx + 21 + i * 3, by - 5 - (i % 2), 2, 2, col);
+        rect(g, bx + 21 + i * 3, by - 3 - (i % 2), 1, 1, '#5aa860');
+      });
+      break;
+    case 'duck': {
+      const dx = ['swan', 'duck'].includes(boat.base) ? bx + 66 : bx + 80, dy = by - 10 + Math.round(Math.sin(G.time * 3) * 0.5);
+      rect(g, dx - 1, dy - 1, 6, 5, OUTLINE);
+      rect(g, dx, dy + 1, 4, 2, '#ffe070'); rect(g, dx + 2, dy, 2, 2, '#ffe070');
+      rect(g, dx + 4, dy + 1, 1, 1, '#ff9a3c'); rect(g, dx + 3, dy, 1, 1, OUTLINE);
+      break;
+    }
+    case 'lights': {
+      const from = lightsFrom || { x: bx + 6, y: by - 14 }, to = { x: bx + 80, y: by - 7 };
+      const cols = ['#ff6a7a', '#ffd23f', '#7ad0f0', '#8fe0a0'];
+      for (let i = 0; i <= 14; i++) {
+        const t = i / 14;
+        const x = lerp(from.x, to.x, t), y = lerp(from.y, to.y, t) + Math.sin(Math.PI * t) * 5;
+        rect(g, x, y, 1, 1, '#4a3a4a');
+        if (i % 2 === 0) {
+          const on = Math.sin(G.time * 3 + i) > -0.6;
+          rect(g, x, y + 1, 1, 1, on ? cols[(i / 2) % cols.length] : shade(cols[(i / 2) % cols.length], -0.3));
+          if (on && pal.lamp > 0.2) disc(g, x, y + 1, 2, rgba(cols[(i / 2) % cols.length], 0.25 * pal.lamp));
+        }
+      }
+      break;
+    }
+  }
 }
 
 function drawLampGlow(g, pal, loc) {
@@ -1529,16 +1819,6 @@ function drawExclaim(g, x, y, col = '#fff4e0') {
   rect(g, x - 1, y, 1, 6, col === '#fff4e0' ? '#ffd27a' : shade(col, 0.3));
 }
 
-const miniFishCache = new Map();
-function miniFish(sp, tint = null) {
-  const key = sp.id + (tint || '');
-  if (!miniFishCache.has(key)) {
-    const body = tint || sp.body || '#8a5a3a', fin = tint ? shade(tint, -0.2) : (sp.fin || '#6a4a3a');
-    miniFishCache.set(key, addOutline(mapCanvas(['t.bbb.', 'tbbbeb', 't.bbb.'], { t: fin, b: body, e: OUTLINE })));
-  }
-  return miniFishCache.get(key);
-}
-
 // The chase panel: a peek under the water with the fish and your net.
 function drawReel(g, pal) {
   const r = G.reel;
@@ -1577,14 +1857,9 @@ function drawReel(g, pal) {
   rect(g, nx - 2, ny, 5, 1, 'rgba(255,244,224,0.6)');
   rect(g, nx, ny - 2, 1, 5, 'rgba(255,244,224,0.6)');
 
-  // the fish (sprites face right; flip when it swims left)
-  const spr = fishSprite(r.sp);
+  // the fish stays a mystery: a generic shadow, bigger for rarer catches
   const fx = Math.round(px + r.fx), fy = Math.round(py + r.fy + Math.sin(G.time * 10) * 0.6);
-  g.save();
-  g.translate(fx, fy);
-  if (r.dir < 0) g.scale(-1, 1);
-  g.drawImage(spr, -Math.round(spr.width / 2), -Math.round(spr.height / 2));
-  g.restore();
+  drawMysteryShadow(g, fx, fy, SHADOW_SIZE[r.sp.rarity], r.dir);
   g.restore();
 
   // catch bar under the panel
@@ -1594,6 +1869,19 @@ function drawReel(g, pal) {
   const col = p < 0.5 ? lerpColor('#e0566e', '#ffd27a', p * 2) : lerpColor('#ffd27a', '#8fd19e', (p - 0.5) * 2);
   rect(g, px, by, Math.round(pw * p), 5, col);
   rect(g, px, by, Math.round(pw * p), 1, shade(col, 0.4));
+}
+
+function drawMysteryShadow(g, x, y, size, dir) {
+  const rx = Math.round(6 + size * 4), ry = Math.max(2, Math.round(rx * 0.42));
+  const col = 'rgba(20,10,40,0.6)';
+  const wag = Math.round(Math.sin(G.time * 12) * 1);
+  ellipse(g, x, y, rx, ry, col);
+  g.fillStyle = col;
+  for (let i = 0; i < 4; i++) {
+    const tx = x - dir * (rx + i);
+    g.fillRect(Math.round(tx) - (dir > 0 ? 0 : 0), y - 1 - i + wag, 1, 3 + i * 2);
+  }
+  g.fillRect(x - 2, y - ry - 1, 4, 1);
 }
 
 function landingPos() {
@@ -1638,9 +1926,7 @@ function drawSailing(g, pal) {
     const bx = Math.round(lerp(-60, W + 10, k)), by = 138 + Math.round(Math.sin(G.time * 3) * 1.2);
     for (let i = 0; i < 6; i++) rect(g, bx - 4 - i * 6, by + 8 + (i % 2), 4 - (i > 3 ? 2 : 0), 1, 'rgba(255,244,224,0.5)');
     drawBoatBack(g, bx, by);
-    // a little sail for the voyage
-    rect(g, bx + 40, by - 40, 2, 38, '#6a3a2e');
-    for (let i = 0; i < 26; i++) rect(g, bx + 42, by - 38 + i, Math.round(i * 0.8), 1, i % 6 === 0 ? '#ffd27a' : '#fff4e0');
+    drawSail(g, bx, by);
     const spr = anglerSprite(save.look, anglerFrame());
     g.drawImage(spr, bx + 22 - ANGLER_W / 2, by + 3 - ANGLER_FEET);
     if (save.look.buddy !== 'none') {
@@ -1648,6 +1934,7 @@ function drawSailing(g, pal) {
       g.drawImage(b, bx + 58, by + 4 - b.height);
     }
     drawBoatFront(g, bx, by, pal);
+    drawBoatExtras(g, bx, by, pal);
   }
   if (cover > 0) {
     g.fillStyle = `rgba(42,26,46,${clamp(cover, 0, 1).toFixed(2)})`;

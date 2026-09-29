@@ -64,7 +64,7 @@ function closeModal() {
   }
   if (openId === 'modal-title' || (openId === 'modal-shop' && shop.creator)) return;
   $('#' + openId).hidden = true;
-  if (openId === 'modal-shop') shop.trial = null;
+  if (openId === 'modal-shop') { shop.trial = null; boatShop.trial = null; }
   openId = null;
   Sound.sfx.click();
   if (returnFocus && document.contains(returnFocus)) returnFocus.focus({ preventScroll: true });
@@ -148,10 +148,13 @@ function renderShop() {
   $$('#shop-tabs [data-shoptab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.shoptab === shop.tab)));
   $('#shop-wardrobe').hidden = shop.tab !== 'wardrobe';
   $('#shop-tackle').hidden = shop.tab !== 'tackle';
+  $('#shop-boat').hidden = shop.tab !== 'boat';
   if (shop.tab === 'wardrobe') {
     renderCatTabs();
     renderItems();
     renderTryOn();
+  } else if (shop.tab === 'boat') {
+    renderBoatShop();
   } else {
     renderTackle();
   }
@@ -160,6 +163,7 @@ function renderShop() {
 $$('#shop-tabs [data-shoptab]').forEach(b => b.addEventListener('click', () => {
   shop.tab = b.dataset.shoptab;
   shop.trial = null;
+  boatShop.trial = null;
   Sound.sfx.click();
   renderShop();
 }));
@@ -345,6 +349,129 @@ $('#shop-tackle').addEventListener('click', e => {
     refreshHUD();
   }
 });
+
+// ================================================================== boat ==
+const boatShop = { cat: 'base', trial: null };
+const ownsBoatPart = (cat, id) => {
+  const item = BOAT_PARTS[cat].find(i => i.id === id);
+  return !!item && (item.price === 0 || save.owned.includes(`boat-${cat}:${id}`));
+};
+
+function previewBoat() {
+  const boat = { ...save.boat };
+  if (boatShop.trial) boat[boatShop.trial.cat] = boatShop.trial.id;
+  return boat;
+}
+
+const PREVIEW_PAL = { water: ['#7ac0d8', '#5aa0c8', '#3a80b0', '#2a5a8e'], refl: '#ffffff', lamp: 0 };
+
+// A little scene of a boat with its sail up; used for the preview and thumbnails.
+function paintBoatScene(g, boat, withAngler, withSail = true) {
+  g.imageSmoothingEnabled = false;
+  ['#ffd8c0', '#ffc8b0', '#ffb8a8', '#ffa8a0', '#f898a0'].forEach((col, i) => { g.fillStyle = col; g.fillRect(0, i * 9, 110, 9); });
+  for (let y = 45; y < 64; y += 3) { g.fillStyle = lerpColor('#7ac0d8', '#3a80b0', (y - 45) / 19); g.fillRect(0, y, 110, 3); }
+  const bx = 16, by = 50;
+  drawBoatBack(g, bx, by, boat);
+  if (withAngler) {
+    const t = performance.now() / 1000;
+    const spr = anglerSprite(save.look, { bob: Math.floor(t * 2) % 2 === 1, blink: (t % 3.7) < 0.12 });
+    g.drawImage(spr, bx + 22 - ANGLER_W / 2, by + 3 - ANGLER_FEET);
+  }
+  drawBoatFront(g, bx, by, PREVIEW_PAL, boat);
+  drawBoatExtras(g, bx, by, PREVIEW_PAL, boat, { sail: withSail, lightsFrom: { x: bx + 6, y: by - 14 } });
+}
+
+// Each thumbnail zooms in on the part of the boat that item changes.
+const BOAT_THUMB_CROP = {
+  base: { x: 0, y: 18, w: 110, h: 44 },
+  sail: { x: 44, y: 8, w: 44, h: 40 },
+  flag: { x: 2, y: 28, w: 32, h: 26 },
+  none: { x: 10, y: 26, w: 96, h: 34 },
+  fern: { x: 72, y: 32, w: 26, h: 22 },
+  flowers: { x: 30, y: 38, w: 30, h: 18 },
+  duck: { x: 84, y: 34, w: 22, h: 20 },
+  lights: { x: 10, y: 26, w: 96, h: 34 },
+};
+
+function boatThumb(boat, cat, id) {
+  return spriteDataUrl(`boat:${cat}:${JSON.stringify(boat)}`, () => {
+    const full = makeCanvas(110, 64);
+    paintBoatScene(full.getContext('2d'), boat, false, cat !== 'base');
+    const crop = BOAT_THUMB_CROP[cat === 'decor' ? id : cat] || BOAT_THUMB_CROP.none;
+    const c = makeCanvas(crop.w, crop.h);
+    c.getContext('2d').drawImage(full, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
+    return c;
+  });
+}
+
+function renderBoatShop() {
+  $('#boat-tabs').innerHTML = BOAT_TABS.map(t =>
+    `<button role="tab" data-boatcat="${t.id}" aria-selected="${t.id === boatShop.cat}">${t.label}</button>`).join('');
+  const cat = boatShop.cat;
+  $('#boat-grid').innerHTML = BOAT_PARTS[cat].map(item => {
+    const owned = ownsBoatPart(cat, item.id);
+    const using = save.boat[cat] === item.id;
+    const trying = boatShop.trial && boatShop.trial.cat === cat && boatShop.trial.id === item.id;
+    const pic = item.color ? `<span class="swatch-big" style="background:${item.color}"></span>`
+      : `<img src="${boatThumb({ ...save.boat, [cat]: item.id }, cat, item.id)}" alt="" />`;
+    const status = using ? '<span class="tag">on your boat</span>'
+      : owned ? '<span class="tag">owned</span>'
+      : `<span class="price ${save.coins < item.price ? 'cant' : ''}">${coinHTML(item.price)}</span>`;
+    return `<button class="item boat ${using ? 'wearing' : ''} ${trying ? 'previewing' : ''} ${owned ? '' : 'locked'}"
+      data-boatitem="${item.id}" aria-pressed="${using}">${pic}<span class="name">${item.name}</span>${status}</button>`;
+  }).join('');
+
+  const box = $('#boat-try');
+  const style = BOAT_PARTS.base.find(i => i.id === previewBoat().base);
+  const colourNote = ['hull', 'trim'].includes(cat) && !style.usesColor
+    ? `<div class="need">Your ${style.name.toLowerCase()} has its own colours, so this won't show on it.</div>` : '';
+  if (!boatShop.trial) { box.innerHTML = 'Tap anything to try it on your boat.' + colourNote; return; }
+  const item = BOAT_PARTS[boatShop.trial.cat].find(i => i.id === boatShop.trial.id);
+  const short = item.price - save.coins;
+  box.innerHTML = `Trying <b>${item.name}</b>` + (short > 0
+    ? `<div class="need">Need ${short} more coin${short === 1 ? '' : 's'}</div>`
+    : `<button class="btn gold" id="btn-buy-boat">Buy for ${coinHTML(item.price)}</button>`) + colourNote;
+  const buy = $('#btn-buy-boat');
+  if (buy) buy.addEventListener('click', () => {
+    const { cat: c, id } = boatShop.trial;
+    if (!spend(item.price)) return;
+    save.owned.push(`boat-${c}:${id}`);
+    save.boat[c] = id;
+    boatShop.trial = null;
+    persist();
+    toast(`Your boat got a new ${item.name.toLowerCase()}!`);
+    renderShop();
+  });
+}
+
+$('#boat-tabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-boatcat]');
+  if (!b) return;
+  boatShop.cat = b.dataset.boatcat;
+  Sound.sfx.click();
+  renderShop();
+});
+
+$('#boat-grid').addEventListener('click', e => {
+  const b = e.target.closest('[data-boatitem]');
+  if (!b) return;
+  const cat = boatShop.cat, id = b.dataset.boatitem;
+  if (ownsBoatPart(cat, id)) {
+    save.boat[cat] = id;
+    boatShop.trial = null;
+    persist();
+  } else {
+    const same = boatShop.trial && boatShop.trial.cat === cat && boatShop.trial.id === id;
+    boatShop.trial = same ? null : { cat, id };
+  }
+  Sound.sfx.click();
+  renderShop();
+});
+
+function drawBoatPreview() {
+  if (openId !== 'modal-shop' || shop.tab !== 'boat') return;
+  paintBoatScene($('#boat-preview').getContext('2d'), previewBoat(), true);
+}
 
 // The little animated angler in the wardrobe.
 function drawPreview() {
@@ -724,7 +851,7 @@ function drawMap() {
     }
     if (loc.id === save.location) {
       const bob = Math.round(Math.sin(t * 3));
-      R(x - 12, y + 5 + bob, 9, 3, '#e0566e'); R(x - 12, y + 5 + bob, 9, 1, '#fff4e0');
+      R(x - 12, y + 5 + bob, 9, 3, boatColors().hull); R(x - 12, y + 5 + bob, 9, 1, boatColors().trim);
       R(x - 8, y - 2 + bob, 1, 7, '#6a3a2e'); R(x - 7, y - 1 + bob, 3, 4, '#fff4e0');
     }
   }
@@ -788,6 +915,7 @@ function uiTick() {
     if (!chasing) $$('#dpad button').forEach(b => b.classList.remove('pressed'));
   }
   drawPreview();
+  drawBoatPreview();
   drawMap();
   drawTank();
 }

@@ -320,7 +320,7 @@ kbd {
 /* --------------------------------------------------------- wardrobe -- */
 .wardrobe { display: grid; grid-template-columns: 220px 1fr; gap: 16px; }
 .preview-col { display: flex; flex-direction: column; gap: 10px; }
-#preview {
+#preview, #boat-preview {
   width: 100%;
   aspect-ratio: 64 / 44;
   height: auto;
@@ -362,6 +362,8 @@ kbd {
 }
 .item img { width: 60px; height: 90px; object-fit: contain; image-rendering: pixelated; }
 .item.buddy img { height: 60px; }
+.item.boat img { width: 88px; height: 52px; }
+.item .swatch-big { width: 56px; height: 40px; border: 3px solid var(--ink); box-shadow: inset -4px -4px 0 rgba(0, 0, 0, .15); margin: 4px 0; }
 .item .name { font-weight: 600; text-align: center; line-height: 1.1; }
 .item .price { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; }
 .item .price.cant { color: var(--rose); }
@@ -578,7 +580,7 @@ kbd {
   position: fixed;
   left: 12px;
   bottom: 12px;
-  z-index: 20;
+  z-index: 9; /* under menus (10), so it never covers their buttons */
   width: 250px;
   background: #1c1436;
   color: var(--cream);

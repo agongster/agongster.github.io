@@ -85,6 +85,7 @@
       </header>
       <div class="tabs" id="shop-tabs" role="tablist">
         <button role="tab" data-shoptab="wardrobe" aria-selected="true">Wardrobe</button>
+        <button role="tab" data-shoptab="boat" aria-selected="false">Boat</button>
         <button role="tab" data-shoptab="tackle" aria-selected="false">Tackle</button>
       </div>
 
@@ -100,6 +101,17 @@
         <div class="items-col">
           <div class="tabs small" id="cat-tabs" role="tablist"></div>
           <div id="item-grid" class="item-grid"></div>
+        </div>
+      </section>
+
+      <section id="shop-boat" class="wardrobe" hidden>
+        <div class="preview-col">
+          <canvas id="boat-preview" width="110" height="64" aria-label="Your boat"></canvas>
+          <div id="boat-try" class="try-on" aria-live="polite"></div>
+        </div>
+        <div class="items-col">
+          <div class="tabs small" id="boat-tabs" role="tablist"></div>
+          <div id="boat-grid" class="item-grid"></div>
         </div>
       </section>
 

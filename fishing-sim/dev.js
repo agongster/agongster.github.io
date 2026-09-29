@@ -83,7 +83,7 @@
         break;
       case 'win':
         if (G.state === 'bite') startReel();
-        if (G.state === 'reeling') G.reel.progress = 1;
+        if (G.state === 'reeling') catchFish();
         break;
       case 'coins':
         save.coins += 1000;

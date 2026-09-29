@@ -477,6 +477,73 @@ const DEFAULT_LOOK = {
   hair: 'bob', hat: 'straw', top: 'tee', face: 'blush', buddy: 'none',
 };
 
+// -------------------------------------------------------------- the boat --
+// Shown at every spot except the home dock (where it's tied up), while
+// sailing, and on the sea chart. Everything with price 0 is free from the start.
+// usesColor: the hull and stripe colours paint this style (others have their own look)
+const BOAT_PARTS = {
+  base: [
+    { id: 'rowboat', name: 'Rowboat', price: 0, usesColor: true },
+    { id: 'box', name: 'Cardboard box', price: 40 },
+    { id: 'banana', name: 'Banana', price: 120 },
+    { id: 'watermelon', name: 'Watermelon', price: 150 },
+    { id: 'bathtub', name: 'Bathtub', price: 220, usesColor: true },
+    { id: 'teacup', name: 'Teacup', price: 260, usesColor: true },
+    { id: 'sneaker', name: 'Big sneaker', price: 300, usesColor: true },
+    { id: 'swan', name: 'Swan boat', price: 400 },
+    { id: 'duck', name: 'Duck parade', price: 600 },
+  ],
+  hull: [
+    { id: 'coral', name: 'Coral', price: 0, color: '#e0566e' },
+    { id: 'sky', name: 'Sky', price: 0, color: '#6aa8e0' },
+    { id: 'mint', name: 'Mint', price: 0, color: '#5cc49a' },
+    { id: 'cream', name: 'Cream', price: 30, color: '#f0dcc0' },
+    { id: 'lilac', name: 'Lilac', price: 60, color: '#b48ae0' },
+    { id: 'sunshine', name: 'Sunshine', price: 90, color: '#ffc83a' },
+    { id: 'midnight', name: 'Midnight', price: 150, color: '#3e3a80' },
+    { id: 'gold', name: 'Solid gold', price: 1500, color: '#ffd23f', shiny: true },
+  ],
+  trim: [
+    { id: 'cream', name: 'Cream', price: 0, color: '#fff4e0' },
+    { id: 'navy', name: 'Navy', price: 0, color: '#3a4a8a' },
+    { id: 'pink', name: 'Pink', price: 20, color: '#ff9ec4' },
+    { id: 'mint', name: 'Mint', price: 20, color: '#8fe0c0' },
+    { id: 'gold', name: 'Gold', price: 60, color: '#ffd23f' },
+  ],
+  sail: [
+    { id: 'plain', name: 'Plain sail', price: 0 },
+    { id: 'stripes', name: 'Striped', price: 60 },
+    { id: 'heart', name: 'Heart', price: 120 },
+    { id: 'star', name: 'Star', price: 180 },
+    { id: 'fish', name: 'Fish', price: 250 },
+  ],
+  flag: [
+    { id: 'none', name: 'No flag', price: 0 },
+    { id: 'pennant', name: 'Pennant', price: 30 },
+    { id: 'heart', name: 'Heart flag', price: 80 },
+    { id: 'pirate', name: 'Pirate', price: 150 },
+    { id: 'fish', name: 'Fish flag', price: 200 },
+  ],
+  decor: [
+    { id: 'none', name: 'Nothing', price: 0 },
+    { id: 'fern', name: 'Potted fern', price: 50 },
+    { id: 'flowers', name: 'Flower box', price: 70 },
+    { id: 'duck', name: 'Rubber duck', price: 90 },
+    { id: 'lights', name: 'String lights', price: 160 },
+  ],
+};
+
+const BOAT_TABS = [
+  { id: 'base', label: 'Style' },
+  { id: 'hull', label: 'Colour' },
+  { id: 'trim', label: 'Stripe' },
+  { id: 'sail', label: 'Sail' },
+  { id: 'flag', label: 'Flag' },
+  { id: 'decor', label: 'Decor' },
+];
+
+const DEFAULT_BOAT = { base: 'rowboat', hull: 'coral', trim: 'cream', sail: 'plain', flag: 'none', decor: 'none' };
+
 // ------------------------------------------------------------- the gear --
 // net: radius of your net in the underwater chase (in pixels)
 // gain: how fast the catch bar fills while the fish is in your net
