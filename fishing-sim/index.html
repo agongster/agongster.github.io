@@ -8,7 +8,7 @@
   <meta name="description" content="A cozy pixel-art fishing game: dress up your angler, catch 17 kinds of fish across a looping sunset, and spend your earnings on hats, buddies and better rods." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Tiny5&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -17,27 +17,34 @@
       <div class="hud-stats">
         <span class="pill" title="Coins"><span class="coin-icon" aria-hidden="true"></span><span id="coins">0</span><span class="sr-only"> coins</span></span>
         <span class="pill" title="Fish in your bucket"><span class="pail-icon" aria-hidden="true"></span><span id="bucket-count">0/6</span></span>
-        <span class="pill phase-pill" id="phase-pill" title="Time of day. Some fish only come out at certain times.">Golden hour</span>
+        <span class="pill phase-pill" id="phase-pill" title="Where you are, and the time of day. Some fish only come out at certain times.">Golden hour</span>
       </div>
       <nav class="hud-buttons" aria-label="Menus">
+        <button class="btn map-btn" id="btn-map">Map</button>
         <button class="btn" id="btn-bucket">Bucket</button>
         <button class="btn" id="btn-shop">Shop</button>
         <button class="btn" id="btn-dex">Fishdex</button>
         <button class="btn icon-btn" id="btn-sound" aria-pressed="true" title="Sound on/off">
-          <span class="sound-on">Sound on</span><span class="sound-off">Sound off</span>
+          <span class="sound-on">Sound</span><span class="sound-off">Muted</span>
         </button>
       </nav>
     </header>
 
-    <main id="stage" aria-label="Fishing dock. Hold to cast, tap when a fish bites, hold to reel.">
+    <main id="stage" aria-label="Fishing spot. Tap the water to cast, tap when a fish bites, then steer the net with the arrow keys to chase the fish.">
       <canvas id="scene" width="320" height="180"></canvas>
       <div id="prompt" aria-live="polite"></div>
       <div id="toasts" aria-live="polite"></div>
     </main>
 
     <div id="action-row">
-      <button id="action-btn" class="btn big action">Hold to cast</button>
-      <p class="key-hint">or hold <kbd>Space</kbd> / click the water</p>
+      <button id="action-btn" class="btn big action">Cast!</button>
+      <div id="dpad" class="dpad" role="group" aria-label="Move the net" hidden>
+        <button class="btn" data-dir="up" aria-label="Up"><span class="arrow up"></span></button>
+        <button class="btn" data-dir="left" aria-label="Left"><span class="arrow left"></span></button>
+        <button class="btn" data-dir="down" aria-label="Down"><span class="arrow down"></span></button>
+        <button class="btn" data-dir="right" aria-label="Right"><span class="arrow right"></span></button>
+      </div>
+      <p class="key-hint">click the water to cast · <kbd>Space</kbd> to cast or hook · arrows / <kbd>WASD</kbd> to chase</p>
       <p class="rotate-hint">Tip: turn your phone sideways for a bigger pond.</p>
     </div>
   </div>
@@ -54,11 +61,12 @@
       <details class="how">
         <summary>How to play</summary>
         <ol>
-          <li><b>Hold</b> anywhere on the water (or <kbd>Space</kbd>) to charge a cast. Let go to throw. Further casts reach bigger fish.</li>
-          <li>Wait. Little nibbles are fake-outs. When the bobber sinks and a <b>!</b> pops up, <b>tap fast</b>.</li>
-          <li>Reeling: <b>hold</b> to push the golden glow right, <b>let go</b> and it drifts left. Keep the fish inside the glow until the bar fills.</li>
+          <li><b>Tap the water</b> where you want to cast (or press <kbd>Space</kbd> to cast at the drifting marker).</li>
+          <li>The <b>shadows</b> are real fish, and bigger shadows are rarer ones. Cast just <b>ahead</b> of one to lure it in. Land right on top of it and it gets spooked!</li>
+          <li>Little nibbles are fake-outs. When the bobber sinks and a <b>!</b> pops up, <b>tap fast</b>.</li>
+          <li>Reeling is a chase: steer your <b>net</b> with the <b>arrow keys</b> or <b>WASD</b> (or drag / use the D-pad on a phone) and keep the fish inside it until the bar fills.</li>
           <li>Sell your catch from the <b>Bucket</b>, then spend coins in the <b>Shop</b> on outfits, buddies, rods and bigger buckets.</li>
-          <li>The sky loops from golden hour to night. Some fish only come out at certain times. Fill the <b>Fishdex</b>!</li>
+          <li>Catch more fish to unlock new spots on the <b>Map</b>, each with its own fish. The sky loops from golden hour to night, and some fish only come out at certain times.</li>
         </ol>
       </details>
       <p class="fine">Made by April Gong · progress saves in this browser</p>
@@ -102,6 +110,19 @@
     </div>
   </div>
 
+  <!-- Map -->
+  <div class="modal" id="modal-map" role="dialog" aria-modal="true" aria-labelledby="map-h" hidden>
+    <div class="panel wide">
+      <header class="panel-head">
+        <h2 id="map-h">Sea chart</h2>
+        <span class="pill" id="map-count"></span>
+        <button class="close-btn" data-close aria-label="Close">X</button>
+      </header>
+      <canvas id="map-canvas" width="160" height="100" aria-label="A map of the islands you can sail to"></canvas>
+      <ul id="map-list" class="map-list"></ul>
+    </div>
+  </div>
+
   <!-- Bucket -->
   <div class="modal" id="modal-bucket" role="dialog" aria-modal="true" aria-labelledby="bucket-h" hidden>
     <div class="panel">
@@ -127,6 +148,7 @@
         <button class="close-btn" data-close aria-label="Close">X</button>
       </header>
       <p class="dex-stats" id="dex-stats"></p>
+      <div class="tabs small" id="dex-tabs" role="tablist"></div>
       <div id="dex-grid" class="dex-grid"></div>
     </div>
   </div>

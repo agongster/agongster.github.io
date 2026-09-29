@@ -113,6 +113,25 @@ const Sound = (() => {
       [784, 988, 1175, 1568].forEach((n, i) => tone(n, 0.12, { type: 'triangle', vol: 0.08, delay: i * 0.06 }));
     },
     error() { tone(220, 0.15, { type: 'square', vol: 0.05, slide: -60 }); },
+    warn() {
+      tone(440, 0.07, { type: 'square', vol: 0.05 });
+      tone(440, 0.07, { type: 'square', vol: 0.05, delay: 0.1 });
+    },
+    thrash() { noise(0.12, { vol: 0.14, freq: 700, q: 1.2 }); },
+    creak(t) { tone(90 + t * 160, 0.05, { type: 'sawtooth', vol: 0.012 + t * 0.02 }); },
+    snap() {
+      noise(0.08, { vol: 0.35, freq: 3000, q: 3 });
+      tone(1200, 0.25, { type: 'square', vol: 0.05, slide: -1000 });
+    },
+    spook() { noise(0.2, { vol: 0.25, freq: 1200, sweep: 800, q: 1 }); },
+    sail() {
+      tone(196, 0.5, { type: 'triangle', vol: 0.08 });
+      tone(247, 0.7, { type: 'triangle', vol: 0.07, delay: 0.45 });
+      noise(1.6, { vol: 0.12, freq: 500, q: 0.6, delay: 0.2 });
+    },
+    unlock() {
+      [659, 784, 988, 1318, 1568].forEach((n, i) => tone(n, 0.14, { type: 'triangle', vol: 0.07, delay: i * 0.07 }));
+    },
   };
 
   // ---- music: a slow, soft, never-quite-repeating lullaby

@@ -45,6 +45,25 @@ const PHASES = [
   },
 ];
 
+// ------------------------------------------------------------ the places --
+// need: how many fish (not junk) you must have caught before the boat can take
+// you there. tint pulls the sky and water toward a colour, by `amount`.
+// map: where the island sits on the 160x100 sea chart.
+const LOCATIONS = [
+  { id: 'dock', name: 'Sunset Dock', need: 0, platform: 'dock', landmark: 'lighthouse', props: 'reeds',
+    tint: null, map: { x: 34, y: 72 },
+    blurb: 'Home sweet home. A creaky dock, a lantern, and a lighthouse winking across the water.' },
+  { id: 'lagoon', name: 'Lily Lagoon', need: 12, platform: 'boat', landmark: 'willow', props: 'lilies',
+    tint: { sky: '#ffb4d4', water: '#78c8a0', amount: 0.24 }, map: { x: 70, y: 34 },
+    blurb: 'A still, pink lagoon full of lily pads, under a sleepy old willow.' },
+  { id: 'cove', name: 'Coral Cove', need: 30, platform: 'boat', landmark: 'palms', props: 'coral',
+    tint: { sky: '#ffc880', water: '#30b8c4', amount: 0.34 }, map: { x: 116, y: 74 },
+    blurb: 'Warm, clear sea over pink coral. Watch out for pinchy things.' },
+  { id: 'bay', name: 'Aurora Bay', need: 55, platform: 'boat', landmark: 'icebergs', props: 'ice',
+    tint: { sky: '#a8d8ff', water: '#7aaae0', amount: 0.32 }, map: { x: 136, y: 24 },
+    blurb: 'Far to the north. Icebergs, snowflakes, and ribbons of light at night.' },
+];
+
 // -------------------------------------------------------------- the fish --
 const RARITY = {
   junk:      { label: 'Junk',      weight: 9,  color: '#b8a89a', biteWindow: 1.0 },
@@ -56,14 +75,15 @@ const RARITY = {
 
 const ALL_DAY = ['golden', 'sunset', 'dusk', 'night'];
 
-// shape: 'fish' (default), 'round', 'eel', 'puffer', or map: 'boot' / 'can'
+// where: which locations it lives in (leave it out for Sunset Dock only)
+// shape: 'fish' (default), 'round', 'eel', 'puffer', or map: a pixel map in sprites.js
 // pattern: none | stripes | spots | patches | stars | gradient
-// diff: how hard the reeling minigame is (1 = sleepy, 6 = feral)
+// diff: how hard it fights on the line (1 = sleepy, 6 = feral)
 const FISH = [
-  { id: 'boot', name: 'Soggy Boot', rarity: 'junk', price: 2, phases: ALL_DAY, diff: 0.6,
+  { id: 'boot', name: 'Soggy Boot', rarity: 'junk', price: 2, phases: ALL_DAY, diff: 0.6, where: ['dock', 'lagoon', 'cove', 'bay'],
     size: [24, 30], map: 'boot',
     blurb: 'Somebody out there is hopping around on one foot.' },
-  { id: 'can', name: 'Tin Can', rarity: 'junk', price: 1, phases: ALL_DAY, diff: 0.6,
+  { id: 'can', name: 'Tin Can', rarity: 'junk', price: 1, phases: ALL_DAY, diff: 0.6, where: ['dock', 'lagoon', 'cove', 'bay'],
     size: [8, 12], map: 'can',
     blurb: 'Peach slices, best before 1987. Still smells faintly of peaches.' },
 
@@ -130,6 +150,78 @@ const FISH = [
     size: [100, 200], len: 28, shape: 'eel', pattern: 'spots', whiskers: true,
     body: '#6a3a9a', belly: '#c07ae0', fin: '#ffd27a', accent: '#ffd27a',
     blurb: 'The old dock-keepers say it guards the last light of day.' },
+  // ---- Lily Lagoon
+  { id: 'loach', name: 'Lotus Loach', rarity: 'common', price: 14, phases: ALL_DAY, diff: 1.3, where: ['lagoon'],
+    size: [8, 18], len: 18, shape: 'eel', pattern: 'spots',
+    body: '#e8a0b8', belly: '#ffe0ea', fin: '#c87898', accent: '#b06080',
+    blurb: 'Wiggles through lily roots looking for dropped petals.' },
+  { id: 'mintminnow', name: 'Mint Minnow', rarity: 'common', price: 11, phases: ['golden', 'sunset'], diff: 1, where: ['lagoon'],
+    size: [4, 10], len: 10, h: 5, pattern: 'none',
+    body: '#8fe0b8', belly: '#e0fff0', fin: '#5fc098', accent: '#5fc098',
+    blurb: 'Fresh! Cool! Tastes like toothpaste (allegedly).' },
+  { id: 'betta', name: 'Petal Betta', rarity: 'common', price: 16, phases: ['sunset', 'dusk', 'night'], diff: 1.6, where: ['lagoon'],
+    size: [5, 9], len: 11, h: 7, pattern: 'gradient',
+    body: '#ff7aa8', belly: '#ffd0e0', fin: '#c060e0', accent: '#ffb0f0',
+    blurb: 'Its fins look like a peony in full bloom.' },
+  { id: 'pike', name: 'Mossback Pike', rarity: 'uncommon', price: 48, phases: ['dusk', 'night', 'golden'], diff: 2.8, where: ['lagoon'],
+    size: [40, 90], len: 21, h: 6, pattern: 'stripes',
+    body: '#7a9a5a', belly: '#e0e8b0', fin: '#5a7a3a', accent: '#4a6a3a',
+    blurb: 'Hides under lily pads and pretends to be a log.' },
+  { id: 'axolotl', name: 'Pearl Axolotl', rarity: 'rare', price: 150, phases: ['dusk', 'night'], diff: 3.8, where: ['lagoon'],
+    size: [15, 30], map: 'axolotl',
+    blurb: 'Smiles constantly. Nobody knows what it knows.' },
+  { id: 'blossomkoi', name: 'Blossom Koi', rarity: 'legendary', price: 650, phases: ['sunset'], diff: 5.4, where: ['lagoon'],
+    size: [60, 110], len: 18, h: 9, pattern: 'patches',
+    body: '#fff0f4', belly: '#ffffff', fin: '#ffb0c8', accent: '#ff6a9a',
+    blurb: 'Petals drift up from the water wherever it has been.' },
+
+  // ---- Coral Cove
+  { id: 'clownfish', name: 'Candy Clownfish', rarity: 'common', price: 18, phases: ['golden', 'sunset', 'dusk'], diff: 1.5, where: ['cove'],
+    size: [6, 12], len: 11, h: 7, pattern: 'stripes',
+    body: '#ff8a3c', belly: '#ffb070', fin: '#e0602a', accent: '#fff4e0',
+    blurb: 'Lives in an anemone and refuses to share the rent.' },
+  { id: 'sardine', name: 'Sandy Sardine', rarity: 'common', price: 12, phases: ALL_DAY, diff: 1.2, where: ['cove'],
+    size: [10, 20], len: 13, h: 5, pattern: 'gradient',
+    body: '#b0c0d8', belly: '#f0f4ff', fin: '#8090b0', accent: '#e0b070',
+    blurb: 'Travels in a crowd of ten thousand best friends.' },
+  { id: 'crab', name: 'Peach Crab', rarity: 'uncommon', price: 55, phases: ['golden', 'sunset', 'dusk'], diff: 2.6, where: ['cove'],
+    size: [8, 20], map: 'crab',
+    blurb: 'Walks sideways out of stubbornness, not necessity.' },
+  { id: 'jelly', name: 'Bubblegum Jelly', rarity: 'uncommon', price: 60, phases: ['dusk', 'night'], diff: 2.2, where: ['cove'],
+    size: [10, 30], map: 'jelly',
+    blurb: 'Mostly water. Mostly vibes.' },
+  { id: 'grouper', name: 'Coral Grouper', rarity: 'rare', price: 170, phases: ['sunset', 'dusk'], diff: 4, where: ['cove'],
+    size: [50, 100], len: 16, h: 12, shape: 'round', pattern: 'spots',
+    body: '#ff7a6a', belly: '#ffd0b8', fin: '#e0506a', accent: '#fff0c0',
+    blurb: 'Big, grumpy, and secretly very soft-hearted.' },
+  { id: 'marlin', name: 'Sunset Marlin', rarity: 'legendary', price: 800, phases: ['golden', 'sunset'], diff: 5.8, where: ['cove'],
+    size: [150, 300], len: 24, h: 7, pattern: 'gradient', bill: true,
+    body: '#4a5aa8', belly: '#ffd0a0', fin: '#ff8a5c', accent: '#ff9a5c',
+    blurb: 'Its sail catches the last light like a tiny sunset of its own.' },
+
+  // ---- Aurora Bay
+  { id: 'cod', name: 'Snowcone Cod', rarity: 'common', price: 20, phases: ALL_DAY, diff: 1.6, where: ['bay'],
+    size: [25, 50], len: 15, h: 8, pattern: 'spots',
+    body: '#e8e4f0', belly: '#ffffff', fin: '#a8b8e0', accent: '#7fb8e6',
+    blurb: 'Fluffy-looking. Actually just very cold.' },
+  { id: 'smelt', name: 'Frost Smelt', rarity: 'common', price: 15, phases: ['dusk', 'night', 'golden'], diff: 1.3, where: ['bay'],
+    size: [8, 15], len: 10, h: 4, pattern: 'gradient',
+    body: '#c8b8ff', belly: '#f0ecff', fin: '#9a8ae0', accent: '#8fe0f0',
+    blurb: 'Smells faintly of cucumbers and snowfall.' },
+  { id: 'char', name: 'Blushing Char', rarity: 'uncommon', price: 65, phases: ['golden', 'sunset', 'dusk'], diff: 2.9, where: ['bay'],
+    size: [30, 60], len: 16, h: 7, pattern: 'spots',
+    body: '#6a7ab0', belly: '#ff9ab0', fin: '#e07090', accent: '#ffd0e0',
+    blurb: 'Turns pinker the colder it gets. Very relatable.' },
+  { id: 'auroraeel', name: 'Aurora Eel', rarity: 'rare', price: 190, phases: ['night', 'dusk'], diff: 4.3, where: ['bay'],
+    size: [70, 140], len: 26, shape: 'eel', pattern: 'stripes',
+    body: '#5ae0b0', belly: '#c0fff0', fin: '#c07aff', accent: '#9a6aff',
+    blurb: 'Glows in soft ribbons, just like the sky above it.' },
+  { id: 'narwhal', name: 'Tiny Narwhal', rarity: 'legendary', price: 900, phases: ['night'], diff: 6, where: ['bay'],
+    size: [80, 150], map: 'narwhal',
+    blurb: 'A baby. Its horn is mostly for pointing at things it likes.' },
+  { id: 'bottle', name: 'Message in a Bottle', rarity: 'junk', price: 25, phases: ALL_DAY, diff: 0.6, where: ['cove', 'bay'],
+    size: [20, 25], map: 'bottle',
+    blurb: 'It says: "If found, please go fishing more." Wise words.' },
 ];
 
 // ---------------------------------------------------------- the angler --
@@ -197,18 +289,18 @@ const DEFAULT_LOOK = {
 };
 
 // ------------------------------------------------------------- the gear --
-// zone: width of the catch zone in the reel minigame (0..1 of the bar)
-// gain: how fast the catch meter fills while the fish is in the zone
+// net: radius of your net in the underwater chase (in pixels)
+// gain: how fast the catch bar fills while the fish is in your net
 // luck: shifts odds toward rare fish and bigger sizes
-// wait: multiplier on how long you wait for a bite
+// wait: multiplier on how long fish take to notice your bobber
 const RODS = [
-  { id: 'twig', name: 'Twig Rod', color: '#7a4a2a', price: 0, zone: 0.2, gain: 0.3, luck: 0, wait: 1,
+  { id: 'twig', name: 'Twig Rod', color: '#7a4a2a', price: 0, net: 15, gain: 0.3, luck: 0, wait: 1,
     blurb: 'A stick, some string, and a lot of hope.' },
-  { id: 'bamboo', name: 'Bamboo Rod', color: '#c8a050', price: 90, zone: 0.24, gain: 0.34, luck: 0.05, wait: 0.9,
-    blurb: 'Bendy and dependable. Wider catch zone.' },
-  { id: 'sunset', name: 'Sunset Rod', color: '#ff7a5c', price: 350, zone: 0.28, gain: 0.38, luck: 0.12, wait: 0.8,
+  { id: 'bamboo', name: 'Bamboo Rod', color: '#c8a050', price: 90, net: 17, gain: 0.34, luck: 0.05, wait: 0.9,
+    blurb: 'Bendy and dependable. A bigger net for chasing.' },
+  { id: 'sunset', name: 'Sunset Rod', color: '#ff7a5c', price: 350, net: 19, gain: 0.38, luck: 0.12, wait: 0.8,
     blurb: 'Painted the colour of the sky. Fish seem to like it.' },
-  { id: 'star', name: 'Star Rod', color: '#b89cff', price: 1000, zone: 0.32, gain: 0.43, luck: 0.25, wait: 0.7,
+  { id: 'star', name: 'Star Rod', color: '#b89cff', price: 1000, net: 22, gain: 0.43, luck: 0.25, wait: 0.7,
     blurb: 'Hums quietly at night. Rare fish can\'t resist it.' },
 ];
 

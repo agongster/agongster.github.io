@@ -29,8 +29,10 @@ function refreshHUD() {
   $$('.coins-mirror').forEach(e => { e.textContent = save.coins; });
   $('#bucket-count').textContent = `${save.bucket.length}/${bucketCap()}`;
   const phase = PHASES.find(p => p.id === G.phaseId);
-  $('#phase-pill').textContent = phase ? phase.name : '';
+  $('#phase-pill').textContent = `${currentLoc().name} · ${phase ? phase.name : ''}`;
+  $('#btn-map').classList.toggle('glow', !!save.newSpot);
   if (openId === 'modal-shop') renderShop();
+  if (openId === 'modal-map') renderMap();
   if (openId === 'modal-bucket') renderBucket();
 }
 
@@ -285,7 +287,7 @@ function renderTackle() {
     return `<li class="gear ${equipped ? 'equipped' : ''}">
       <b><span class="rod-swatch" style="background:${r.color}"></span>${r.name}</b>
       <span class="desc">${r.blurb}</span>
-      <span class="stats"><span>Catch zone ${Math.round(r.zone * 100)}%</span><span>Reel speed ${Math.round(r.gain * 100)}</span><span>Luck +${Math.round(r.luck * 100)}</span></span>
+      <span class="stats"><span>Net size ${r.net}</span><span>Reel speed ${Math.round(r.gain * 100)}</span><span>Luck +${Math.round(r.luck * 100)}</span></span>
       ${btn}</li>`;
   }).join('');
   const bucketRows = BUCKETS.map((b, i) => {
@@ -402,7 +404,11 @@ function openDex() {
   Sound.sfx.open();
 }
 
+let dexTab = 'all';
+
 function renderDex() {
+  $('#dex-tabs').innerHTML = [{ id: 'all', name: 'All' }, ...LOCATIONS].map(l =>
+    `<button role="tab" data-dextab="${l.id}" aria-selected="${l.id === dexTab}">${l.id === 'all' || save.unlocked.includes(l.id) ? l.name : '???'}</button>`).join('');
   const found = FISH.filter(f => save.dex[f.id]).length;
   const catches = `${save.stats.caught} catch${save.stats.caught === 1 ? '' : 'es'}`;
   $('#dex-progress').textContent = `${found}/${FISH.length}`;
@@ -410,12 +416,15 @@ function renderDex() {
     ? `You found every single one. The pond is proud of you. (${catches}, ${save.stats.earned} coins earned)`
     : `${catches} so far · ${save.stats.earned} coins earned. Silhouettes show what's still out there, and when it swims.`;
   const phaseName = id => PHASES.find(p => p.id === id).name;
-  const sorted = FISH.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity));
+  const shown = dexTab === 'all' ? FISH : FISH.filter(f => fishWhere(f).includes(dexTab));
+  const sorted = shown.slice().sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity));
   $('#dex-grid').innerHTML = sorted.map(sp => {
     const d = save.dex[sp.id];
     const r = RARITY[sp.rarity];
-    const chips = sp.phases.length === 4 ? '<span class="chip">Any time</span>'
-      : sp.phases.map(p => `<span class="chip">${phaseName(p)}</span>`).join('');
+    const places = fishWhere(sp).length === LOCATIONS.length ? '<span class="chip place">Everywhere</span>'
+      : fishWhere(sp).map(id => `<span class="chip place">${save.unlocked.includes(id) ? LOCATIONS.find(l => l.id === id).name : '???'}</span>`).join('');
+    const chips = places + (sp.phases.length === 4 ? '<span class="chip">Any time</span>'
+      : sp.phases.map(p => `<span class="chip">${phaseName(p)}</span>`).join(''));
     if (!d) {
       return `<div class="dex-card unknown" style="border-top-color:${r.color}">
         <img src="${fishDataUrl(sp, true)}" alt="Undiscovered fish silhouette" />
@@ -428,6 +437,105 @@ function renderDex() {
       <span class="dblurb">${sp.blurb}</span>
       <div class="chips">${chips}</div></div>`;
   }).join('');
+}
+
+$('#dex-tabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-dextab]');
+  if (!b) return;
+  dexTab = b.dataset.dextab;
+  Sound.sfx.click();
+  renderDex();
+});
+
+// ==================================================================== map ==
+function openMap() {
+  save.newSpot = false;
+  persist();
+  refreshHUD();
+  renderMap();
+  openModal('modal-map');
+  Sound.sfx.open();
+}
+
+function renderMap() {
+  const count = fishCaughtCount();
+  $('#map-count').textContent = `${count} fish caught`;
+  $('#map-list').innerHTML = LOCATIONS.map(loc => {
+    const here = loc.id === save.location;
+    const open = save.unlocked.includes(loc.id);
+    const species = FISH.filter(f => fishWhere(f).includes(loc.id) && f.rarity !== 'junk');
+    const found = species.filter(f => save.dex[f.id]).length;
+    let action;
+    if (here) action = '<button class="btn plain" disabled>You are here</button>';
+    else if (open) action = `<button class="btn mint" data-sail="${loc.id}" ${canTravel() ? '' : 'disabled'}>${canTravel() ? 'Sail here' : 'Finish reeling first'}</button>`;
+    else {
+      const pct = Math.round((count / loc.need) * 100);
+      action = `<div class="progress" role="progressbar" aria-valuenow="${count}" aria-valuemax="${loc.need}"><span style="width:${pct}%"></span></div>
+        <span class="desc">Catch ${loc.need - count} more fish to unlock</span>`;
+    }
+    return `<li class="${here ? 'here' : ''} ${open ? '' : 'locked'}">
+      <b>${open ? loc.name : '???'}</b>
+      <span class="desc">${open ? loc.blurb : 'Uncharted waters. Rumour says strange fish live out there.'}</span>
+      ${open ? `<span class="desc">Fishdex: ${found}/${species.length} found here</span>` : ''}
+      ${action}</li>`;
+  }).join('');
+}
+
+$('#map-list').addEventListener('click', e => {
+  const b = e.target.closest('[data-sail]');
+  if (!b) return;
+  forceClose();
+  sailTo(b.dataset.sail);
+});
+
+// A little hand-drawn sea chart, redrawn every frame while it's open.
+function drawMap() {
+  if (openId !== 'modal-map') return;
+  const c = $('#map-canvas'), g = c.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  const t = performance.now() / 1000;
+  const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), w, h); };
+  for (let y = 0; y < 100; y += 4) R(0, y, 160, 4, lerpColor('#5ab0b8', '#3a6a9a', y / 100));
+  for (let i = 0; i < 40; i++) {
+    const x = (i * 37 + t * 3) % 170 - 5, y = (i * 23) % 96 + 2;
+    R(x, y, 3, 1, 'rgba(255,255,255,0.25)');
+  }
+  R(0, 0, 160, 1, '#2a1a2e'); R(0, 99, 160, 1, '#2a1a2e');
+  // dotted route
+  g.fillStyle = 'rgba(255,244,224,0.8)';
+  for (let i = 0; i < LOCATIONS.length - 1; i++) {
+    const a = LOCATIONS[i].map, b = LOCATIONS[i + 1].map;
+    const n = Math.round(Math.hypot(b.x - a.x, b.y - a.y) / 4);
+    for (let k = 1; k < n; k++) {
+      const x = lerp(a.x, b.x, k / n), y = lerp(a.y, b.y, k / n) + Math.sin(k) * 2;
+      if (k % 2) g.fillRect(Math.round(x), Math.round(y), 1, 1);
+    }
+  }
+  for (const loc of LOCATIONS) {
+    const { x, y } = loc.map;
+    const open = save.unlocked.includes(loc.id);
+    const sand = open ? '#f0d0a0' : '#8a90a8', green = open ? ({ dock: '#6aa860', lagoon: '#ff9ec4', cove: '#4fc0a0', bay: '#f4faff' })[loc.id] : '#6a7090';
+    ellipse(g, x, y + 1, 14, 6, '#2a1a2e');
+    ellipse(g, x, y, 13, 5, sand);
+    ellipse(g, x - 2, y - 1, 8, 3, green);
+    if (!open) {
+      for (let i = 0; i < 5; i++) ellipse(g, x - 10 + i * 5, y - 3 + Math.sin(t + i) * 1, 5, 3, 'rgba(240,236,250,0.85)');
+      R(x - 1, y - 6, 3, 4, '#2a1a2e'); R(x, y - 5, 1, 1, '#ffd27a'); R(x, y - 3, 1, 1, '#ffd27a');
+    } else if (loc.id === 'dock') {
+      R(x + 5, y - 9, 2, 8, '#fff4e0'); R(x + 5, y - 7, 2, 2, '#e0566e'); R(x + 5, y - 10, 2, 1, '#ffd27a');
+    } else if (loc.id === 'lagoon') {
+      R(x + 3, y - 6, 1, 5, '#6a4a3a'); ellipse(g, x + 3, y - 7, 5, 2, '#8ac070');
+    } else if (loc.id === 'cove') {
+      R(x + 4, y - 8, 1, 7, '#8a5a3a'); R(x + 1, y - 9, 7, 1, '#4f9a5a'); R(x + 2, y - 8, 1, 1, '#4f9a5a'); R(x + 6, y - 8, 1, 1, '#4f9a5a');
+    } else if (loc.id === 'bay') {
+      R(x + 2, y - 6, 5, 5, '#e8f4ff'); R(x + 3, y - 8, 3, 2, '#e8f4ff'); R(x + 5, y - 6, 2, 5, '#b0c8ec');
+    }
+    if (loc.id === save.location) {
+      const bob = Math.round(Math.sin(t * 3));
+      R(x - 12, y + 5 + bob, 9, 3, '#e0566e'); R(x - 12, y + 5 + bob, 9, 1, '#fff4e0');
+      R(x - 8, y - 2 + bob, 1, 7, '#6a3a2e'); R(x - 7, y - 1 + bob, 3, 4, '#fff4e0');
+    }
+  }
 }
 
 // ============================================================= catch card ==
@@ -464,8 +572,9 @@ $('#catch-release').addEventListener('click', () => resolveCatch('release'));
 
 // ================================================================== input ==
 const ACTION_LABELS = {
-  idle: 'Hold to cast', charging: 'Let go!', casting: 'Whoosh...', waiting: 'Wait for the dip...',
-  bite: 'TAP NOW!', reeling: 'Hold to reel', retract: 'Reeling in...', landing: 'Got it!', showing: 'Nice!',
+  idle: 'Cast!', casting: 'Whoosh...', waiting: 'Wait for the dip...',
+  bite: 'TAP NOW!', reeling: 'Chase it!', retract: 'Reeling in...', landing: 'Got it!', showing: 'Nice!',
+  sailing: 'Sailing...',
 };
 let lastActionState = null;
 
@@ -473,36 +582,81 @@ function uiTick() {
   if (G.state !== lastActionState) {
     lastActionState = G.state;
     const btn = $('#action-btn');
-    btn.textContent = ACTION_LABELS[G.state] || 'Hold to cast';
+    btn.textContent = ACTION_LABELS[G.state] || 'Cast!';
     btn.classList.toggle('gold', G.state === 'bite');
-    btn.classList.toggle('mint', G.state === 'reeling');
+    const chasing = G.state === 'reeling';
+    btn.hidden = chasing;
+    $('#dpad').hidden = !chasing;
+    if (!chasing) $$('#dpad button').forEach(b => b.classList.remove('pressed'));
   }
   drawPreview();
+  drawMap();
 }
 
-function bindHold(el) {
+// Converts a pointer position into the 320x180 canvas's own pixels.
+function canvasPoint(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: ((e.clientX - r.left) / r.width) * W, y: ((e.clientY - r.top) / r.height) * H };
+}
+
+function bindHold(el, aimed) {
   el.addEventListener('pointerdown', e => {
     if (openId || (e.pointerType === 'mouse' && e.button !== 0)) return;
     e.preventDefault();
     Sound.init();
     try { el.setPointerCapture(e.pointerId); } catch (err) { /* not supported */ }
     el.classList.add('pressed');
-    press();
+    if (aimed && G.state === 'idle') { setAim(canvasPoint(e)); press(G.aim); }
+    else if (aimed && G.state === 'reeling') G.steer = canvasPoint(e);
+    else press();
   });
-  const up = () => { el.classList.remove('pressed'); release(); };
+  const up = () => { el.classList.remove('pressed'); G.steer = null; release(); };
   el.addEventListener('pointerup', up);
   el.addEventListener('pointercancel', up);
   el.addEventListener('lostpointercapture', up);
   el.addEventListener('contextmenu', e => e.preventDefault());
 }
-bindHold($('#stage'));
-bindHold($('#action-btn'));
+bindHold($('#stage'), true);
+bindHold($('#action-btn'), false);
+$('#stage').addEventListener('pointermove', e => {
+  if (openId) return;
+  if (G.state === 'reeling' && G.steer) G.steer = canvasPoint(e);
+  else if (e.pointerType === 'mouse' && G.state === 'idle') setAim(canvasPoint(e));
+});
+
+// On-screen D-pad (shown while chasing): each button holds a direction.
+$$('#dpad button').forEach(b => {
+  const dir = b.dataset.dir;
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    try { b.setPointerCapture(e.pointerId); } catch (err) { /* not supported */ }
+    b.classList.add('pressed');
+    G.keys.add(dir);
+  });
+  const up = () => { b.classList.remove('pressed'); G.keys.delete(dir); };
+  b.addEventListener('pointerup', up);
+  b.addEventListener('pointercancel', up);
+  b.addEventListener('lostpointercapture', up);
+  b.addEventListener('contextmenu', e => e.preventDefault());
+});
+
+const ARROW_KEYS = {
+  ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+  KeyA: 'left', KeyD: 'right', KeyW: 'up', KeyS: 'down',
+};
 
 const isTyping = t => t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeModal(); return; }
   if (openId || isTyping(e.target)) return;
+  const dir = ARROW_KEYS[e.code];
+  if (dir && (G.state === 'reeling' || G.state === 'bite')) {
+    e.preventDefault();
+    if (G.state === 'bite') { Sound.init(); press(); release(); }
+    G.keys.add(dir);
+    return;
+  }
   const hudButton = e.target.closest && e.target.closest('button') && e.target.id !== 'action-btn';
   if (e.code === 'Space' || (e.key === 'Enter' && !hudButton)) {
     e.preventDefault();
@@ -512,6 +666,7 @@ document.addEventListener('keydown', e => {
   }
 });
 document.addEventListener('keyup', e => {
+  if (ARROW_KEYS[e.code]) G.keys.delete(ARROW_KEYS[e.code]);
   if (e.code === 'Space' || e.key === 'Enter') {
     if (!openId && !isTyping(e.target)) e.preventDefault();
     release();
@@ -523,6 +678,7 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('pagehide', writeSave);
 
+$('#btn-map').addEventListener('click', openMap);
 $('#btn-bucket').addEventListener('click', openBucket);
 $('#btn-shop').addEventListener('click', () => openShop(false));
 $('#btn-dex').addEventListener('click', openDex);

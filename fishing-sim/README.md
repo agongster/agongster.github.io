@@ -14,11 +14,13 @@ A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock wh
 ## How to play
 
 > ✏️ TODO: rewrite in your own words. The facts:
-> - Hold on the water (or hold Space) to charge a cast, then let go. A stronger cast lands further out.
+> - Tap the water where you want to cast (or press Space to cast at the drifting marker).
+> - The shadows under the water are the actual fish, and bigger shadows are rarer. Cast just ahead of one to lure it in; land right on top of it and it gets spooked.
 > - Small nibbles are fake-outs. When the bobber sinks and a **!** appears, tap quickly.
-> - Reeling: hold to push the golden zone right, let go and it drifts left. Keep the fish inside it until the bar fills.
+> - Reeling is a chase: an underwater view opens and you steer a net with the arrow keys / WASD (or drag, or the on-screen D-pad on phones). Keep the fish inside the net until the bar fills; if the bar empties, it gets away.
 > - Sell fish from the **Bucket**, then spend coins in the **Shop** (Wardrobe for cosmetics, Tackle for rods and buckets). You can try things on before buying.
-> - The day cycles golden hour → sunset → dusk → night (about 75 seconds each). Some fish only appear at certain times. The **Fishdex** shows silhouettes of what's left and when each one swims.
+> - Catch 12, 30 and 55 fish to unlock Lily Lagoon, Coral Cove and Aurora Bay on the **Map**. Each has its own scenery and fish, and you sail there by boat.
+> - The day cycles golden hour → sunset → dusk → night (about 75 seconds each). Some fish only appear at certain times. The **Fishdex** shows silhouettes of what's left, where each one lives, and when it swims.
 > - Works with a mouse, touch or the keyboard. On phones it works in portrait but is roomier in landscape.
 
 ## Features I'm most proud of
@@ -27,7 +29,9 @@ A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock wh
 > - Every sprite (angler, 17 fish, 4 buddies, the whole scene) is drawn from code, with no image files, plus an automatic outline pass.
 > - The "try before you buy" wardrobe, whose item thumbnails show *your* angler wearing each item.
 > - The dithered sunset sky that blends smoothly between four palettes.
-> - Fish that depend on the time of day, which gives a reason to keep playing through the whole loop.
+> - Fish that depend on the time of day and the location, which gives a reason to keep playing through the whole loop.
+> - Visible fish shadows you can aim for, and a 2D underwater chase for reeling (steering in two directions instead of Stardew Valley's one).
+> - The sea chart and the sailing trip between four hand-coloured locations.
 > - Game juice: the fish arcs out of the water onto the dock, the catch card has spinning rays, the lantern and lighthouse glow at night.
 
 ## Running it locally
@@ -66,7 +70,7 @@ There aren't any. The game has no backend and calls no APIs. The only external r
 | File | What's in it |
 | --- | --- |
 | `index.html` | Page structure: HUD, the canvas stage, and the modals (title, shop/creator, bucket, Fishdex, catch card). |
-| `data.js` | **All game content**: sky palettes, every fish (price, rarity, time of day, difficulty, colours, flavour text), cosmetics, rods, buckets. The easiest file to edit. |
+| `data.js` | **All game content**: sky palettes, the four locations (unlock requirement, colour tint, scenery), every fish (price, rarity, location, time of day, difficulty, colours, flavour text), cosmetics, rods, buckets. The easiest file to edit. |
 | `sprites.js` | Pixel-art generation: colour helpers, the angler renderer, buddy and junk pixel maps, the procedural fish generator, and the automatic outline pass. |
 | `audio.js` | Web Audio synthesised sound effects and a generative lullaby that changes chords with the time of day. |
 | `game.js` | Save/load, the scene renderer, the fishing state machine, economy, and the main loop. |
@@ -79,7 +83,10 @@ There aren't any. The game has no backend and calls no APIs. The only external r
 - **Procedural pixel art.** Characters are painted with `fillRect` in "art pixel" coordinates onto small offscreen canvases. `addOutline()` then scans the image and paints a dark outline around every filled shape, so any combination of hair, hat, top and face gets a clean outline for free. Fish are built from parameters (length, height, shape, pattern, colours) by filling an ellipse, adding a forked tail and fins, and applying a pattern. Sprites are cached.
 - **Dithered sky.** The sky and water are gradients drawn with a 4×4 Bayer ordered-dither between palette bands, which gives the retro look. They're recomputed a few times a second as the four phase palettes blend.
 - **2.5D.** Parallax hills, a slanted dock deck with a visible front face, and perspective in the water (wave dashes, fish shadows and the sun's reflection all grow with depth). A cast's distance also moves the bobber toward the horizon.
-- **State machine.** `idle → charging → casting → waiting → bite → reeling → landing → showing`, with `retract` for misses. A single `press()` / `release()` pair drives everything, so mouse, touch, the on-screen button and the keyboard all behave identically.
-- **Reeling minigame.** The fish picks targets and darts based on its `diff`. The catch zone has simple physics (holding accelerates it right, releasing pulls it left). The rod sets the zone width, fill speed and luck.
+- **State machine.** `idle → casting → waiting → bite → reeling → landing → showing`, plus `retract` for misses and `sailing` for travel. A single `press(pos)` / `release()` pair drives everything, so mouse, touch, the on-screen button and the keyboard all behave the same. A tap passes its canvas position so you can aim; the keyboard and button cast at a drifting marker.
+- **Fish shadows.** Five shadows swim around, and each has already rolled its species (from the current location and time of day), with size set by rarity. When the bobber lands, any shadow within a few pixels flees, and the nearest one within range becomes "interested", swims over, nibbles, then bites. If nothing notices, a stray bite eventually happens (weighted toward junk), so a player is never stuck.
+- **Chase reel.** An underwater panel opens with the real fish sprite. The fish picks targets and sometimes darts, depending on its `diff`, and its speed is capped so the net can always keep up. The net has simple physics: arrow keys, WASD, the D-pad or a dragged finger accelerate it, and water drag slows it down. The bar fills while the fish is in the net and drains otherwise, after a short grace period. The rod sets net size, fill speed and luck.
+- **Locations.** Each location tints the four sky palettes, swaps the landmark (lighthouse, willow, palms, icebergs with an aurora), the foreground props, and the platform (a dock at home, a bobbing rowboat elsewhere). Unlocks are recomputed from the Fishdex count on load, so they can't get out of sync with the save.
+- **Pausing.** Opening a menu mid-cast freezes the fishing (but not the scenery), so checking your bucket never costs you a fish.
 - **Saving.** `localStorage` with a debounced write, plus a write on `pagehide`/`visibilitychange`. Loaded saves go through `sanitizeSave()`, so an old or hand-edited save can't crash the game. Every storage call is wrapped in try/catch, so private browsing still works; it just won't remember progress.
 - **Accessibility and robustness.** Real `<button>`s everywhere, focus is trapped inside open dialogs and returned afterwards, Escape closes menus, `aria-live` prompts, reduced-motion support, and held inputs are cancelled when the tab loses focus so the rod never gets stuck charging.

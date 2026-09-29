@@ -415,7 +415,7 @@ function buddySprite(id, blink = false) {
 }
 
 // ------------------------------------------------------------------ fish --
-const JUNK_ART = {
+const MAP_ART = {
   boot: {
     rows: [
       '..g.........',
@@ -446,6 +446,69 @@ const JUNK_ART = {
     ],
     pal: { c: '#c8c0d0', d: '#8a8098', p: '#ff8a9a', w: '#ffffff' },
   },
+  crab: {
+    rows: [
+      '.pp......pp.',
+      'p.p......p.p',
+      'pp..k..k..pp',
+      '.p..k..k..p.',
+      '..pppppppp..',
+      '.pphppppppp.',
+      'pppppppppppp',
+      '.pllllllllp.',
+      'p.p.p..p.p.p',
+    ],
+    pal: { p: '#ff9a7a', h: '#ffd0c0', l: '#e0705a', k: OUTLINE },
+  },
+  jelly: {
+    rows: [
+      '..jjjjj..',
+      '.jjjjjjj.',
+      'jjhhjjjjj',
+      'jjhjjjjjj',
+      'jjkjjjkjj',
+      'jjjjmjjjj',
+      'lllllllll',
+      't.t.t.t.t',
+      '.t.t.t.t.',
+      't.t.t.t.t',
+      '.t...t...',
+    ],
+    pal: { j: '#ff9ed8', h: '#ffe0f4', k: OUTLINE, m: '#e0508a', l: '#e070b0', t: '#ffb8e8' },
+  },
+  axolotl: {
+    rows: [
+      '..........g.g.',
+      '.........gaaag',
+      't......aaaaaaa',
+      'ttaaaaaaaaakaa',
+      '.taaaaaaaaaaam',
+      '..aaaaaaaaaaa.',
+      '...a.a...a.a..',
+    ],
+    pal: { g: '#e0508a', a: '#ffc0d8', k: OUTLINE, m: '#e06a90', t: '#ffb0cc' },
+  },
+  narwhal: {
+    rows: [
+      '.....nnnnnn.......',
+      '...nnnnnnnnnn.....',
+      't.nnnnnnnnnnnn....',
+      'ttnnnnnnnnnnknnhhh',
+      't.nbnnbnnnnnnnn...',
+      '..wwwwwwwwwwww....',
+      '....wwwwwwww......',
+    ],
+    pal: { n: '#8aa0d0', b: '#6a80b8', w: '#e8f0ff', k: OUTLINE, h: '#fff3c4', t: '#6a80b8' },
+  },
+  bottle: {
+    rows: [
+      '...gggggggg.',
+      'ccgghgggggg.',
+      'ccggpppppggg',
+      '...gggggggg.',
+    ],
+    pal: { g: '#8fd1c0', h: '#e0fff8', p: '#fff4e0', c: '#b07a50' },
+  },
 };
 
 const fishCache = new Map();
@@ -457,7 +520,7 @@ function fishSprite(sp, dark = false) {
   if (dark) {
     c = silhouette(fishSprite(sp));
   } else {
-    if (sp.map) c = mapCanvas(JUNK_ART[sp.map].rows, JUNK_ART[sp.map].pal);
+    if (sp.map) c = mapCanvas(MAP_ART[sp.map].rows, MAP_ART[sp.map].pal);
     else if (sp.shape === 'eel') c = drawEel(sp);
     else if (sp.shape === 'puffer') c = drawPuffer(sp);
     else c = drawFishBody(sp);
@@ -497,11 +560,11 @@ function drawFishBody(sp) {
   const round = sp.shape === 'round';
   const L = sp.len, Hh = sp.h;
   const T = Math.max(3, Math.round(Hh * (round ? 0.4 : 0.55)));
-  const w = T + L + 4, h = Hh + 6;
+  const w = T + L + 4 + (sp.bill ? 7 : 0), h = Hh + (sp.bill ? 9 : 6);
   const c = makeCanvas(w, h), g = c.getContext('2d');
   const rng = mulberry32(hashStr(sp.id));
   const px = (x, y, col) => { g.fillStyle = col; g.fillRect(x, y, 1, 1); };
-  const cx = 1 + T + L / 2, cy = h / 2, rx = L / 2, ry = Hh / 2;
+  const cx = 1 + T + L / 2, cy = h / 2 + (sp.bill ? 1.5 : 0), rx = L / 2, ry = Hh / 2;
   const inBody = (x, y) => {
     const dx = (x + 0.5 - cx) / rx, dy = (y + 0.5 - cy) / ry;
     return dx * dx + dy * dy <= 1;
@@ -528,6 +591,7 @@ function drawFishBody(sp) {
     if (top < 1) continue;
     px(x, top - 1, sp.fin);
     if ((x - f0) > (f1 - f0) * 0.2 && (x - f0) < (f1 - f0) * 0.7 && top > 1) px(x, top - 2, sp.fin);
+    if (sp.bill && (x - f0) > (f1 - f0) * 0.1 && (x - f0) < (f1 - f0) * 0.8) { px(x, top - 3, sp.fin); px(x, top - 4, sp.fin); }
   }
   for (let x = Math.floor(cx - 2); x <= Math.floor(cx); x++) {
     const b = botOf(x);
@@ -561,6 +625,7 @@ function drawFishBody(sp) {
   const mx = Math.floor(cx + rx) - 1, my = Math.floor(cy + ry * 0.15);
   px(mx, my, shade(sp.body, -0.3));
 
+  if (sp.bill) for (let i = 1; i <= 7; i++) px(mx + i, my - 1, shade(sp.body, 0.2));
   if (sp.whiskers) {
     px(mx + 1, my + 1, sp.fin); px(mx + 2, my + 2, sp.fin); px(mx + 3, my + 2, sp.fin);
   }
