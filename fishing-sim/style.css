@@ -411,6 +411,29 @@ kbd {
 .progress { height: 10px; border: 2px solid var(--ink); background: #fff; }
 .progress > span { display: block; height: 100%; background: var(--mint); }
 .map-btn { background: var(--sky); }
+.tank-btn { background: var(--mint); }
+.tank-wrap { position: relative; margin-bottom: 8px; }
+#tank-canvas {
+  display: block; width: 100%; height: auto; aspect-ratio: 16 / 9;
+  border: 4px solid var(--ink);
+  box-shadow: inset 0 0 0 3px #bfe8f0;
+  cursor: pointer;
+  background: #3a8aa8;
+}
+.tank-label {
+  position: absolute;
+  transform: translate(-50%, -130%);
+  background: var(--cream);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  padding: 1px 8px;
+  font-size: 14px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.tank-hint { margin: 0 0 10px; font-size: 14px; color: var(--plum-2); }
+.row-actions { display: flex; gap: 6px; align-items: center; }
+.priceless { font-weight: 700; color: #7a4ab0; background: #f0e4ff; border: 2px solid var(--ink); padding: 3px 8px; white-space: nowrap; }
 .map-btn.glow { animation: glow .8s steps(2) infinite; }
 @keyframes glow { 50% { background: var(--gold); transform: translateY(-2px); } }
 .gear-list { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 8px; }
@@ -548,6 +571,43 @@ kbd {
 
 @media (max-width: 640px) and (orientation: portrait) {
   .rotate-hint { display: block; }
+}
+
+/* -------------------------------------------------------- dev mode -- */
+.dev-panel {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 20;
+  width: 250px;
+  background: #1c1436;
+  color: var(--cream);
+  border: 3px solid var(--mint);
+  box-shadow: 0 0 0 3px var(--ink), 0 8px 20px rgba(0, 0, 0, .5);
+  padding: 8px 10px 10px;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dev-panel header { display: flex; justify-content: space-between; align-items: center; color: var(--mint); }
+.dev-panel label { display: flex; flex-direction: column; gap: 3px; }
+.dev-panel .dev-check { flex-direction: row; align-items: center; gap: 6px; }
+.dev-panel select, .dev-panel button {
+  font-family: var(--font);
+  font-size: 14px;
+  background: var(--cream);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  padding: 3px 6px;
+  cursor: pointer;
+}
+.dev-panel button:hover { background: var(--mint); }
+.dev-panel .dev-x { background: var(--rose); color: var(--cream); padding: 0 7px; }
+.dev-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.dev-note { margin: 0; font-size: 12px; opacity: .7; }
+@media (max-width: 640px) {
+  .dev-panel { left: 8px; right: 8px; bottom: 8px; width: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

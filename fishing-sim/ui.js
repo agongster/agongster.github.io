@@ -33,6 +33,7 @@ function refreshHUD() {
   $('#btn-map').classList.toggle('glow', !!save.newSpot);
   if (openId === 'modal-shop') renderShop();
   if (openId === 'modal-map') renderMap();
+  if (openId === 'modal-tank') renderTank();
   if (openId === 'modal-bucket') renderBucket();
 }
 
@@ -53,7 +54,14 @@ function openModal(id) {
 
 function closeModal() {
   if (!openId) return;
-  if (openId === 'modal-catch') { resolveCatch(save.bucket.length < bucketCap() ? 'keep' : 'sell'); return; }
+  if (openId === 'modal-catch') {
+    // Escape keeps the catch if there's room; it never throws away something unsellable
+    const c = G.pending;
+    const action = save.bucket.length < bucketCap() ? 'keep'
+      : c && isUnsellable(c) ? (save.aquarium.length < tankCap() ? 'tank' : null) : 'sell';
+    if (action) resolveCatch(action);
+    return;
+  }
   if (openId === 'modal-title' || (openId === 'modal-shop' && shop.creator)) return;
   $('#' + openId).hidden = true;
   if (openId === 'modal-shop') shop.trial = null;
@@ -290,14 +298,17 @@ function renderTackle() {
       <span class="stats"><span>Net size ${r.net}</span><span>Reel speed ${Math.round(r.gain * 100)}</span><span>Luck +${Math.round(r.luck * 100)}</span></span>
       ${btn}</li>`;
   }).join('');
-  const bucketRows = BUCKETS.map((b, i) => {
-    const btn = i <= save.bucketLvl ? `<button class="btn plain" disabled>${i === save.bucketLvl ? 'In use' : 'Outgrown'}</button>`
-      : i === save.bucketLvl + 1 ? `<button class="btn gold" data-bucket="${i}" ${save.coins < b.price ? 'disabled' : ''}>Buy ${coinHTML(b.price)}</button>`
+  // buckets and tanks upgrade in order, one level at a time
+  const upgradeRows = (levels, current, attr, what) => levels.map((b, i) => {
+    const btn = i <= current ? `<button class="btn plain" disabled>${i === current ? 'In use' : 'Outgrown'}</button>`
+      : i === current + 1 ? `<button class="btn gold" ${attr}="${i}" ${save.coins < b.price ? 'disabled' : ''}>Buy ${coinHTML(b.price)}</button>`
       : '<button class="btn plain" disabled>Upgrade first</button>';
-    return `<li class="gear ${i === save.bucketLvl ? 'equipped' : ''}">
-      <b>${b.name}</b><span class="desc">Holds ${b.cap} fish</span><span class="stats"></span>${btn}</li>`;
+    return `<li class="gear ${i === current ? 'equipped' : ''}">
+      <b>${b.name}</b><span class="desc">Holds ${b.cap} ${what}</span><span class="stats"></span>${btn}</li>`;
   }).join('');
-  $('#shop-tackle').innerHTML = `<h3>Rods</h3><ul class="gear-list">${rodRows}</ul><h3>Buckets</h3><ul class="gear-list">${bucketRows}</ul>`;
+  $('#shop-tackle').innerHTML = `<h3>Rods</h3><ul class="gear-list">${rodRows}</ul>
+    <h3>Buckets</h3><ul class="gear-list">${upgradeRows(BUCKETS, save.bucketLvl, 'data-bucket', 'fish')}</ul>
+    <h3>Aquariums</h3><ul class="gear-list">${upgradeRows(TANKS, save.tankLvl, 'data-tank', 'fish on display')}</ul>`;
 }
 
 $('#shop-tackle').addEventListener('click', e => {
@@ -321,6 +332,16 @@ $('#shop-tackle').addEventListener('click', e => {
     save.bucketLvl = i;
     persist();
     toast(`Upgraded to the ${BUCKETS[i].name.toLowerCase()}!`);
+    refreshHUD();
+    return;
+  }
+  const tb = e.target.closest('[data-tank]');
+  if (tb) {
+    const i = Number(tb.dataset.tank);
+    if (i !== save.tankLvl + 1 || !spend(TANKS[i].price)) return;
+    save.tankLvl = i;
+    persist();
+    toast(`Upgraded to the ${TANKS[i].name.toLowerCase()}!`);
     refreshHUD();
   }
 });
@@ -359,28 +380,40 @@ function openBucket() {
 }
 
 function renderBucket() {
-  const total = save.bucket.reduce((s, c) => s + c.value, 0);
+  const sellable = save.bucket.filter(c => !isUnsellable(c));
+  const total = sellable.reduce((s, c) => s + c.value, 0);
   $('#bucket-h').textContent = BUCKETS[save.bucketLvl].name;
   $('#bucket-sub').innerHTML = `${save.bucket.length} / ${bucketCap()} fish · worth ${coinHTML(total)}`;
-  $('#btn-sell-all').disabled = !save.bucket.length;
-  $('#btn-sell-all').innerHTML = save.bucket.length ? `Sell all for ${coinHTML(total)}` : 'Sell all';
+  $('#btn-sell-all').disabled = !sellable.length;
+  $('#btn-sell-all').innerHTML = sellable.length ? `Sell all for ${coinHTML(total)}` : 'Sell all';
   const list = $('#bucket-list');
   if (!save.bucket.length) {
     list.innerHTML = '<li class="empty" style="display:block">Your bucket is empty. Go catch something!</li>';
     return;
   }
+  const tankFull = save.aquarium.length >= tankCap();
   list.innerHTML = save.bucket.slice().reverse().map(c => {
     const sp = FISH_BY_ID[c.id];
     return `<li>
       <img src="${fishDataUrl(sp)}" alt="" />
       <div><div class="fname">${sp.name}</div>
         <div class="fmeta">${c.size} cm · <span class="stars" aria-label="${c.stars} of 3 stars">${starText(c.stars)}</span> · ${RARITY[sp.rarity].label}</div></div>
-      <button class="btn gold" data-sell="${c.uid}" aria-label="Sell ${sp.name} for ${c.value} coins">${coinHTML(c.value)}</button>
+      <div class="row-actions">
+        <button class="btn mint" data-totank="${c.uid}" ${tankFull ? 'disabled' : ''} aria-label="Move ${sp.name} to the aquarium">Tank</button>
+        ${sp.unsellable ? '<span class="priceless">Priceless</span>'
+          : `<button class="btn gold" data-sell="${c.uid}" aria-label="Sell ${sp.name} for ${c.value} coins">${coinHTML(c.value)}</button>`}
+      </div>
     </li>`;
   }).join('');
 }
 
 $('#bucket-list').addEventListener('click', e => {
+  const t = e.target.closest('[data-totank]');
+  if (t) {
+    if (moveToTank(Number(t.dataset.totank))) toast('Moved to the aquarium!');
+    renderBucket();
+    return;
+  }
   const b = e.target.closest('[data-sell]');
   if (!b) return;
   sellFish(Number(b.dataset.sell));
@@ -396,7 +429,7 @@ $('#btn-sell-all').addEventListener('click', () => {
 });
 
 // ================================================================ fishdex ==
-const RARITY_ORDER = ['common', 'uncommon', 'rare', 'legendary', 'junk'];
+const RARITY_ORDER = ['common', 'uncommon', 'rare', 'legendary', 'goat', 'junk'];
 
 function openDex() {
   renderDex();
@@ -446,6 +479,158 @@ $('#dex-tabs').addEventListener('click', e => {
   Sound.sfx.click();
   renderDex();
 });
+
+// ============================================================== aquarium ==
+const tankSwimmers = new Map();
+let tankLabel = null;
+const TANK_W = 240, TANK_H = 135, TANK_SAND = TANK_H - 14;
+
+function openTank() {
+  renderTank();
+  openModal('modal-tank');
+  Sound.sfx.open();
+}
+
+function renderTank() {
+  $('#tank-h').textContent = TANKS[save.tankLvl].name;
+  $('#tank-count').textContent = `${save.aquarium.length}/${tankCap()} fish`;
+  const list = $('#tank-list');
+  list.innerHTML = save.aquarium.length ? save.aquarium.slice().reverse().map(c => {
+    const sp = FISH_BY_ID[c.id];
+    return `<li>
+      <img src="${fishDataUrl(sp)}" alt="" />
+      <div><div class="fname">${sp.name}</div>
+        <div class="fmeta">${c.size} cm · <span class="stars" aria-label="${c.stars} of 3 stars">${starText(c.stars)}</span> · ${RARITY[sp.rarity].label}</div></div>
+      ${sp.unsellable ? '<span class="priceless">Here forever</span>'
+        : `<button class="btn gold" data-tanksell="${c.uid}" aria-label="Sell ${sp.name} for ${c.value} coins">Sell ${coinHTML(c.value)}</button>`}
+    </li>`;
+  }).join('') : '<li class="empty" style="display:block">Your tank is empty. Tap "Tank" on a catch, or move fish in from your bucket.</li>';
+
+  // keep the swimmers in sync with what's in the tank
+  const uids = new Set(save.aquarium.map(c => c.uid));
+  for (const uid of tankSwimmers.keys()) if (!uids.has(uid)) tankSwimmers.delete(uid);
+  for (const c of save.aquarium) {
+    if (tankSwimmers.has(c.uid)) continue;
+    const sp = FISH_BY_ID[c.id];
+    const spr = fishSprite(sp);
+    const bottom = !!sp.bottom;
+    const y = bottom ? TANK_SAND - spr.height / 2 + 2 : rand(20, TANK_SAND - 16);
+    tankSwimmers.set(c.uid, { sp, x: rand(20, TANK_W - 20), y, tx: rand(20, TANK_W - 20), ty: y, dir: 1, t: rand(0, 6), wait: 0, bottom });
+  }
+}
+
+$('#tank-list').addEventListener('click', e => {
+  const b = e.target.closest('[data-tanksell]');
+  if (!b) return;
+  const uid = Number(b.dataset.tanksell);
+  const c = save.aquarium.find(x => x.uid === uid);
+  if (c && ['rare', 'legendary', 'goat'].includes(FISH_BY_ID[c.id].rarity) &&
+    !confirm(`Sell your ${FISH_BY_ID[c.id].name}? It's a ${RARITY[FISH_BY_ID[c.id].rarity].label.toLowerCase()} one!`)) return;
+  sellFromTank(uid);
+  renderTank();
+});
+
+$('#tank-canvas').addEventListener('pointerdown', e => {
+  const r = e.currentTarget.getBoundingClientRect();
+  const x = ((e.clientX - r.left) / r.width) * TANK_W, y = ((e.clientY - r.top) / r.height) * TANK_H;
+  let best = null, bd = 30;
+  for (const [uid, f] of tankSwimmers) {
+    const d = Math.hypot(f.x - x, f.y - y);
+    if (d < bd) { bd = d; best = uid; }
+  }
+  if (best !== null) {
+    const f = tankSwimmers.get(best);
+    const c = save.aquarium.find(x => x.uid === best);
+    tankLabel = { uid: best, until: performance.now() + 2500, text: `${f.sp.name} · ${c.size} cm` };
+    f.wait = 1.2;
+    Sound.sfx.nibble();
+  }
+});
+
+let lastTankFrame = performance.now();
+function drawTank() {
+  if (openId !== 'modal-tank') { lastTankFrame = performance.now(); return; }
+  const now = performance.now();
+  const dt = Math.min(0.05, (now - lastTankFrame) / 1000);
+  lastTankFrame = now;
+  const t = now / 1000;
+  const c = $('#tank-canvas'), g = c.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), w, h); };
+
+  // water, light rays, sand
+  for (let y = 0; y < TANK_H; y += 3) R(0, y, TANK_W, 3, lerpColor('#8fd8e8', '#2a5a8e', y / TANK_H));
+  g.fillStyle = 'rgba(255,255,255,0.07)';
+  for (let i = 0; i < 4; i++) {
+    const x0 = ((i * 70 + t * 5) % (TANK_W + 80)) - 50;
+    for (let y = 0; y < TANK_SAND; y += 2) g.fillRect(Math.round(x0 + y * 0.4), y, 10, 2);
+  }
+  R(0, TANK_SAND, TANK_W, TANK_H - TANK_SAND, '#f0d0a0');
+  R(0, TANK_SAND, TANK_W, 1, '#fff0d0');
+  for (let x = 4; x < TANK_W; x += 9) R(x, TANK_SAND + 4 + (x % 5), 2, 1, ['#ff9ec4', '#c8b0e0', '#d8b080'][x % 3]);
+
+  // decorations: a little castle, a treasure chest, plants, a bubbler
+  R(26, TANK_SAND - 28, 22, 28, '#c8b8d8'); R(22, TANK_SAND - 34, 8, 34, '#b0a0c8'); R(44, TANK_SAND - 34, 8, 34, '#b0a0c8');
+  for (const x of [22, 26, 44, 48]) R(x, TANK_SAND - 37, 2, 3, '#b0a0c8');
+  R(33, TANK_SAND - 12, 8, 12, '#4a3a5a'); R(34, TANK_SAND - 13, 6, 1, '#4a3a5a');
+  R(24, TANK_SAND - 26, 3, 3, '#4a3a5a'); R(46, TANK_SAND - 26, 3, 3, '#4a3a5a');
+  R(48, TANK_SAND - 44, 1, 10, '#6a3a2e'); R(49, TANK_SAND - 44, 5, 3, '#e0566e');
+  R(190, TANK_SAND - 8, 16, 8, '#a8603e'); R(190, TANK_SAND - 11, 16, 4, '#c07850'); R(190, TANK_SAND - 8, 16, 1, '#ffd23f'); R(197, TANK_SAND - 7, 2, 2, '#ffd23f');
+  if (Math.sin(t * 0.8) > 0.6) for (let i = 0; i < 3; i++) R(194 + i * 4, TANK_SAND - 13 - ((t * 20 + i * 5) % 12), 2, 2, 'rgba(255,255,255,0.6)');
+  for (const [x, h, col] of [[8, 34, '#5aa860'], [70, 26, '#7ac070'], [150, 40, '#5aa860'], [160, 24, '#e070b0'], [224, 36, '#7ac070'], [230, 22, '#5aa860']]) {
+    for (let y = 0; y < h; y++) {
+      const sway = Math.round(Math.sin(t * 1.4 + x + y * 0.15) * (y / h) * 3);
+      R(x + sway, TANK_SAND - y, 2, 1, col);
+      if (y % 6 === 3) R(x + sway + (y % 12 === 3 ? 2 : -2), TANK_SAND - y, 2, 1, col);
+    }
+  }
+  for (let i = 0; i < 6; i++) R(120 + Math.sin(t * 3 + i) * 2, TANK_SAND - ((t * 18 + i * 22) % TANK_SAND), 2, 2, 'rgba(255,255,255,0.5)');
+
+  // the fish
+  for (const [uid, f] of tankSwimmers) {
+    f.t += dt;
+    const spr = fishSprite(f.sp);
+    if (f.wait > 0) f.wait -= dt;
+    else {
+      const dx = f.tx - f.x, dy = f.ty - f.y, d = Math.hypot(dx, dy);
+      const speed = f.bottom ? 8 : 10 + f.sp.diff * 2;
+      if (d < 2) {
+        f.tx = rand(12 + spr.width / 2, TANK_W - 12 - spr.width / 2);
+        f.ty = f.bottom ? f.y : rand(14 + spr.height / 2, TANK_SAND - 6 - spr.height / 2);
+        f.wait = Math.random() < 0.3 ? rand(0.5, 2) : 0;
+      } else {
+        f.x += (dx / d) * speed * dt; f.y += (dy / d) * speed * dt;
+        if (Math.abs(dx) > 1) f.dir = Math.sign(dx);
+      }
+    }
+    const bob = f.bottom ? (f.sp.id === 'lebron' ? -Math.abs(Math.round(Math.sin(f.t * 8) * 1)) : 0) : Math.round(Math.sin(f.t * 2) * 1);
+    g.save();
+    g.translate(Math.round(f.x), Math.round(f.y) + bob);
+    if (f.dir < 0) g.scale(-1, 1);
+    g.drawImage(spr, -Math.round(spr.width / 2), -Math.round(spr.height / 2));
+    g.restore();
+    if (!f.bottom && Math.random() < dt * 0.4) f.bubble = { x: f.x + f.dir * spr.width / 2, y: f.y, life: 1.2 };
+    if (f.bubble) {
+      f.bubble.life -= dt; f.bubble.y -= dt * 12;
+      if (f.bubble.life > 0) R(f.bubble.x, f.bubble.y, 1, 1, 'rgba(255,255,255,0.7)'); else f.bubble = null;
+    }
+  }
+  // glass shine
+  g.fillStyle = 'rgba(255,255,255,0.1)';
+  g.fillRect(6, 4, 3, TANK_H - 20); g.fillRect(12, 4, 1, TANK_H - 30);
+
+  // the name tag follows the fish you tapped
+  const label = $('#tank-label');
+  const f = tankLabel && tankSwimmers.get(tankLabel.uid);
+  if (f && now < tankLabel.until) {
+    label.hidden = false;
+    label.textContent = tankLabel.text;
+    label.style.left = `${(f.x / TANK_W) * 100}%`;
+    label.style.top = `${((f.y - fishSprite(f.sp).height / 2) / TANK_H) * 100}%`;
+  } else {
+    label.hidden = true;
+  }
+}
 
 // ==================================================================== map ==
 function openMap() {
@@ -514,7 +699,7 @@ function drawMap() {
   for (const loc of LOCATIONS) {
     const { x, y } = loc.map;
     const open = save.unlocked.includes(loc.id);
-    const sand = open ? '#f0d0a0' : '#8a90a8', green = open ? ({ dock: '#6aa860', lagoon: '#ff9ec4', cove: '#4fc0a0', bay: '#f4faff' })[loc.id] : '#6a7090';
+    const sand = open ? '#f0d0a0' : '#8a90a8', green = open ? ({ dock: '#6aa860', lagoon: '#ff9ec4', cove: '#4fc0a0', bay: '#f4faff', blossom: '#ffc0d8', ember: '#6a4a5a', cloud: '#ffffff' })[loc.id] : '#6a7090';
     ellipse(g, x, y + 1, 14, 6, '#2a1a2e');
     ellipse(g, x, y, 13, 5, sand);
     ellipse(g, x - 2, y - 1, 8, 3, green);
@@ -529,6 +714,13 @@ function drawMap() {
       R(x + 4, y - 8, 1, 7, '#8a5a3a'); R(x + 1, y - 9, 7, 1, '#4f9a5a'); R(x + 2, y - 8, 1, 1, '#4f9a5a'); R(x + 6, y - 8, 1, 1, '#4f9a5a');
     } else if (loc.id === 'bay') {
       R(x + 2, y - 6, 5, 5, '#e8f4ff'); R(x + 3, y - 8, 3, 2, '#e8f4ff'); R(x + 5, y - 6, 2, 5, '#b0c8ec');
+    } else if (loc.id === 'blossom') {
+      R(x + 3, y - 5, 1, 4, '#5a3a3a'); ellipse(g, x + 3, y - 7, 4, 2, '#ffb0cc'); R(x - 6, y - 4, 1, 3, '#e0404a'); R(x - 2, y - 4, 1, 3, '#e0404a'); R(x - 7, y - 5, 7, 1, '#e0404a');
+    } else if (loc.id === 'ember') {
+      for (let i = 0; i < 7; i++) R(x - 1 - i, y - 9 + i, 3 + i * 2, 1, '#5a3a4a');
+      R(x - 1, y - 10, 3, 1, '#ff7a3c'); R(x + Math.round(Math.sin(t) * 2), y - 13 - Math.round((t * 3) % 4), 2, 2, 'rgba(220,210,230,0.8)');
+    } else if (loc.id === 'cloud') {
+      ellipse(g, x + 3, y - 9 + Math.round(Math.sin(t * 2)), 4, 1, '#8ad07a'); R(x + 1, y - 8 + Math.round(Math.sin(t * 2)), 4, 2, '#a89ab8');
     }
     if (loc.id === save.location) {
       const bob = Math.round(Math.sin(t * 3));
@@ -551,12 +743,17 @@ function showCatchCard(c) {
   $('#catch-name').textContent = sp.name;
   $('#catch-meta').innerHTML = `${c.size} cm · <span class="stars" aria-label="${c.stars} of 3 stars">${starText(c.stars)}</span>`;
   $('#catch-blurb').textContent = sp.blurb;
+  const tank = $('#catch-tank');
+  tank.disabled = save.aquarium.length >= tankCap();
+  tank.textContent = tank.disabled ? 'Tank full' : 'Tank';
   const keep = $('#catch-keep');
   keep.disabled = full;
   keep.textContent = full ? 'Bucket full' : 'Keep';
-  $('#catch-sell').innerHTML = `Sell ${coinHTML(c.value)}`;
-  keep.toggleAttribute('data-autofocus', !full);
-  $('#catch-sell').toggleAttribute('data-autofocus', full);
+  const sell = $('#catch-sell');
+  sell.hidden = !!sp.unsellable;
+  sell.innerHTML = `Sell ${coinHTML(c.value)}`;
+  const first = !full ? keep : sp.unsellable ? (tank.disabled ? $('#catch-release') : tank) : sell;
+  for (const b of [keep, tank, sell, $('#catch-release')]) b.toggleAttribute('data-autofocus', b === first);
   openModal('modal-catch');
 }
 
@@ -568,6 +765,7 @@ function resolveCatch(action) {
 
 $('#catch-keep').addEventListener('click', () => resolveCatch('keep'));
 $('#catch-sell').addEventListener('click', () => resolveCatch('sell'));
+$('#catch-tank').addEventListener('click', () => resolveCatch('tank'));
 $('#catch-release').addEventListener('click', () => resolveCatch('release'));
 
 // ================================================================== input ==
@@ -591,6 +789,7 @@ function uiTick() {
   }
   drawPreview();
   drawMap();
+  drawTank();
 }
 
 // Converts a pointer position into the 320x180 canvas's own pixels.
@@ -645,7 +844,7 @@ const ARROW_KEYS = {
   KeyA: 'left', KeyD: 'right', KeyW: 'up', KeyS: 'down',
 };
 
-const isTyping = t => t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA');
+const isTyping = t => t && ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName);
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeModal(); return; }
@@ -679,6 +878,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('pagehide', writeSave);
 
 $('#btn-map').addEventListener('click', openMap);
+$('#btn-tank').addEventListener('click', openTank);
 $('#btn-bucket').addEventListener('click', openBucket);
 $('#btn-shop').addEventListener('click', () => openShop(false));
 $('#btn-dex').addEventListener('click', openDex);

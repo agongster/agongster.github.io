@@ -509,6 +509,81 @@ const MAP_ART = {
     ],
     pal: { g: '#8fd1c0', h: '#e0fff8', p: '#fff4e0', c: '#b07a50' },
   },
+  seahorse: {
+    rows: [
+      '...ss....',
+      '..ssss...',
+      '..sesssss',
+      '..sssss..',
+      '...ssf...',
+      '..sbsff..',
+      '.sbbsf...',
+      '.sbbs....',
+      '..sbs....',
+      '...ss....',
+      '.s..s....',
+      '..ss.....',
+    ],
+    pal: { s: '#ffb04a', b: '#ffe0a0', f: '#ffd27a', e: OUTLINE },
+  },
+  octopus: {
+    rows: [
+      '...oooo....',
+      '..oooooo...',
+      '.oohooooo..',
+      '.ooooooooo.',
+      '.oeoooeooo.',
+      '.opooooopo.',
+      '..oooooo...',
+      '.o.o.o.o.o.',
+      'o..o.o..o.o',
+      '.o..o..o...',
+    ],
+    pal: { o: '#c07ae0', h: '#e8c0ff', e: OUTLINE, p: '#ff9ec4' },
+  },
+  whale: {
+    rows: [
+      '..........wwwwwww.....',
+      '.......wwwwwwwwwwww...',
+      't....wwwwwwwwwwwwwww..',
+      'tt..wwwwwwwwwwwwwwkww.',
+      'ttwwwwwwwwwwwwwwwwwpww',
+      'tt.bbbbbbbbbbbbbbbbbbw',
+      't...bbbbbbbbbbbbbbbb..',
+      '.......bbbbbbbbbbb....',
+      '.........ff...........',
+    ],
+    pal: { w: '#9ab8f0', b: '#f0f4ff', k: OUTLINE, p: '#ff9ec4', t: '#7a98d8', f: '#7a98d8' },
+  },
+  lebron: {
+    rows: [
+      '......hhhh......',
+      '.....wwwwww.....',
+      '.....ssssss.....',
+      '.....sesses.....',
+      '.....ssddss.....',
+      '.....hsmmsh.....',
+      '.....hhhhhh.....',
+      '......hhhh......',
+      '.......ss.......',
+      '...pppppppppp...',
+      '..spyyypyyypps..',
+      '..spppypppypps..',
+      '..spyyypyyypps..',
+      '..spypppppypps..',
+      '..spyyypyyypps..',
+      '..sppppppppppbbb',
+      '...yyyyyyyyyybkb',
+      '...ppppppppppbbb',
+      '....ppp..ppp....',
+      '....ppp..ppp....',
+      '.....ss..ss.....',
+      '.....ss..ss.....',
+      '....nnn..nnn....',
+    ],
+    pal: { h: '#1e1414', w: '#fff4e0', s: '#8a5634', e: OUTLINE, d: '#6a3e24', m: '#f4ece4',
+      p: '#5a3a9a', y: '#ffc83a', b: '#e8782a', k: OUTLINE, n: '#fff4e0' },
+  },
 };
 
 const fishCache = new Map();
@@ -520,7 +595,7 @@ function fishSprite(sp, dark = false) {
   if (dark) {
     c = silhouette(fishSprite(sp));
   } else {
-    if (sp.map) c = mapCanvas(MAP_ART[sp.map].rows, MAP_ART[sp.map].pal);
+    if (sp.map) c = mapCanvas(MAP_ART[sp.map].rows, sp.pal || MAP_ART[sp.map].pal);
     else if (sp.shape === 'eel') c = drawEel(sp);
     else if (sp.shape === 'puffer') c = drawPuffer(sp);
     else c = drawFishBody(sp);

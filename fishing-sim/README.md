@@ -1,6 +1,6 @@
 # Tiny Tides
 
-A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock while the sky loops from golden hour to night, collect 17 kinds of fish (and some junk), sell your catch, and spend the coins on outfits, buddies, rods and bigger buckets.
+A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock (and later sail to six more islands) while the sky loops from sunrise to night, collect 72 kinds of fish (plus junk, and LeBron James), keep your favourites in an aquarium, sell the rest, and spend the coins on outfits, buddies, rods, buckets and bigger tanks.
 
 **Play it:** https://agongster.github.io/fishing-sim/
 **Code:** this folder of [agongster.github.io](https://github.com/agongster/agongster.github.io)
@@ -19,8 +19,9 @@ A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock wh
 > - Small nibbles are fake-outs. When the bobber sinks and a **!** appears, tap quickly.
 > - Reeling is a chase: an underwater view opens and you steer a net with the arrow keys / WASD (or drag, or the on-screen D-pad on phones). Keep the fish inside the net until the bar fills; if the bar empties, it gets away.
 > - Sell fish from the **Bucket**, then spend coins in the **Shop** (Wardrobe for cosmetics, Tackle for rods and buckets). You can try things on before buying.
-> - Catch 12, 30 and 55 fish to unlock Lily Lagoon, Coral Cove and Aurora Bay on the **Map**. Each has its own scenery and fish, and you sail there by boat.
-> - The day cycles golden hour → sunset → dusk → night (about 75 seconds each). Some fish only appear at certain times. The **Fishdex** shows silhouettes of what's left, where each one lives, and when it swims.
+> - Catch more fish to unlock new spots on the **Map**: Lily Lagoon (12), Coral Cove (30), Aurora Bay (55), Blossom River (80), Ember Isle (110) and Cloud Lake (150). Each has its own scenery and fish, and you sail there by boat.
+> - Put fish you like in the **Tank** (from the catch card or the bucket) to watch them swim around. Tap one to see its name, and sell from the tank whenever you like.
+> - The day cycles sunrise → daytime → golden hour → sunset → dusk → night (about 65 seconds each), and the sun travels across the sky. Some fish only appear at certain times. The **Fishdex** shows silhouettes of what's left, where each one lives, and when it swims.
 > - Works with a mouse, touch or the keyboard. On phones it works in portrait but is roomier in landscape.
 
 ## Features I'm most proud of
@@ -31,7 +32,8 @@ A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock wh
 > - The dithered sunset sky that blends smoothly between four palettes.
 > - Fish that depend on the time of day and the location, which gives a reason to keep playing through the whole loop.
 > - Visible fish shadows you can aim for, and a 2D underwater chase for reeling (steering in two directions instead of Stardew Valley's one).
-> - The sea chart and the sailing trip between four hand-coloured locations.
+> - The sea chart and the sailing trip between seven hand-coloured locations.
+> - The aquarium, where fish swim, crabs (and LeBron) walk along the sand, and tapping a fish shows its name.
 > - Game juice: the fish arcs out of the water onto the dock, the catch card has spinning rays, the lantern and lighthouse glow at night.
 
 ## Running it locally
@@ -44,6 +46,18 @@ python3 -m http.server 8000
 ```
 
 Opening `index.html` directly also works, since everything is plain `<script>` tags.
+
+## Dev mode
+
+Add `?dev` to the URL (for example `http://localhost:8000/fishing-sim/?dev`), or press the backtick key (`` ` ``) in game. A small panel lets you:
+- pick exactly which fish bites next, grouped by location
+- turn on instant bites
+- hook or win a fish immediately
+- add 1,000 coins
+- unlock every island
+- jump to any time of day
+
+It's useful for testing and for recording a demo. Dev catches still count toward the Fishdex.
 
 ## Secrets
 
@@ -70,10 +84,11 @@ There aren't any. The game has no backend and calls no APIs. The only external r
 | File | What's in it |
 | --- | --- |
 | `index.html` | Page structure: HUD, the canvas stage, and the modals (title, shop/creator, bucket, Fishdex, catch card). |
-| `data.js` | **All game content**: sky palettes, the four locations (unlock requirement, colour tint, scenery), every fish (price, rarity, location, time of day, difficulty, colours, flavour text), cosmetics, rods, buckets. The easiest file to edit. |
+| `data.js` | **All game content**: the six sky palettes, the seven locations (unlock requirement, colour tint, scenery), every fish (price, rarity, location, time of day, difficulty, colours, flavour text), cosmetics, rods, buckets, tanks. The easiest file to edit. |
 | `sprites.js` | Pixel-art generation: colour helpers, the angler renderer, buddy and junk pixel maps, the procedural fish generator, and the automatic outline pass. |
 | `audio.js` | Web Audio synthesised sound effects and a generative lullaby that changes chords with the time of day. |
 | `game.js` | Save/load, the scene renderer, the fishing state machine, economy, and the main loop. |
+| `dev.js` | The dev-mode panel (fish picker and testing shortcuts). |
 | `ui.js` | DOM side: HUD, modals, shop/bucket/Fishdex rendering, and mouse/touch/keyboard input. |
 | `style.css` | Warm sunset palette, pixel-bordered panels, responsive rules for phones. |
 
@@ -87,6 +102,7 @@ There aren't any. The game has no backend and calls no APIs. The only external r
 - **Fish shadows.** Five shadows swim around, and each has already rolled its species (from the current location and time of day), with size set by rarity. When the bobber lands, any shadow within a few pixels flees, and the nearest one within range becomes "interested", swims over, nibbles, then bites. If nothing notices, a stray bite eventually happens (weighted toward junk), so a player is never stuck.
 - **Chase reel.** An underwater panel opens with the real fish sprite. The fish picks targets and sometimes darts, depending on its `diff`, and its speed is capped so the net can always keep up. The net has simple physics: arrow keys, WASD, the D-pad or a dragged finger accelerate it, and water drag slows it down. The bar fills while the fish is in the net and drains otherwise, after a short grace period. The rod sets net size, fill speed and luck.
 - **Locations.** Each location tints the four sky palettes, swaps the landmark (lighthouse, willow, palms, icebergs with an aurora), the foreground props, and the platform (a dock at home, a bobbing rowboat elsewhere). Unlocks are recomputed from the Fishdex count on load, so they can't get out of sync with the save.
+- **Aquarium.** Fish in `save.aquarium` get a swimmer (position, target, facing) that lives only in the UI. They wander to random points, pause sometimes, and blow bubbles. Anything flagged `bottom: true` in `data.js` (crabs, junk, LeBron) walks along the sand instead. The tank upgrades in the Tackle shop.
 - **Pausing.** Opening a menu mid-cast freezes the fishing (but not the scenery), so checking your bucket never costs you a fish.
 - **Saving.** `localStorage` with a debounced write, plus a write on `pagehide`/`visibilitychange`. Loaded saves go through `sanitizeSave()`, so an old or hand-edited save can't crash the game. Every storage call is wrapped in try/catch, so private browsing still works; it just won't remember progress.
 - **Accessibility and robustness.** Real `<button>`s everywhere, focus is trapped inside open dialogs and returned afterwards, Escape closes menus, `aria-live` prompts, reduced-motion support, and held inputs are cancelled when the tab loses focus so the rod never gets stuck charging.

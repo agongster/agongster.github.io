@@ -89,3 +89,67 @@ ok the new mechanics are not as fun.. switch it back to the original one where w
 ### Changes I made myself
 
 > ✏️ TODO
+
+---
+
+## Session 4: aquarium, full day cycle, more islands and fish, LeBron (2026-09-28, Claude Code / Claude Opus 5.5)
+
+### Prompt 4 (verbatim)
+
+```
+i also want to implement an aquarium feature, where players can place their fish in an aquarium where they just look at the fish swimming around. they can choose to sell the fish from the aquarium. for the sky, it should rotate between a daytime, like from sunrise to night. add more locations to the map, and also add more fish types to each location. add a lebron fish that is literally just lebron james and not a fish.
+```
+
+### What the AI did in response
+
+- **Aquarium:** a new "Tank" menu. Fish swim around a decorated tank (castle, treasure chest, swaying plants, bubbles). Crabs, junk and LeBron walk along the sand instead. Tapping a fish shows a name tag, and you can sell from the tank (with a confirm for rare-or-better fish). Fish get in via a "Tank" button on the catch card or in the bucket. The tank upgrades in the Tackle shop (6 → 12 → 24).
+- **Sky:** six phases (sunrise, daytime, golden hour, sunset, dusk, night), with the sun moving left to right across the sky.
+- **Map:** three new islands, each with its own landmark and weather:
+  - Blossom River: cherry trees, a shrine gate, falling petals
+  - Ember Isle: a smoking volcano with a glowing crater, rising embers
+  - Cloud Lake: floating islands with waterfalls, drifting mist
+- **Fish:** 37 new catches, bringing the total to 72. Every location now has fish at every time of day. New pixel critters include a seahorse, octopus, cloud whale, and recoloured snow and lava crabs.
+- **LeBron James:** a pixel LeBron (headband, beard, #23 jersey, basketball) with his own rarity, "The GOAT". He can turn up anywhere at any time, but rarely, and is worth 2,323 coins.
+
+### Changes I made myself
+
+> ✏️ TODO
+
+---
+
+## Session 5: dev mode (2026-09-28, Claude Code / Claude Opus 5.5)
+
+### Prompt 5 (verbatim)
+
+```
+make a dev mode where i can select the fish that i want to catch.
+```
+
+### What the AI did in response
+
+- Added `dev.js`, a panel that opens with `?dev` or the backtick key. It has a fish picker (grouped by location), instant bites, "Hook it now", "Win reel", +1000 coins, unlock all islands, and jump to any time of day. The picked fish overrides both shadow bites and stray bites.
+- "Unlock map" first faked 150 perch catches into the Fishdex. It was changed to a proper `devUnlocked` save flag so the Fishdex stays honest.
+- Testing caught a real snag: after ticking the "Instant bites" checkbox, Space toggled the checkbox instead of casting. The panel now drops focus after each change, and Space is ignored while a dropdown is focused.
+
+### Changes I made myself
+
+> ✏️ TODO
+
+---
+
+## Session 6: LeBron can't be sold (2026-09-28, Claude Code / Claude Opus 5.5)
+
+### Prompt 6 (verbatim)
+
+```
+the player cannot sell lebron james but they can keep him in the tank forever. also if his weight is 0, then can they ever catch him?
+```
+
+### What the AI did in response
+
+- **Can he be caught?** Yes. The `weight: 0` is on the "GOAT" rarity tier, but LeBron's own entry has `weight: 0.35`, which overrides the tier. It works out to about 1 in 200 to 1 in 285 rolls depending on location and time of day. 30,000 real in-game rolls gave 1 in 240. Rod luck doesn't change his odds. A comment in `data.js` now explains the 0.
+- **Unsellable:** added `unsellable: true` to LeBron and blocked selling at every point: the catch card (no Sell button), the bucket ("Priceless", and "Sell all" skips him), the tank ("Here forever"), and the game functions themselves, so even a forced sell just keeps him. With the bucket and tank both full, Escape no longer throws him away; you have to choose Release deliberately.
+
+### Changes I made myself
+
+> ✏️ TODO

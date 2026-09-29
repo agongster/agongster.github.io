@@ -8,7 +8,7 @@ const SAVE_KEY = 'tiny-tides-save-v1';
 function freshSave() {
   return {
     started: false, name: '', look: { ...DEFAULT_LOOK }, owned: [],
-    coins: 0, bucket: [], dex: {}, rod: 'twig', rods: ['twig'], bucketLvl: 0,
+    coins: 0, bucket: [], aquarium: [], dex: {}, rod: 'twig', rods: ['twig'], bucketLvl: 0, tankLvl: 0,
     location: 'dock', unlocked: ['dock'], newSpot: false,
     clock: 0, muted: false, nextUid: 1,
     stats: { caught: 0, earned: 0, sold: 0 },
@@ -42,6 +42,9 @@ function sanitizeSave(s) {
   if (!Array.isArray(s.owned)) s.owned = [];
   if (!Array.isArray(s.bucket)) s.bucket = [];
   s.bucket = s.bucket.filter(c => c && FISH_BY_ID[c.id] && Number.isFinite(c.value));
+  if (!Array.isArray(s.aquarium)) s.aquarium = [];
+  s.aquarium = s.aquarium.filter(c => c && FISH_BY_ID[c.id] && Number.isFinite(c.value));
+  s.tankLvl = inRange(s.tankLvl, TANKS, 0);
   if (!s.dex || typeof s.dex !== 'object') s.dex = {};
   for (const id of Object.keys(s.dex)) if (!FISH_BY_ID[id]) delete s.dex[id];
   if (!Array.isArray(s.rods) || !s.rods.includes('twig')) s.rods = ['twig'];
@@ -52,7 +55,7 @@ function sanitizeSave(s) {
   s.name = String(s.name || '').slice(0, 14);
   // unlocked spots are always recomputed from how many fish you've caught
   const count = fishCaughtCount(s);
-  s.unlocked = LOCATIONS.filter(l => l.need <= count).map(l => l.id);
+  s.unlocked = LOCATIONS.filter(l => s.devUnlocked || l.need <= count).map(l => l.id);
   if (!s.unlocked.includes(s.location)) s.location = 'dock';
   return s;
 }
@@ -89,6 +92,7 @@ const save = loadSave();
 const currentRod = () => RODS.find(r => r.id === save.rod) || RODS[0];
 const currentLoc = () => LOCATIONS.find(l => l.id === save.location) || LOCATIONS[0];
 const bucketCap = () => BUCKETS[save.bucketLvl].cap;
+const tankCap = () => TANKS[save.tankLvl].cap;
 const findCosmetic = (cat, id) => COSMETICS[cat].find(i => i.id === id);
 const ownsCosmetic = (cat, id) => {
   const item = findCosmetic(cat, id);
@@ -167,6 +171,7 @@ const G = {
   blinkT: 2, blinking: 0, buddyBlinkT: 3, buddyBlinking: 0, cheer: 0,
   pal: null, phaseId: 'golden', lastPhaseId: null,
   msgTimer: 0,
+  dev: { fish: '', instant: false },  // set from the dev panel (dev.js)
 };
 
 function phaseInfo() {
@@ -252,7 +257,7 @@ function setAim(pos) {
 // ============================================================== shadows ==
 // Every shadow under the water is a real fish that has already been rolled.
 // Bigger shadows are rarer fish, so you can pick your target.
-const SHADOW_SIZE = { junk: 0.65, common: 0.8, uncommon: 1.15, rare: 1.5, legendary: 1.95 };
+const SHADOW_SIZE = { junk: 0.65, common: 0.8, uncommon: 1.15, rare: 1.5, legendary: 1.95, goat: 2.1 };
 const SHADOWS = Array.from({ length: 5 }, () => ({ mode: 'gone', respawn: 0 }));
 
 function spawnShadow(s, fadeIn = true) {
@@ -371,7 +376,7 @@ function landBobber() {
   Sound.sfx.splash();
   G.hooked = null;
   G.lureT = 0.5;
-  G.strayAt = rand(9, 13) * currentRod().wait;
+  G.strayAt = G.dev.instant ? 0.7 : rand(9, 13) * currentRod().wait;
   G.hinted = false;
   setState('waiting');
 
@@ -402,12 +407,13 @@ function rollFish(stray = false) {
   const rod = currentRod();
   const pool = FISH.filter(f => f.phases.includes(G.phaseId) && fishWhere(f).includes(save.location));
   const weightOf = f => {
+    if (f.weight !== undefined) return f.weight;
     let w = RARITY[f.rarity].weight;
     if (f.rarity === 'rare') w *= 1 + rod.luck * 5;
     if (f.rarity === 'legendary') w *= 1 + rod.luck * 8;
     if (f.rarity === 'junk') w *= Math.max(0.2, 1 - rod.luck * 3) * (stray ? 3 : 1);
     // spread the weight of a rarity across its members
-    return w / pool.filter(o => o.rarity === f.rarity).length;
+    return w / pool.filter(o => o.rarity === f.rarity && o.weight === undefined).length;
   };
   const total = pool.reduce((s, f) => s + weightOf(f), 0);
   let r = Math.random() * total;
@@ -422,6 +428,7 @@ function startBite(shadow) {
   } else {
     G.bite = rollFish(true);
   }
+  if (G.dev.fish && FISH_BY_ID[G.dev.fish]) G.bite = FISH_BY_ID[G.dev.fish];
   G.hooked = shadow;
   setState('bite');
   addRipple(G.bob.x, G.bob.y, 1.2);
@@ -533,7 +540,7 @@ function catchFish() {
   G.reel = null;
   setState('landing');
   splash(G.bob.x, G.bob.y, 12);
-  Sound.sfx.catch(sp.rarity);
+  Sound.sfx.catch(sp.rarity === 'goat' ? 'legendary' : sp.rarity);
   setPrompt(isNew ? 'A new species!' : 'Got one!');
 }
 
@@ -566,9 +573,13 @@ function finishCatch(action) {
   const c = G.pending;
   if (!c) return;
   G.pending = null;
+  if (action === 'sell' && isUnsellable(c)) action = save.aquarium.length < tankCap() ? 'tank' : 'keep';
   if (action === 'keep' && save.bucket.length < bucketCap()) {
     save.bucket.push(c);
     toast(`${FISH_BY_ID[c.id].name} went in the bucket`);
+  } else if (action === 'tank' && save.aquarium.length < tankCap()) {
+    save.aquarium.push(c);
+    toast(`${FISH_BY_ID[c.id].name} moved into the ${TANKS[save.tankLvl].name.toLowerCase()}!`);
   } else if (action === 'sell') {
     earn(c.value);
     Sound.sfx.coin();
@@ -624,9 +635,11 @@ function earn(amount) {
   refreshHUD();
 }
 
+const isUnsellable = c => !!FISH_BY_ID[c.id].unsellable;
+
 function sellFish(uid) {
   const i = save.bucket.findIndex(c => c.uid === uid);
-  if (i < 0) return;
+  if (i < 0 || isUnsellable(save.bucket[i])) return;
   const [c] = save.bucket.splice(i, 1);
   save.stats.sold++;
   earn(c.value);
@@ -634,11 +647,33 @@ function sellFish(uid) {
   persist();
 }
 
+function sellFromTank(uid) {
+  const i = save.aquarium.findIndex(c => c.uid === uid);
+  if (i < 0 || isUnsellable(save.aquarium[i])) return;
+  const [c] = save.aquarium.splice(i, 1);
+  save.stats.sold++;
+  earn(c.value);
+  Sound.sfx.coin();
+  persist();
+}
+
+function moveToTank(uid) {
+  const i = save.bucket.findIndex(c => c.uid === uid);
+  if (i < 0 || save.aquarium.length >= tankCap()) return false;
+  save.aquarium.push(save.bucket.splice(i, 1)[0]);
+  Sound.sfx.buy();
+  persist();
+  refreshHUD();
+  return true;
+}
+
+// Sells everything in the bucket except anything marked unsellable.
 function sellAll() {
-  if (!save.bucket.length) return;
-  const total = save.bucket.reduce((s, c) => s + c.value, 0);
-  save.stats.sold += save.bucket.length;
-  save.bucket = [];
+  const selling = save.bucket.filter(c => !isUnsellable(c));
+  if (!selling.length) return;
+  const total = selling.reduce((s, c) => s + c.value, 0);
+  save.stats.sold += selling.length;
+  save.bucket = save.bucket.filter(isUnsellable);
   earn(total);
   Sound.sfx.coin();
   persist();
@@ -1002,7 +1037,7 @@ function drawSkyThings(g, pal, loc) {
     g.globalAlpha = 1;
   }
   // the sun, with retro stripes cut into its lower half
-  const sunX = 228, sunY = Math.round(pal.sunY), sunR = 15;
+  const sunX = Math.round(pal.sunX), sunY = Math.round(pal.sunY), sunR = 15;
   if (sunY - sunR < HORIZON) {
     disc(g, sunX, sunY, sunR + 7, rgba(pal.sun, 0.14), HORIZON);
     disc(g, sunX, sunY, sunR + 3, rgba(pal.sun, 0.22), HORIZON);
@@ -1029,6 +1064,8 @@ function drawSkyThings(g, pal, loc) {
 }
 
 function drawLandmark(g, pal, loc) {
+  if (loc.landmark === 'volcano') return drawVolcano(g, pal);
+  if (loc.landmark === 'floating') return drawFloatingIslands(g, pal);
   if (loc.landmark === 'icebergs') {
     const ice = lerpColor('#f4faff', pal.hills, 0.35 + pal.night * 0.3);
     const iceShade = lerpColor('#b0c8ec', pal.hills, 0.4 + pal.night * 0.3);
@@ -1065,7 +1102,70 @@ function drawLandmark(g, pal, loc) {
   g.fillStyle = pal.hills;
   for (let x = 0; x < W; x++) if (HILLS_NEAR[x]) g.fillRect(x, HORIZON - HILLS_NEAR[x], 1, HILLS_NEAR[x]);
   if (loc.landmark === 'willow') drawWillow(g, pal);
+  else if (loc.landmark === 'sakura') drawSakura(g, pal);
   else drawLighthouse(g, pal);
+}
+
+function drawSakura(g, pal) {
+  const pink = lerpColor('#ffb0cc', pal.hills, 0.25 + pal.night * 0.45);
+  const light = lerpColor('#ffdcea', pal.hills, 0.2 + pal.night * 0.45);
+  const trunk = lerpColor('#5a3a3a', pal.hills, 0.4);
+  const red = lerpColor('#e0404a', pal.hills, 0.3 + pal.night * 0.4);
+  // a little shrine gate on the shore
+  const tx = 224, tb = HORIZON - HILLS_NEAR[tx];
+  rect(g, tx - 4, tb - 9, 1, 9, red); rect(g, tx + 4, tb - 9, 1, 9, red);
+  rect(g, tx - 6, tb - 10, 13, 1, red); rect(g, tx - 5, tb - 8, 11, 1, red);
+  for (const [x, size] of [[252, 1], [272, 1.3], [292, 0.9]]) {
+    const base = HORIZON - HILLS_NEAR[x];
+    const hgt = Math.round(9 * size);
+    rect(g, x, base - hgt, 2, hgt, trunk);
+    ellipse(g, x + 1, base - hgt - 2, Math.round(9 * size), Math.round(4 * size), pink);
+    ellipse(g, x - 3, base - hgt - 4, Math.round(5 * size), Math.round(3 * size), light);
+    ellipse(g, x + 5, base - hgt, Math.round(5 * size), Math.round(2 * size), pink);
+  }
+}
+
+function drawVolcano(g, pal) {
+  const cx = 250, top = HORIZON - 36;
+  g.fillStyle = pal.hills;
+  for (let x = 0; x < W; x++) {
+    let h = x < 100 ? HILLS_NEAR[x] : 0;
+    const v = 36 * (1 - Math.max(0, Math.abs(x - cx) - 5) / 58) + Math.sin(x * 0.9) * 0.6;
+    h = Math.max(h, Math.round(v));
+    if (h > 0) g.fillRect(x, HORIZON - h, 1, h);
+  }
+  // glowing crater and lava streaks, brighter as night falls
+  const glow = 0.45 + pal.night * 0.55;
+  g.fillStyle = `rgba(255,120,60,${glow.toFixed(2)})`;
+  g.fillRect(cx - 5, top, 11, 2);
+  for (const [dx, len] of [[-3, 9], [2, 14], [4, 6]]) {
+    for (let i = 0; i < len; i++) g.fillRect(cx + dx + Math.round(i * (dx < 0 ? -0.35 : 0.3)), top + 2 + i, 1, 1);
+  }
+  disc(g, cx, top, 8, `rgba(255,140,80,${(0.12 * glow).toFixed(2)})`);
+  // smoke rings drifting up
+  for (let i = 0; i < 5; i++) {
+    const k = ((G.time * 0.12 + i / 5) % 1);
+    const r = Math.round(2 + k * 7);
+    g.fillStyle = rgba(pal.cloudShade, (0.55 * (1 - k)).toFixed(2));
+    ellipse(g, cx + Math.round(Math.sin(k * 4 + i) * 4 + k * 10), top - 4 - Math.round(k * 40), r, Math.max(1, Math.round(r * 0.6)), g.fillStyle);
+  }
+}
+
+function drawFloatingIslands(g, pal) {
+  g.fillStyle = pal.hills;
+  for (let x = 0; x < 100; x++) if (HILLS_NEAR[x]) g.fillRect(x, HORIZON - HILLS_NEAR[x], 1, HILLS_NEAR[x]);
+  const grass = lerpColor('#8ad07a', pal.hills, 0.3 + pal.night * 0.45);
+  const rock = lerpColor('#a89ab8', pal.hills, 0.4 + pal.night * 0.4);
+  for (const [x, y, r, p] of [[206, 42, 16, 0], [264, 26, 10, 2], [128, 56, 8, 4]]) {
+    const yy = Math.round(y + Math.sin(G.time * 0.6 + p) * 2);
+    for (let i = 0; i < r; i++) rect(g, x - r + i, yy + 1 + Math.round(i * 0.6), (r - i) * 2, 1, shade(rock, -i * 0.02));
+    ellipse(g, x, yy, r, Math.max(1, Math.round(r / 4)), grass);
+    rect(g, x - r + 2, yy, 1, 1, shade(grass, 0.3));
+    // a thin waterfall off the edge
+    g.fillStyle = 'rgba(240,248,255,0.55)';
+    for (let i = 0; i < r * 1.6; i++) if ((i + Math.floor(G.time * 12)) % 4) g.fillRect(x + r - 3, yy + 1 + i, 1, 1);
+    if (r > 12) { rect(g, x - 4, yy - 7, 1, 7, lerpColor('#6a4a3a', pal.hills, 0.3)); ellipse(g, x - 4, yy - 8, 4, 2, grass); }
+  }
 }
 
 function drawWillow(g, pal) {
@@ -1105,7 +1205,7 @@ function drawLighthouse(g, pal) {
 function drawReflection(g, pal) {
   // sun reflection fades as the sun sinks; the moon takes over at night
   const sunVis = clamp((HORIZON + 10 - pal.sunY) / 24, 0, 1);
-  const layers = [{ x: 228, a: sunVis, col: pal.refl }, { x: 62, a: pal.moon * 0.8, col: '#efe6ff' }];
+  const layers = [{ x: pal.sunX, a: sunVis, col: pal.refl }, { x: 62, a: pal.moon * 0.8, col: '#efe6ff' }];
   for (const L of layers) {
     if (L.a < 0.03) continue;
     for (let y = HORIZON + 1; y < H; y += 2) {
@@ -1374,6 +1474,32 @@ function drawFrontProps(g, pal, loc) {
       g.fillRect(x, H - h, 1, 1);
     });
   }
+  if (loc.props === 'petals') {
+    for (const f of SNOW) {
+      const y = (f.y + G.time * f.v * 0.7) % H;
+      const x = ((f.x + G.time * 9 + Math.sin(G.time + f.p) * 5) % W + W) % W;
+      g.fillStyle = f.p > 3 ? 'rgba(255,196,220,0.9)' : 'rgba(255,230,240,0.9)';
+      g.fillRect(Math.round(x), Math.round(y), f.p > 4.5 ? 2 : 1, 1);
+    }
+  }
+  if (loc.props === 'embers') {
+    for (const f of SNOW) {
+      const y = H - ((f.y + G.time * f.v * 1.2) % H);
+      const x = (f.x + Math.sin(G.time * 1.5 + f.p) * 3 + W) % W;
+      const a = 0.5 + 0.5 * Math.sin(G.time * 6 + f.p * 3);
+      g.fillStyle = `rgba(255,${f.p > 3 ? 180 : 120},60,${a.toFixed(2)})`;
+      g.fillRect(Math.round(x), Math.round(y), 1, 1);
+    }
+  }
+  if (loc.props === 'mist') {
+    for (let i = 0; i < 5; i++) {
+      const y = HORIZON + 6 + i * 15;
+      const x = ((i * 90 + G.time * (4 + i)) % (W + 120)) - 100;
+      g.fillStyle = 'rgba(255,255,255,0.1)';
+      g.fillRect(Math.round(x), y, 100, 3);
+      g.fillRect(Math.round(x) + 10, y - 1, 70, 1);
+    }
+  }
   if (loc.props === 'ice') {
     for (const f of SNOW) {
       const y = (f.y + G.time * f.v) % H;
@@ -1382,7 +1508,7 @@ function drawFrontProps(g, pal, loc) {
       g.fillRect(Math.round(x), Math.round(y), 1, 1);
     }
   }
-  if (pal.night > 0.3 && loc.props !== 'ice') {
+  if (pal.night > 0.3 && !['ice', 'embers', 'mist'].includes(loc.props)) {
     for (const f of FIREFLIES) {
       const a = (pal.night - 0.3) * (0.5 + 0.5 * Math.sin(G.time * 3 + f.p));
       const x = f.x + Math.sin(G.time * f.a + f.p) * 12, y = f.y + Math.cos(G.time * f.b + f.p) * 6;

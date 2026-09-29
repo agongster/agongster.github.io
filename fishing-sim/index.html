@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#2a1a2e" />
   <title>Tiny Tides — a cozy sunset fishing sim</title>
-  <meta name="description" content="A cozy pixel-art fishing game: dress up your angler, catch 17 kinds of fish across a looping sunset, and spend your earnings on hats, buddies and better rods." />
+  <meta name="description" content="A cozy pixel-art fishing game: dress up your angler, sail between seven islands, catch 72 kinds of fish, keep an aquarium, and spend your earnings on hats, buddies and better rods." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Tiny5&display=swap" rel="stylesheet" />
@@ -21,6 +21,7 @@
       </div>
       <nav class="hud-buttons" aria-label="Menus">
         <button class="btn map-btn" id="btn-map">Map</button>
+        <button class="btn tank-btn" id="btn-tank">Tank</button>
         <button class="btn" id="btn-bucket">Bucket</button>
         <button class="btn" id="btn-shop">Shop</button>
         <button class="btn" id="btn-dex">Fishdex</button>
@@ -65,8 +66,8 @@
           <li>The <b>shadows</b> are real fish, and bigger shadows are rarer ones. Cast just <b>ahead</b> of one to lure it in. Land right on top of it and it gets spooked!</li>
           <li>Little nibbles are fake-outs. When the bobber sinks and a <b>!</b> pops up, <b>tap fast</b>.</li>
           <li>Reeling is a chase: steer your <b>net</b> with the <b>arrow keys</b> or <b>WASD</b> (or drag / use the D-pad on a phone) and keep the fish inside it until the bar fills.</li>
-          <li>Sell your catch from the <b>Bucket</b>, then spend coins in the <b>Shop</b> on outfits, buddies, rods and bigger buckets.</li>
-          <li>Catch more fish to unlock new spots on the <b>Map</b>, each with its own fish. The sky loops from golden hour to night, and some fish only come out at certain times.</li>
+          <li>Show off favourites in your <b>Tank</b> (aquarium), where they swim around, or sell your catch from the <b>Bucket</b>, then spend coins in the <b>Shop</b> on outfits, buddies, rods and bigger buckets.</li>
+          <li>Catch more fish to unlock new spots on the <b>Map</b>, each with its own fish. The sky loops from sunrise through daytime, golden hour and sunset to night, and some fish only come out at certain times.</li>
         </ol>
       </details>
       <p class="fine">Made by April Gong · progress saves in this browser</p>
@@ -123,6 +124,23 @@
     </div>
   </div>
 
+  <!-- Aquarium -->
+  <div class="modal" id="modal-tank" role="dialog" aria-modal="true" aria-labelledby="tank-h" hidden>
+    <div class="panel wide">
+      <header class="panel-head">
+        <h2 id="tank-h">Aquarium</h2>
+        <span class="pill" id="tank-count"></span>
+        <button class="close-btn" data-close aria-label="Close">X</button>
+      </header>
+      <div class="tank-wrap">
+        <canvas id="tank-canvas" width="240" height="135" aria-label="Your aquarium, with your fish swimming around"></canvas>
+        <span id="tank-label" class="tank-label" hidden></span>
+      </div>
+      <p class="tank-hint">Tap a fish to say hi. Move fish in from your bucket or straight off the line.</p>
+      <ul id="tank-list" class="bucket-list"></ul>
+    </div>
+  </div>
+
   <!-- Bucket -->
   <div class="modal" id="modal-bucket" role="dialog" aria-modal="true" aria-labelledby="bucket-h" hidden>
     <div class="panel">
@@ -165,6 +183,7 @@
       <p class="catch-blurb" id="catch-blurb"></p>
       <div class="catch-actions">
         <button class="btn" id="catch-keep">Keep</button>
+        <button class="btn mint" id="catch-tank">Tank</button>
         <button class="btn gold" id="catch-sell">Sell</button>
         <button class="btn plain" id="catch-release">Release</button>
       </div>
@@ -176,5 +195,6 @@
   <script src="audio.js"></script>
   <script src="game.js"></script>
   <script src="ui.js"></script>
+  <script src="dev.js"></script>
 </body>
 </html>

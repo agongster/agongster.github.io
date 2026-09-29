@@ -6,16 +6,33 @@
 const OUTLINE = '#2a1a2e';
 
 // ---------------------------------------------------------------- the sky --
-// The day loops golden hour -> sunset -> dusk -> night -> (back to golden).
+// The day loops sunrise -> day -> golden hour -> sunset -> dusk -> night -> ...
 // Each phase lasts PHASE_SECONDS; the last 30% of a phase blends into the next.
-const PHASE_SECONDS = 75;
+// sunX / sunY: where the sun sits (it travels left to right across the day).
+const PHASE_SECONDS = 65;
 
 const PHASES = [
   {
-    id: 'golden', arrive: 'A new day: the light turns golden', name: 'Golden hour',
+    id: 'sunrise', arrive: 'Good morning! The sun is rising', name: 'Sunrise',
+    sky: ['#4a5a9a', '#8a74b0', '#d890b0', '#ffb0a0', '#ffc8a0', '#ffe0b0', '#fff0d0'],
+    water: ['#e8b0b8', '#a88ab8', '#6a6aa0', '#443e78'],
+    refl: '#ffe8c0', sun: '#ffe0b0', sunX: 84, sunY: 80,
+    hillsFar: '#b08ab0', hills: '#7a5a90', cloud: '#ffe8e0', cloudShade: '#f0a8b8',
+    stars: 0.12, lamp: 0.3, moon: 0, night: 0.1,
+  },
+  {
+    id: 'day', arrive: 'Bright blue skies. Day fish are out!', name: 'Daytime',
+    sky: ['#5aa0e0', '#6eaee6', '#86bcec', '#9ecaf0', '#b6d8f2', '#cee6f2', '#e6f2ee'],
+    water: ['#8ad0e0', '#5aaad0', '#3a82b4', '#2a5a8e'],
+    refl: '#ffffff', sun: '#fff8e0', sunX: 150, sunY: 24,
+    hillsFar: '#9ac4b4', hills: '#6a9a7e', cloud: '#ffffff', cloudShade: '#cce0f4',
+    stars: 0, lamp: 0, moon: 0, night: 0,
+  },
+  {
+    id: 'golden', arrive: 'The light turns golden', name: 'Golden hour',
     sky: ['#7a64b0', '#a672b8', '#e08aa8', '#f7a88a', '#ffc88a', '#ffe0a0', '#fff0c4'],
     water: ['#f2a8a0', '#c47aa8', '#8a5a9a', '#5e3f7e'],
-    refl: '#fff3c4', sun: '#fff3c4', sunY: 60,
+    refl: '#fff3c4', sun: '#fff3c4', sunX: 205, sunY: 58,
     hillsFar: '#d58aa6', hills: '#a0508a', cloud: '#fff0dc', cloudShade: '#f5a8a0',
     stars: 0, lamp: 0, moon: 0, night: 0,
   },
@@ -23,7 +40,7 @@ const PHASES = [
     id: 'sunset', arrive: 'The sun is setting...', name: 'Sunset',
     sky: ['#3d2a6b', '#7a3a7a', '#c4507a', '#f0706a', '#ff9a5c', '#ffc05c', '#ffe08a'],
     water: ['#e8808a', '#a24c86', '#62306e', '#3e2256'],
-    refl: '#ffd27a', sun: '#ffd27a', sunY: 84,
+    refl: '#ffd27a', sun: '#ffd27a', sunX: 228, sunY: 84,
     hillsFar: '#b0507a', hills: '#7a3470', cloud: '#ffc4a4', cloudShade: '#e0708a',
     stars: 0.1, lamp: 0.4, moon: 0, night: 0.15,
   },
@@ -31,7 +48,7 @@ const PHASES = [
     id: 'dusk', arrive: 'Dusk settles in. Night fish are stirring!', name: 'Dusk',
     sky: ['#1e1a45', '#3a2560', '#6a3070', '#a8407a', '#e0607a', '#f59070', '#ffb880'],
     water: ['#9a5282', '#5e306a', '#34204e', '#221638'],
-    refl: '#ff9a6a', sun: '#ff9a6a', sunY: 104,
+    refl: '#ff9a6a', sun: '#ff9a6a', sunX: 236, sunY: 104,
     hillsFar: '#6a3070', hills: '#3a2458', cloud: '#c47aa0', cloudShade: '#7a4a8a',
     stars: 0.55, lamp: 1, moon: 0.35, night: 0.55,
   },
@@ -39,7 +56,7 @@ const PHASES = [
     id: 'night', arrive: 'Night has fallen. The stars are out', name: 'Night',
     sky: ['#0e0e2a', '#141440', '#1c1a50', '#26205c', '#342866', '#44306e', '#553876'],
     water: ['#3a2e6a', '#241e50', '#16123a', '#0e0b28'],
-    refl: '#efe6ff', sun: '#ff9a6a', sunY: 140,
+    refl: '#efe6ff', sun: '#ff9a6a', sunX: 84, sunY: 140,
     hillsFar: '#241e50', hills: '#15133a', cloud: '#4a3a78', cloudShade: '#2e2658',
     stars: 1, lamp: 1, moon: 1, night: 1,
   },
@@ -51,17 +68,26 @@ const PHASES = [
 // map: where the island sits on the 160x100 sea chart.
 const LOCATIONS = [
   { id: 'dock', name: 'Sunset Dock', need: 0, platform: 'dock', landmark: 'lighthouse', props: 'reeds',
-    tint: null, map: { x: 34, y: 72 },
+    tint: null, map: { x: 22, y: 80 },
     blurb: 'Home sweet home. A creaky dock, a lantern, and a lighthouse winking across the water.' },
   { id: 'lagoon', name: 'Lily Lagoon', need: 12, platform: 'boat', landmark: 'willow', props: 'lilies',
-    tint: { sky: '#ffb4d4', water: '#78c8a0', amount: 0.24 }, map: { x: 70, y: 34 },
+    tint: { sky: '#ffb4d4', water: '#78c8a0', amount: 0.24 }, map: { x: 40, y: 42 },
     blurb: 'A still, pink lagoon full of lily pads, under a sleepy old willow.' },
   { id: 'cove', name: 'Coral Cove', need: 30, platform: 'boat', landmark: 'palms', props: 'coral',
-    tint: { sky: '#ffc880', water: '#30b8c4', amount: 0.34 }, map: { x: 116, y: 74 },
+    tint: { sky: '#ffc880', water: '#30b8c4', amount: 0.34 }, map: { x: 72, y: 72 },
     blurb: 'Warm, clear sea over pink coral. Watch out for pinchy things.' },
   { id: 'bay', name: 'Aurora Bay', need: 55, platform: 'boat', landmark: 'icebergs', props: 'ice',
-    tint: { sky: '#a8d8ff', water: '#7aaae0', amount: 0.32 }, map: { x: 136, y: 24 },
+    tint: { sky: '#a8d8ff', water: '#7aaae0', amount: 0.32 }, map: { x: 82, y: 20 },
     blurb: 'Far to the north. Icebergs, snowflakes, and ribbons of light at night.' },
+  { id: 'blossom', name: 'Blossom River', need: 80, platform: 'boat', landmark: 'sakura', props: 'petals',
+    tint: { sky: '#ffc4dc', water: '#a4c8e8', amount: 0.26 }, map: { x: 114, y: 46 },
+    blurb: 'A slow river under cherry trees. Petals land on the water like tiny boats.' },
+  { id: 'ember', name: 'Ember Isle', need: 110, platform: 'boat', landmark: 'volcano', props: 'embers',
+    tint: { sky: '#ff9a6a', water: '#3a6a78', amount: 0.3 }, map: { x: 136, y: 80 },
+    blurb: 'A sleepy volcano puffs smoke rings. The water is warm and a little sparkly.' },
+  { id: 'cloud', name: 'Cloud Lake', need: 150, platform: 'boat', landmark: 'floating', props: 'mist',
+    tint: { sky: '#c4e2ff', water: '#a4d4ff', amount: 0.36 }, map: { x: 140, y: 16 },
+    blurb: 'A lake so still it holds the sky. Little islands float overhead.' },
 ];
 
 // -------------------------------------------------------------- the fish --
@@ -71,20 +97,26 @@ const RARITY = {
   uncommon:  { label: 'Uncommon',  weight: 22, color: '#8fd19e', biteWindow: 0.85 },
   rare:      { label: 'Rare',      weight: 8,  color: '#7fb8e6', biteWindow: 0.75 },
   legendary: { label: 'Legendary', weight: 2.5, color: '#ffd23f', biteWindow: 0.65 },
+  // weight 0: nothing is caught by being 'goat' tier alone; LeBron sets his own weight below
+  goat:      { label: 'The GOAT', weight: 0, color: '#c79bf2', biteWindow: 0.8 },
 };
 
-const ALL_DAY = ['golden', 'sunset', 'dusk', 'night'];
+const ALL_DAY = ['sunrise', 'day', 'golden', 'sunset', 'dusk', 'night'];
+const EVERYWHERE = ['dock', 'lagoon', 'cove', 'bay', 'blossom', 'ember', 'cloud'];
 
 // where: which locations it lives in (leave it out for Sunset Dock only)
+// weight: optional fixed catch weight, overriding the rarity's (see LeBron)
+// bottom: in the aquarium it walks along the sand instead of swimming
+// unsellable: can never be sold, only kept (in the bucket or the tank)
 // shape: 'fish' (default), 'round', 'eel', 'puffer', or map: a pixel map in sprites.js
 // pattern: none | stripes | spots | patches | stars | gradient
 // diff: how hard it fights on the line (1 = sleepy, 6 = feral)
 const FISH = [
-  { id: 'boot', name: 'Soggy Boot', rarity: 'junk', price: 2, phases: ALL_DAY, diff: 0.6, where: ['dock', 'lagoon', 'cove', 'bay'],
-    size: [24, 30], map: 'boot',
+  { id: 'boot', name: 'Soggy Boot', rarity: 'junk', price: 2, phases: ALL_DAY, diff: 0.6, where: EVERYWHERE,
+    size: [24, 30], map: 'boot', bottom: true,
     blurb: 'Somebody out there is hopping around on one foot.' },
-  { id: 'can', name: 'Tin Can', rarity: 'junk', price: 1, phases: ALL_DAY, diff: 0.6, where: ['dock', 'lagoon', 'cove', 'bay'],
-    size: [8, 12], map: 'can',
+  { id: 'can', name: 'Tin Can', rarity: 'junk', price: 1, phases: ALL_DAY, diff: 0.6, where: EVERYWHERE,
+    size: [8, 12], map: 'can', bottom: true,
     blurb: 'Peach slices, best before 1987. Still smells faintly of peaches.' },
 
   { id: 'minnow', name: 'Sunny Minnow', rarity: 'common', price: 6, phases: ['golden', 'sunset'], diff: 1,
@@ -185,7 +217,7 @@ const FISH = [
     body: '#b0c0d8', belly: '#f0f4ff', fin: '#8090b0', accent: '#e0b070',
     blurb: 'Travels in a crowd of ten thousand best friends.' },
   { id: 'crab', name: 'Peach Crab', rarity: 'uncommon', price: 55, phases: ['golden', 'sunset', 'dusk'], diff: 2.6, where: ['cove'],
-    size: [8, 20], map: 'crab',
+    size: [8, 20], map: 'crab', bottom: true,
     blurb: 'Walks sideways out of stubbornness, not necessity.' },
   { id: 'jelly', name: 'Bubblegum Jelly', rarity: 'uncommon', price: 60, phases: ['dusk', 'night'], diff: 2.2, where: ['cove'],
     size: [10, 30], map: 'jelly',
@@ -219,9 +251,166 @@ const FISH = [
   { id: 'narwhal', name: 'Tiny Narwhal', rarity: 'legendary', price: 900, phases: ['night'], diff: 6, where: ['bay'],
     size: [80, 150], map: 'narwhal',
     blurb: 'A baby. Its horn is mostly for pointing at things it likes.' },
-  { id: 'bottle', name: 'Message in a Bottle', rarity: 'junk', price: 25, phases: ALL_DAY, diff: 0.6, where: ['cove', 'bay'],
-    size: [20, 25], map: 'bottle',
+  { id: 'bottle', name: 'Message in a Bottle', rarity: 'junk', price: 25, phases: ALL_DAY, diff: 0.6, where: ['cove', 'bay', 'cloud'],
+    size: [20, 25], map: 'bottle', bottom: true,
     blurb: 'It says: "If found, please go fishing more." Wise words.' },
+  // ---- more Sunset Dock
+  { id: 'darter', name: 'Dewdrop Darter', rarity: 'common', price: 8, phases: ['sunrise', 'day'], diff: 1.1,
+    size: [3, 8], len: 9, h: 4, pattern: 'none',
+    body: '#a8e0ff', belly: '#ffffff', fin: '#7ac0f0', accent: '#7ac0f0',
+    blurb: 'Made mostly of morning dew and enthusiasm.' },
+  { id: 'bluegill', name: 'Buttercup Bluegill', rarity: 'common', price: 12, phases: ['day', 'golden'], diff: 1.4,
+    size: [10, 22], len: 11, h: 9, shape: 'round', pattern: 'stripes',
+    body: '#ffd86a', belly: '#fff4c0', fin: '#7fb8e6', accent: '#e8b848',
+    blurb: 'Hold it under your chin to see if you like butter.' },
+  { id: 'rainbowtrout', name: 'Pastel Rainbow Trout', rarity: 'uncommon', price: 42, phases: ['sunrise', 'day'], diff: 2.6,
+    size: [25, 55], len: 17, h: 7, pattern: 'gradient',
+    body: '#8fd1e0', belly: '#fff4f8', fin: '#c79bf2', accent: '#ff9ec4',
+    blurb: 'Someone left the rainbow in the wash with a pink sock.' },
+  { id: 'grandpacarp', name: 'Grandpa Carp', rarity: 'rare', price: 140, phases: ['day', 'dusk'], diff: 3.6,
+    size: [60, 110], len: 20, h: 10, pattern: 'spots', whiskers: true,
+    body: '#a08060', belly: '#e8d8b8', fin: '#7a5a40', accent: '#6a4a30',
+    blurb: 'Has lived in this pond for 80 years. Tells the same three stories.' },
+
+  // ---- more Lily Lagoon
+  { id: 'danio', name: 'Dragonfly Danio', rarity: 'common', price: 11, phases: ['sunrise', 'day'], diff: 1.2, where: ['lagoon'],
+    size: [3, 7], len: 10, h: 4, pattern: 'stripes',
+    body: '#7fd0f0', belly: '#e8f8ff', fin: '#4a8ad0', accent: '#4a8ad0',
+    blurb: 'Zips around like it has somewhere very important to be.' },
+  { id: 'gourami', name: 'Rosy Gourami', rarity: 'common', price: 15, phases: ['day', 'golden', 'sunset'], diff: 1.5, where: ['lagoon'],
+    size: [8, 14], len: 12, h: 8, pattern: 'gradient',
+    body: '#ffb0a0', belly: '#fff0ea', fin: '#ff7aa0', accent: '#ff7aa0',
+    blurb: 'Blows little bubble nests and is very proud of them.' },
+  { id: 'mudskipper', name: 'Mossy Mudskipper', rarity: 'uncommon', price: 44, phases: ALL_DAY, diff: 2.4, where: ['lagoon'],
+    size: [10, 20], len: 16, shape: 'eel', pattern: 'spots',
+    body: '#8a9a60', belly: '#d8e0b0', fin: '#6a7a40', accent: '#5a6a30',
+    blurb: 'Half fish, half frog, fully confused about which.' },
+  { id: 'sturgeon', name: 'Sunrise Sturgeon', rarity: 'rare', price: 160, phases: ['sunrise'], diff: 3.9, where: ['lagoon'],
+    size: [90, 180], len: 24, h: 6, pattern: 'stripes',
+    body: '#b8a0c8', belly: '#f0e8f8', fin: '#8a70a8', accent: '#9a80b8',
+    blurb: 'Older than the dinosaurs. Still an early riser.' },
+
+  // ---- more Coral Cove
+  { id: 'tang', name: 'Tang Tang', rarity: 'common', price: 17, phases: ['day', 'golden'], diff: 1.5, where: ['cove'],
+    size: [10, 25], len: 12, h: 9, shape: 'round', pattern: 'none',
+    body: '#4a80e0', belly: '#6aa0f0', fin: '#ffd23f', accent: '#2a4aa0',
+    blurb: 'Forgets things constantly. Very good at swimming, though.' },
+  { id: 'parrotfish', name: 'Parrotfish Pop', rarity: 'common', price: 19, phases: ['sunrise', 'day', 'golden'], diff: 1.7, where: ['cove'],
+    size: [20, 50], len: 14, h: 8, pattern: 'gradient',
+    body: '#5ad0a0', belly: '#d0fff0', fin: '#ff8ab0', accent: '#ff8ab0',
+    blurb: 'Chews coral and poops sand. That beach? Thank a parrotfish.' },
+  { id: 'seahorse', name: 'Sea Pony', rarity: 'uncommon', price: 58, phases: ['sunrise', 'day', 'dusk'], diff: 2.3, where: ['cove'],
+    size: [8, 18], map: 'seahorse',
+    blurb: 'The dad carries the babies. Absolute legend.' },
+  { id: 'octopus', name: 'Octo Pal', rarity: 'rare', price: 150, phases: ['dusk', 'night', 'day'], diff: 3.8, where: ['cove'],
+    size: [30, 80], map: 'octopus',
+    blurb: 'Has opened your tackle box twice already. Very clever. Very sneaky.' },
+
+  // ---- more Aurora Bay
+  { id: 'herring', name: 'Icicle Herring', rarity: 'common', price: 16, phases: ['day', 'sunrise', 'golden'], diff: 1.3, where: ['bay'],
+    size: [15, 30], len: 12, h: 5, pattern: 'gradient',
+    body: '#d0e8ff', belly: '#ffffff', fin: '#a0c0e8', accent: '#8ab0e0',
+    blurb: 'So shiny you can see your own reflection in it.' },
+  { id: 'flounder', name: 'Frosted Flounder', rarity: 'common', price: 18, phases: ['sunrise', 'day', 'sunset'], diff: 1.6, where: ['bay'],
+    size: [20, 45], len: 14, h: 9, shape: 'round', pattern: 'spots',
+    body: '#c8b8a0', belly: '#f0e8dc', fin: '#a89880', accent: '#8a7860',
+    blurb: 'Both eyes on one side. It has made peace with this.' },
+  { id: 'snowcrab', name: 'Snow Crab', rarity: 'uncommon', price: 62, phases: ALL_DAY, diff: 2.5, where: ['bay'],
+    size: [10, 25], map: 'crab', bottom: true, pal: { p: '#f0e8ff', h: '#ffffff', l: '#b0b8e0', k: OUTLINE },
+    blurb: 'Wears its own little snowsuit, all year round.' },
+  { id: 'glaciersalmon', name: 'Glacier Salmon', rarity: 'rare', price: 175, phases: ['sunrise', 'day'], diff: 4, where: ['bay'],
+    size: [50, 100], len: 18, h: 7, pattern: 'gradient',
+    body: '#a8c0ff', belly: '#fff0f4', fin: '#8098e0', accent: '#ff9ab0',
+    blurb: 'Swam here from a glacier. Refuses to talk about the journey.' },
+
+  // ---- Blossom River
+  { id: 'sakuraminnow', name: 'Sakura Minnow', rarity: 'common', price: 20, phases: ['sunrise', 'day', 'golden', 'sunset'], diff: 1.3, where: ['blossom'],
+    size: [4, 9], len: 9, h: 5, pattern: 'none',
+    body: '#ffc0d8', belly: '#fff4f8', fin: '#ff90b8', accent: '#ff90b8',
+    blurb: 'Hides among fallen petals. You will never find it. Oh wait, there it is.' },
+  { id: 'mochicarp', name: 'Mochi Carp', rarity: 'common', price: 24, phases: ALL_DAY, diff: 1.6, where: ['blossom'],
+    size: [15, 30], len: 13, h: 10, shape: 'round', pattern: 'patches',
+    body: '#fff4f0', belly: '#ffffff', fin: '#ffc0d0', accent: '#ffb0c8',
+    blurb: 'Soft, round, squishy. Please do not eat it.' },
+  { id: 'matchaloach', name: 'Matcha Loach', rarity: 'common', price: 22, phases: ['day', 'dusk', 'night'], diff: 1.5, where: ['blossom'],
+    size: [10, 20], len: 17, shape: 'eel', pattern: 'spots',
+    body: '#9ac878', belly: '#e0f0c8', fin: '#6a9a50', accent: '#6a9a50',
+    blurb: 'Slightly bitter. Very calming. Best enjoyed slowly.' },
+  { id: 'lanterngold', name: 'Lantern Goldfish', rarity: 'uncommon', price: 70, phases: ['dusk', 'night'], diff: 2.6, where: ['blossom'],
+    size: [8, 16], len: 12, h: 9, shape: 'round', pattern: 'gradient',
+    body: '#ff7a3c', belly: '#ffe0a0', fin: '#ffd27a', accent: '#ffd23f',
+    blurb: 'Glows like a paper lantern at the festival.' },
+  { id: 'teakoi', name: 'Hojicha Koi', rarity: 'uncommon', price: 75, phases: ['sunrise', 'day', 'golden'], diff: 2.8, where: ['blossom'],
+    size: [30, 70], len: 16, h: 8, pattern: 'patches',
+    body: '#fff0dc', belly: '#fff8f0', fin: '#c09070', accent: '#8a5a3a',
+    blurb: 'Roasted-tea brown and milky white. Pairs well with a nap.' },
+  { id: 'cranefish', name: 'Paper Crane Fish', rarity: 'rare', price: 200, phases: ['day', 'sunset'], diff: 4.1, where: ['blossom'],
+    size: [20, 40], len: 15, h: 6, pattern: 'stripes',
+    body: '#f4efe6', belly: '#ffffff', fin: '#e0566e', accent: '#e0566e',
+    blurb: 'Folded itself out of a wish somebody made at the river.' },
+  { id: 'spiritkoi', name: 'Spirit Koi', rarity: 'legendary', price: 950, phases: ['night'], diff: 5.9, where: ['blossom'],
+    size: [70, 120], len: 20, h: 9, pattern: 'stars',
+    body: '#b8f0ff', belly: '#e8fcff', fin: '#88d8ff', accent: '#ffffff',
+    blurb: 'You can see the moon through it. It is almost certainly a ghost.' },
+
+  // ---- Ember Isle
+  { id: 'cinderminnow', name: 'Cinder Minnow', rarity: 'common', price: 22, phases: ALL_DAY, diff: 1.5, where: ['ember'],
+    size: [4, 10], len: 9, h: 5, pattern: 'spots',
+    body: '#4a3a4a', belly: '#7a6070', fin: '#ff7a3c', accent: '#ff7a3c',
+    blurb: 'Glows a little when it is happy. Always a little warm.' },
+  { id: 'magmamolly', name: 'Magma Molly', rarity: 'common', price: 26, phases: ['day', 'golden', 'sunset', 'dusk'], diff: 1.7, where: ['ember'],
+    size: [5, 12], len: 11, h: 8, shape: 'round', pattern: 'gradient',
+    body: '#ff5a3a', belly: '#ffc070', fin: '#ffd23f', accent: '#ffd23f',
+    blurb: 'Do not hold for too long. Oven mitts recommended.' },
+  { id: 'obsidianeel', name: 'Obsidian Eel', rarity: 'uncommon', price: 80, phases: ['dusk', 'night', 'sunrise'], diff: 2.9, where: ['ember'],
+    size: [50, 100], len: 22, shape: 'eel', pattern: 'stripes',
+    body: '#2a2238', belly: '#5a4a68', fin: '#ff7a3c', accent: '#ff5a3a',
+    blurb: 'Glossy, black, and dramatic. Probably writes poetry.' },
+  { id: 'ashpuffer', name: 'Ash Puffer', rarity: 'uncommon', price: 78, phases: ['day', 'golden', 'sunset'], diff: 2.7, where: ['ember'],
+    size: [10, 25], r: 5, shape: 'puffer', pattern: 'spots',
+    body: '#8a8090', belly: '#c8c0d0', fin: '#ff7a3c', accent: '#ff5a3a',
+    blurb: 'Puffs up in a little cloud of smoke. Very theatrical.' },
+  { id: 'lavacrab', name: 'Lava Crab', rarity: 'rare', price: 220, phases: ALL_DAY, diff: 4, where: ['ember'],
+    size: [15, 35], map: 'crab', bottom: true, pal: { p: '#ff5a3a', h: '#ffd23f', l: '#b8302a', k: OUTLINE },
+    blurb: 'Its shell is still cooling. Please wait five business days.' },
+  { id: 'phoenix', name: 'Phoenix Fin', rarity: 'legendary', price: 1100, phases: ['sunset', 'dusk'], diff: 6, where: ['ember'],
+    size: [80, 150], len: 22, h: 9, pattern: 'gradient', bill: false,
+    body: '#ff3a3a', belly: '#ffd080', fin: '#ffec80', accent: '#ffd23f',
+    blurb: 'Every sunset it bursts into sparks and swims out of its own ashes.' },
+
+  // ---- Cloud Lake
+  { id: 'cloudguppy', name: 'Cloud Guppy', rarity: 'common', price: 26, phases: ALL_DAY, diff: 1.5, where: ['cloud'],
+    size: [3, 7], len: 9, h: 5, pattern: 'none',
+    body: '#ffffff', belly: '#e8f0ff', fin: '#b8d0ff', accent: '#b8d0ff',
+    blurb: 'Fluffy. Weightless. Occasionally rains a little.' },
+  { id: 'skysardine', name: 'Sky Sardine', rarity: 'common', price: 24, phases: ['sunrise', 'day', 'golden'], diff: 1.4, where: ['cloud'],
+    size: [10, 20], len: 12, h: 4, pattern: 'gradient',
+    body: '#8fc8ff', belly: '#ffffff', fin: '#6aa8e8', accent: '#ffffff',
+    blurb: 'Swims in flocks shaped like birds, just to mess with the birds.' },
+  { id: 'rainbowtetra', name: 'Rainbow Tetra', rarity: 'common', price: 28, phases: ['sunrise', 'day', 'sunset'], diff: 1.6, where: ['cloud'],
+    size: [3, 6], len: 10, h: 5, pattern: 'stripes',
+    body: '#ff9ec4', belly: '#fff4f8', fin: '#8fe0f0', accent: '#8fe0f0',
+    blurb: 'Appears right after it rains. Collect all seven colours.' },
+  { id: 'balloonpuffer', name: 'Balloon Puffer', rarity: 'uncommon', price: 85, phases: ['day', 'golden', 'dusk'], diff: 2.8, where: ['cloud'],
+    size: [10, 30], r: 6, shape: 'puffer', pattern: 'spots',
+    body: '#ffd0e0', belly: '#ffffff', fin: '#ffffff', accent: '#ff9ec4',
+    blurb: 'Filled with helium. Hold on tight or it floats away.' },
+  { id: 'thundertuna', name: 'Thunder Tuna', rarity: 'rare', price: 230, phases: ['day', 'sunset'], diff: 4.3, where: ['cloud'],
+    size: [80, 160], len: 20, h: 9, pattern: 'stripes',
+    body: '#5a6ab0', belly: '#e0e8ff', fin: '#ffd23f', accent: '#ffd23f',
+    blurb: 'Fast as lightning, loud as thunder. Not great at hide and seek.' },
+  { id: 'cometeel', name: 'Comet Eel', rarity: 'rare', price: 240, phases: ['night', 'dusk'], diff: 4.4, where: ['cloud'],
+    size: [60, 130], len: 26, shape: 'eel', pattern: 'spots',
+    body: '#3a3a8a', belly: '#6a6ab8', fin: '#fff3c4', accent: '#fff3c4',
+    blurb: 'Leaves a sparkly tail behind it. Make a wish!' },
+  { id: 'cloudwhale', name: 'Cloud Whale', rarity: 'legendary', price: 1300, phases: ['sunrise', 'day'], diff: 6, where: ['cloud'],
+    size: [300, 600], map: 'whale',
+    blurb: 'Sings a very low song that makes the clouds drift. It is a baby.' },
+
+  // ---- ???
+  { id: 'lebron', name: 'LeBron James', rarity: 'goat', price: 2323, phases: ALL_DAY, diff: 6.5, where: EVERYWHERE,
+    weight: 0.35, size: [203, 206], map: 'lebron', bottom: true, unsellable: true,
+    blurb: 'This is not a fish. This is LeBron James. Nobody knows how he got in the water. He seems fine with it. He is not for sale.' },
 ];
 
 // ---------------------------------------------------------- the angler --
@@ -302,6 +491,12 @@ const RODS = [
     blurb: 'Painted the colour of the sky. Fish seem to like it.' },
   { id: 'star', name: 'Star Rod', color: '#b89cff', price: 1000, net: 22, gain: 0.43, luck: 0.25, wait: 0.7,
     blurb: 'Hums quietly at night. Rare fish can\'t resist it.' },
+];
+
+const TANKS = [
+  { cap: 6, price: 0, name: 'Fishbowl' },
+  { cap: 12, price: 180, name: 'Glass tank' },
+  { cap: 24, price: 600, name: 'Grand aquarium' },
 ];
 
 const BUCKETS = [
