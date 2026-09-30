@@ -319,6 +319,16 @@ sure, commit and push those. after that take a look at this screenshot. i have 6
 can you make the font easier to read?
 ```
 
+```
+the friend username is overlapping when i try to fish. also, there should be an indicator of whether the friend is online.
+```
+(with a screenshot of the chase panel with "@melonliz (napping)" floating over the water)
+
+```
+this popup pops up A LOT. like every time i leave the tab and sometimes when i'm playing the game. by default, if the user is logged in, it should always just save the online account version, and should not ask the user.
+```
+(with a screenshot of the "Which save?" chooser, showing two identical saves)
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -330,6 +340,9 @@ can you make the font easier to read?
   - The AI tuned the numbers with a simulated player who steers at the fish with a short reaction delay. With the Twig rod, a rare fish went from about 26% to about 1% for that bot. With the Star rod, a legendary went from 87% to 100%. The bot is worse than a real player, so it's only a guide to how far apart the rods are.
 - **"30 coin" rod:** the Bamboo Rod actually costs 90. In the Tiny5 font, 3 and 9 differ by only a couple of pixels, and the greyed-out button made it worse. Digits now come from a 1 KB digits-only subset of Jersey 10 (self-hosted in `fonts/`, SIL Open Font License), scaled to match Tiny5. Buy buttons you can't afford yet also say how many more coins you need.
 - **Easier-to-read font:** the AI compared Tiny5, Pixelify Sans, VT323, Jersey 10 and Fredoka on real game text, then moved all body text to Jersey 10. It keeps the pixel look but has normal letter shapes, and it was already the digit font. It's self-hosted (5 KB) so it can be scaled up to fill the space the old font did. Headings stay Pixelify Sans but borrow Jersey's digits, since Pixelify's 5 looks like a backwards S. Tiny5 is no longer loaded.
+- **Name tags over the reel:** name tags are HTML on top of the canvas, so they now hide while the chase panel is open.
+- **Online indicators:** friends show a green "Online" or grey "Offline" label, and online friends are listed first. The Friends button shows how many are online (for example "1 on"), refreshed every 30 seconds and right away when the friend you're visiting arrives or leaves. The visiting bar has an Online / "Offline, napping" label, and name tags have a green or grey light.
+- **"Which save?" popup:** this was a bug, not a real conflict. When you switched tabs, the game uploaded your save without reading the server's reply, so it kept an old version number. The next autosave looked out of date and was refused, and the game assumed another device had saved. Switching tabs now does a normal save that records the new version, and the last-chance save when closing the page records it too if the page survives. The chooser is gone: logged in, the online save always wins, including when you log in on a device with its own offline progress. A two-browser test against a local backend (tab switches, page closes, a second device logging in, visiting, the host leaving) got zero refused saves.
 
 ### Changes I made myself
 

@@ -452,7 +452,7 @@ kbd {
 .profile-card .fine { margin: 2px 0; }
 #profile-avatar { width: 96px; height: 90px; image-rendering: pixelated; border: 3px solid var(--ink); flex: none; }
 .cloud-pill { font-family: var(--font); font-size: inherit; cursor: pointer; border-color: var(--mint); }
-.cloud-pill[data-state="offline"], .cloud-pill[data-state="conflict"] { border-color: var(--rose); }
+.cloud-pill[data-state="offline"] { border-color: var(--rose); }
 .cloud-pill[data-state="saving"], .cloud-pill[data-state="waking"] { border-color: var(--gold); }
 .auth-form { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 10px; }
 .auth-form label { display: flex; flex-direction: column; gap: 3px; font-weight: 600; }
@@ -463,10 +463,6 @@ kbd {
 .auth-error { color: var(--rose); min-height: 1.2em; margin: 0; font-weight: 600; }
 .account-name { font-size: 20px; margin: 0; }
 .account-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
-.save-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.save-card { background: #fff; border: 3px solid var(--ink); padding: 10px; display: flex; flex-direction: column; gap: 4px; }
-.save-card .btn { margin-top: 6px; }
-@media (max-width: 640px) { .save-choices { grid-template-columns: 1fr; } }
 
 /* ---------------------------------------------------------- friends -- */
 #modal-account h3 { font-family: var(--font-title); margin: 14px 0 6px; font-size: 18px; }
@@ -485,6 +481,7 @@ kbd {
 .friend-name b { overflow: hidden; text-overflow: ellipsis; }
 .friend .dot { width: 10px; height: 10px; background: #b8a8c0; border: 2px solid var(--ink); }
 .friend.online .dot { background: var(--mint); }
+.friend:not(.online) { background: #faf5fb; }
 .friend:not(:has(.dot)) { grid-template-columns: 1fr auto; }
 .friend .small-x { padding: 6px 9px; }
 .gift-form { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; border-top: 2px dashed var(--ink); padding-top: 8px; margin-top: 2px; }
@@ -515,6 +512,27 @@ kbd {
   font-size: clamp(10px, 1.4vw, 14px); white-space: nowrap;
 }
 .player-tag.host { border-color: var(--gold); }
+#player-tags[hidden] { display: none; }
+/* a little square light: green when they're here, grey when napping */
+.player-tag::before {
+  content: ''; display: inline-block; width: .5em; height: .5em; margin-right: .35em;
+  background: var(--mint); border: 1px solid var(--ink); vertical-align: .05em;
+}
+.player-tag.asleep { opacity: .8; }
+.player-tag.asleep::before { background: #b8a8c0; }
+.player-tag[data-name="\0me"]::before { display: none; }
+
+.status-chip {
+  display: inline-block; font-size: 13px; font-weight: 600; padding: 0 6px; margin-left: 4px;
+  background: #e6dcea; color: var(--plum-2); border: 2px solid var(--ink); vertical-align: 1px;
+}
+.status-chip.on { background: var(--mint); color: var(--ink); }
+.status-chip::before { content: '\25CF'; margin-right: 4px; color: #9a8aa4; }
+.status-chip.on::before { color: #2e7d4a; }
+.online-count {
+  display: inline-block; font-size: 13px; padding: 0 5px; margin-left: 2px;
+  background: var(--mint); border: 2px solid var(--ink); vertical-align: 1px;
+}
 .tank-btn { background: var(--mint); }
 .tank-wrap { position: relative; margin-bottom: 8px; }
 #tank-canvas {

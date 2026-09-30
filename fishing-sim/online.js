@@ -21,9 +21,9 @@ const Online = (() => {
   let session = readSession();
   let status = session ? 'idle' : 'offline';
   let pushTimer = null, pushPromise = null, pushAgain = false, applying = false;
-  // views: login | signup | choose | friends | gifts | account
+  // views: login | signup | friends | gifts | profile
   let view = session ? 'friends' : 'login';
-  let busy = false, errorText = '', choice = null, slowTimer = null;
+  let busy = false, errorText = '', slowTimer = null;
   let friends = { friends: [], incoming: [], outgoing: [] }, friendsLoaded = false;
   let giftTarget = null, giftInfo = null, gifts = null, notice = '';
 
@@ -152,28 +152,33 @@ const Online = (() => {
   }
 
   // Leaving the page: fire one last upload that the browser finishes on its own.
+  // If the page survives (back/forward cache), record the new version it got,
+  // or the next save would look out of date and be refused.
   function flush() {
     if (!session || !session.dirty) return;
+    const sent = session;
     try {
       fetch(API_BASE + '/api/save', {
         method: 'PUT', keepalive: true,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.token}` },
         body: JSON.stringify(cloudPayload()),
+      }).then(res => (res.ok ? res.json() : null)).then(d => {
+        if (!d || session !== sent) return;
+        session.version = d.version;
+        session.dirty = false;
+        writeSession();
+        setStatus('saved');
       }).catch(() => {});
     } catch (e) { /* the next visit will sync instead */ }
   }
 
-  // The server has a newer save than we last saw (another device played).
+  // The server has a newer save than we last saw: another device played, or a
+  // gift changed our coins. Logged in, the online save is the one that counts.
   async function resolveNewerCloud() {
     const r = await api('/api/save');
     if (!r.ok || !r.data.exists) { setStatus('offline'); return; }
-    if (!session.dirty) {
-      applyCloud(r.data);
-      toast('Loaded your newer progress from another device');
-      setStatus('saved');
-    } else {
-      askWhichSave(r.data);
-    }
+    applyCloud(r.data);
+    setStatus('saved');
   }
 
   // On load: catch up with anything another device saved while we were away.
@@ -185,7 +190,6 @@ const Online = (() => {
     if (!r.ok) { setStatus(r.status === 0 ? 'offline' : status); return; }
     if (!r.data.exists) { if (save.started) push(); return; }
     if (r.data.version > session.version) {
-      if (session.dirty) { askWhichSave(r.data); return; }
       applyCloud(r.data);
       setStatus('saved');
     } else if (session.dirty) {
@@ -195,13 +199,6 @@ const Online = (() => {
     }
     claimGifts();
     loadFriends();
-  }
-
-  function askWhichSave(cloud) {
-    choice = cloud;
-    view = 'choose';
-    setStatus('conflict');
-    openAccount();
   }
 
   // ------------------------------------------------------------- auth --
@@ -249,11 +246,7 @@ const Online = (() => {
 
   async function afterLogin() {
     const r = await api('/api/save');
-    const hasLocal = save.started && (save.stats.caught > 0 || save.coins > 0);
-    if (r.ok && r.data.exists && hasLocal) {
-      askWhichSave(r.data);
-      return;
-    }
+    // an account that already has a save always uses it, over this device's
     if (r.ok && r.data.exists) {
       applyCloud(r.data);
       toast(`Welcome back, @${session.user.username}!`);
@@ -387,13 +380,16 @@ const Online = (() => {
     pill.hidden = !session;
     const text = {
       idle: 'Online', saved: 'Saved online', saving: 'Saving...', waking: 'Waking server...',
-      offline: 'Offline', conflict: 'Choose a save',
+      offline: 'Offline',
     }[status] || 'Online';
     pill.textContent = session ? text : '';
     pill.dataset.state = status;
     const pending = session ? friends.incoming.length : 0;
     const btn = $('#btn-online');
-    btn.textContent = session ? `Friends${pending ? ` (${pending})` : ''}` : 'Log in / Sign up';
+    const onlineCount = session ? friends.friends.filter(p => p.online).length : 0;
+    btn.textContent = session ? `Friends${pending ? ` (${pending} new)` : ''}` : 'Log in / Sign up';
+    if (session && onlineCount) btn.insertAdjacentHTML('beforeend', ` <span class="online-count">${onlineCount} on</span>`);
+    btn.title = session ? `${onlineCount} friend${onlineCount === 1 ? '' : 's'} online` : '';
     btn.classList.toggle('nudge', !session);
     $('#btn-profile').hidden = !session;
   }
@@ -404,22 +400,6 @@ const Online = (() => {
     const body = $('#account-body');
     if (!body) return;
     const escape = escapeHTML;
-    $('#modal-account .close-btn').hidden = view === 'choose' && !!choice;
-    if (view === 'choose' && choice) {
-      $('#account-h').textContent = 'Which save?';
-      body.innerHTML = `
-        <p>This device and your account both have progress. Which one do you want to keep?</p>
-        <div class="save-choices">
-          <div class="save-card"><b>This device</b><span>${escape(save.name || 'Angler')}</span><span>${summary(save)}</span>
-            <button class="btn" data-choose="device">Keep this device's</button></div>
-          <div class="save-card"><b>Online (@${escape(session.user.username)})</b><span>${escape((choice.data && choice.data.name) || 'Angler')}</span>
-            <span>${summary({ ...choice.data, coins: choice.coins })}</span>
-            <span class="fine">saved ${choice.updated_at ? new Date(choice.updated_at).toLocaleString() : ''}</span>
-            <button class="btn mint" data-choose="cloud">Keep the online one</button></div>
-        </div>
-        <p class="fine">The one you don't pick is replaced.</p>`;
-      return;
-    }
     if (session) {
       if (!['friends', 'gifts', 'profile'].includes(view)) view = 'friends';
       $('#account-h').textContent = `@${session.user.username}`;
@@ -471,10 +451,12 @@ const Online = (() => {
           <button class="btn plain" type="button" data-fr="cancelgift">Cancel</button></div>
       </form>`;
     };
-    const rows = f.friends.map(p => `
+    const sorted = [...f.friends].sort((a, b) => b.online - a.online);
+    const rows = sorted.map(p => `
       <li class="friend ${p.online ? 'online' : ''}">
         <span class="dot" aria-hidden="true"></span>
-        <span class="friend-name"><b>@${escape(p.username)}</b><span class="fine">${where(p)}</span></span>
+        <span class="friend-name"><b>@${escape(p.username)} <span class="status-chip ${p.online ? 'on' : ''}">${p.online ? 'Online' : 'Offline'}</span></b>
+          <span class="fine">${p.online ? where(p) : 'visit anyway: their world is always open'}</span></span>
         <span class="row-actions">
           <button class="btn mint" data-fr="visit" data-name="${escape(p.username)}">Visit</button>
           <button class="btn gold" data-fr="gift" data-name="${escape(p.username)}">Gift</button>
@@ -517,7 +499,7 @@ const Online = (() => {
     const statusText = {
       saved: 'Your progress is saved online.', saving: 'Saving...', waking: 'Waking up the server...',
       offline: "Can't reach the server right now. Progress is safe on this device and will upload later.",
-      idle: 'Connected.', conflict: 'Waiting for you to pick a save.',
+      idle: 'Connected.',
     }[status] || '';
     return `
       <div class="profile-card">
@@ -620,24 +602,9 @@ const Online = (() => {
         openShop(false, act.dataset.act === 'boat' ? 'boat' : 'wardrobe');
       }
       if (act && act.dataset.act === 'sync') { clearTimeout(pushTimer); session.dirty = true; push(); }
-      const pick = e.target.closest('[data-choose]');
-      if (pick && choice) {
-        if (pick.dataset.choose === 'cloud') {
-          applyCloud(choice);
-          setStatus('saved');
-        } else {
-          session.version = choice.version;
-          session.dirty = true;
-          writeSession();
-          push();
-        }
-        choice = null;
-        toast(`Signed in as @${session.user.username}`);
-        finishLogin();
-      }
     });
     $('#btn-online').addEventListener('click', () => {
-      if (session && !['friends', 'gifts', 'profile', 'choose'].includes(view)) view = 'friends';
+      if (session && !['friends', 'gifts', 'profile'].includes(view)) view = 'friends';
       if (session) loadFriends();
       openAccount();
       Sound.sfx.open();
@@ -645,9 +612,10 @@ const Online = (() => {
     $('#cloud-pill').addEventListener('click', () => { view = session ? 'profile' : 'login'; openAccount(); });
     $('#btn-profile').addEventListener('click', () => { openAccount('profile'); Sound.sfx.open(); });
     window.addEventListener('pagehide', flush);
-    document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
-    // keep presence fresh while the friends list is showing
-    setInterval(() => { if (session && openId === 'modal-account' && view === 'friends' && !giftTarget) loadFriends(); }, 20000);
+    // switching tabs: the page stays alive, so a normal save reads its reply
+    document.addEventListener('visibilitychange', () => { if (document.hidden && session && session.dirty) pushNow(); });
+    // keep presence fresh for the friends list and the "N on" count on the HUD
+    setInterval(() => { if (session && !document.hidden && !giftTarget) loadFriends(); }, 30000);
     renderPill();
     // Net is defined in net.js, which loads right after this file
     setTimeout(syncOnLoad, 0);
@@ -657,11 +625,11 @@ const Online = (() => {
 
   return {
     loggedIn: () => !!session,
-    choosing: () => view === 'choose' && !!choice,
     username: () => (session ? session.user.username : null),
     token: () => (session ? session.token : ''),
     api,
     localSaved,
+    refreshFriends: () => { if (session) loadFriends(); },
     onNotify,
     open: openAccount,
     openGift: name => { view = 'friends'; openAccount(); loadFriends(); openGiftForm(name); },

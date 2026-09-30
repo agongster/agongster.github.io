@@ -332,12 +332,14 @@ const Net = (() => {
   function updateTags() {
     const box = $('#player-tags');
     if (!box) return;
+    // the chase panel covers the dock, so tags would float over the water
+    box.hidden = G.state === 'reeling';
     const loc = currentLoc();
     const list = players();
     const wanted = new Map();
     for (const o of list) {
       const waving = o.emote && o.emote.until > G.time && o.emote.e === 'wave';
-      wanted.set(o.name, { x: slotX(o, loc), text: o.asleep ? `@${o.name} (napping)` : waving ? `@${o.name}: hi!` : `@${o.name}`, host: G.visit && o.name === G.visit.host });
+      wanted.set(o.name, { x: slotX(o, loc), text: o.asleep ? `@${o.name} (napping)` : waving ? `@${o.name}: hi!` : `@${o.name}`, host: G.visit && o.name === G.visit.host, asleep: o.asleep });
     }
     if (list.length && G.myEmote && G.myEmote.until > G.time && G.myEmote.e === 'wave') wanted.set('\u0000me', { x: CHAR_X, text: 'hi!', me: true });
     for (const el of [...box.children]) if (!wanted.has(el.dataset.name)) el.remove();
@@ -346,6 +348,7 @@ const Net = (() => {
       if (!el) { el = document.createElement('span'); el.className = 'player-tag'; el.dataset.name = name; box.appendChild(el); }
       if (el.textContent !== t.text) el.textContent = t.text;
       el.classList.toggle('host', !!t.host);
+      el.classList.toggle('asleep', !!t.asleep);
       el.style.left = `${(t.x / W) * 100}%`;
       el.style.top = `${((FEET_Y - 32 + G.platY) / H) * 100}%`;
     }
@@ -353,14 +356,19 @@ const Net = (() => {
 
   // ------------------------------------------------------------- the bar --
   // A strip under the HUD that appears when visiting or when friends drop by.
+  let lastHostOn = null;
   function renderBar() {
     const bar = $('#social-bar');
     if (!bar) return;
     const guests = [...others.keys()];
     if (!G.visit && !guests.length) { bar.hidden = true; return; }
     bar.hidden = false;
+    const hostOn = G.visit && others.has(G.visit.host);
+    // the host just arrived or left: refresh the "N on" count on the Friends button
+    if (G.visit && hostOn !== lastHostOn) Online.refreshFriends();
+    lastHostOn = hostOn;
     const who = G.visit
-      ? `Visiting <b>@${escapeHTML(G.visit.host)}</b>'s world${others.has(G.visit.host) ? '' : ' (they\'re napping)'}`
+      ? `Visiting <b>@${escapeHTML(G.visit.host)}</b>'s world <span class="status-chip ${hostOn ? 'on' : ''}">${hostOn ? 'Online' : 'Offline, napping'}</span>`
       : `${guests.map(n => `<b>@${escapeHTML(n)}</b>`).join(', ')} ${guests.length === 1 ? 'is' : 'are'} fishing with you!`;
     bar.innerHTML = `<span class="social-who">${who}</span>
       <span class="social-actions">

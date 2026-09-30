@@ -64,7 +64,6 @@ function closeModal() {
     return;
   }
   if (openId === 'modal-title' || (openId === 'modal-shop' && shop.creator)) return;
-  if (openId === 'modal-account' && Online.choosing()) return;
   $('#' + openId).hidden = true;
   if (openId === 'modal-shop') { shop.trial = null; boatShop.trial = null; }
   const backToTitle = openId === 'modal-account' && accountFromTitle;
