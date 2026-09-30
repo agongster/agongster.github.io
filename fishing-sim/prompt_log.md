@@ -329,6 +329,10 @@ this popup pops up A LOT. like every time i leave the tab and sometimes when i'm
 ```
 (with a screenshot of the "Which save?" chooser, showing two identical saves)
 
+```
+i am testing multiplayer with my friend and it doesn't seem to be syncing correctly. when she visits my world it shows as me napping, even though i'm active in my world, and i can't see her at all.
+```
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -343,6 +347,12 @@ this popup pops up A LOT. like every time i leave the tab and sometimes when i'm
 - **Name tags over the reel:** name tags are HTML on top of the canvas, so they now hide while the chase panel is open.
 - **Online indicators:** friends show a green "Online" or grey "Offline" label, and online friends are listed first. The Friends button shows how many are online (for example "1 on"), refreshed every 30 seconds and right away when the friend you're visiting arrives or leaves. The visiting bar has an Online / "Offline, napping" label, and name tags have a green or grey light.
 - **"Which save?" popup:** this was a bug, not a real conflict. When you switched tabs, the game uploaded your save without reading the server's reply, so it kept an old version number. The next autosave looked out of date and was refused, and the game assumed another device had saved. Switching tabs now does a normal save that records the new version, and the last-chance save when closing the page records it too if the page survives. The chooser is gone: logged in, the online save always wins, including when you log in on a device with its own offline progress. A two-browser test against a local backend (tab switches, page closes, a second device logging in, visiting, the host leaving) got zero refused saves.
+- **Host shown napping, players can't see each other:** the AI probed the live server with scripted connections.
+  - **Where the AI got it wrong:** it first blamed Render for running several copies of the server. It added a worker count and process id to `/api/health` to check, and later a random per-instance id. That theory was wrong: the "offline 24/24" result that suggested it was a flaw in its own test (the test account had no save, so "offline" was really an error). A real two-browser visit on the live site then worked fine.
+  - **The real cause:** reconnecting. When a player's connection is replaced (a Wi-Fi blip, a laptop waking up, a server restart, a second tab), the old connection's cleanup told the room the player had left, so visitors showed the host napping. On Render, the "you've been replaced" close signal also never reached the old connection, leaving a tab that thinks it's connected but isn't. And the new connection waited about 10 seconds for the old one to close.
+  - **Fix (server):** a replaced connection no longer announces "leave" or a second "join". The old one gets an explicit `replaced` message, and closing it happens in the background.
+  - **Fix (game):** a tab that's been replaced stops syncing and says so, rather than fighting the other tab. It ignores messages from old connections. It pings the server and reconnects if a ping gets no answer, which still works in background tabs where browsers slow down timers.
+  - **Tests:** a new server test covers reconnecting. Local browser tests covered a 4-second network drop, a second tab, and a frozen server (the game reconnected by itself).
 
 ### Changes I made myself
 

@@ -7,6 +7,7 @@
 const Net = (() => {
   let ws = null, room = null, you = null;
   let retry = 0, reconnectTimer = null;
+  let pingAt = 0, replaced = false, pongs = false;
   let stateTimer = 0, helloTimer = 0, worldTimer = 0, lastState = '';
   const others = new Map(); // username -> player drawn in our scene
 
@@ -20,6 +21,7 @@ const Net = (() => {
 
   function connect(host) {
     disconnect();
+    replaced = false;  // visiting or going home here means "play in this tab"
     if (!Online.loggedIn() || !host) return;
     room = host;
     open();
@@ -28,6 +30,7 @@ const Net = (() => {
   function open() {
     try { ws = new WebSocket(wsUrl(room)); } catch (e) { scheduleReconnect(); return; }
     const sock = ws;
+    pingAt = 0;
     sock.onopen = () => {
       // the token goes in the first message, never the URL (URLs end up in logs)
       sock.send(JSON.stringify({ t: 'auth', token: Online.token() }));
@@ -36,21 +39,56 @@ const Net = (() => {
       if (isHome()) sendWorld();
     };
     sock.onmessage = e => {
+      if (ws !== sock) return;  // a connection we've already moved on from
+      pingAt = 0;               // any message proves the line is alive
       let m;
       try { m = JSON.parse(e.data); } catch (err) { return; }
       handle(m);
     };
-    sock.onclose = () => {
+    sock.onclose = e => {
       if (ws !== sock) return;
       ws = null;
       others.clear();
       renderBar();
-      scheduleReconnect();
+      if (e.code === 4000) stopReplaced(); else scheduleReconnect();
     };
   }
 
+  // The game was opened in another tab or device, which took over this
+  // player's connection. Stop here instead of taking it back (the two tabs
+  // would keep kicking each other off).
+  function stopReplaced() {
+    if (replaced) return;
+    replaced = true;
+    clearTimeout(reconnectTimer);
+    if (ws) { const s = ws; ws = null; s.onclose = null; try { s.close(); } catch (e) { /* already closed */ } }
+    others.clear();
+    renderBar();
+    toast('Tiny Tides is open in another tab, so this one stopped playing online. Reload to play here.');
+  }
+
+  // A connection can die without closing (a laptop sleeping, a proxy dropping
+  // it). Ping every so often; if the last ping got no reply at all, start over.
+  // Any message counts as a reply, and this still works when a background tab
+  // only runs timers once a minute.
+  function heartbeat() {
+    if (!ws || ws.readyState !== 1 || replaced) return;
+    // (only once the server has shown it answers pings; older servers don't)
+    if (pingAt && pongs && Date.now() - pingAt > 12000) {
+      const s = ws; ws = null; s.onclose = null;
+      try { s.close(); } catch (e) { /* already gone */ }
+      others.clear();
+      renderBar();
+      open();
+      return;
+    }
+    if (!pingAt) { pingAt = Date.now(); send({ t: 'ping' }); }
+  }
+  setInterval(heartbeat, 15000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) heartbeat(); });
+
   function scheduleReconnect() {
-    if (!room || !Online.loggedIn()) return;
+    if (!room || !Online.loggedIn() || replaced) return;
     clearTimeout(reconnectTimer);
     reconnectTimer = setTimeout(open, Math.min(30000, 2000 * 2 ** retry++));
   }
@@ -117,6 +155,12 @@ const Net = (() => {
       case 'world':
         if (!isHome() && m.from === room) applyWorld(m);
         break;
+      case 'pong':
+        pongs = true;
+        break;
+      case 'replaced':
+        stopReplaced();
+        break;
       case 'error':
         if (m.error === 'room_full') { toast("That world is full right now (4 anglers max)."); goHome(true); }
         else if (m.error === 'not_friends') { toast("You're not friends with them anymore."); goHome(true); }
@@ -136,6 +180,7 @@ const Net = (() => {
       while (used.has(slot)) slot++;
       o = { name, slot, s: 'idle', a: 0.55, bob: { x: 200, y: 140 }, tbob: null, seen: G.time, t: Math.random() * 5 };
       others.set(name, o);
+      renderBar();  // e.g. the host was shown napping and is back
     }
     if (hello) {
       o.look = { ...DEFAULT_LOOK, ...(hello.look || {}) };
