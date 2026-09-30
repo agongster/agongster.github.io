@@ -1,4 +1,21 @@
 /* Tiny Tides — styles. Warm sunset palette, chunky pixel borders. */
+/* Body text is Jersey 10 (SIL Open Font License), self-hosted so it can be
+   scaled up to sit where the old font did. Headings keep Pixelify Sans, but
+   borrow Jersey's digits because Pixelify's 5 reads as a backwards S. */
+@font-face {
+  font-family: 'TT Body';
+  src: url('fonts/jersey10-latin.woff2') format('woff2');
+  size-adjust: 125%;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'TT Digits';
+  src: url('fonts/jersey10-latin.woff2') format('woff2');
+  unicode-range: U+30-39;
+  size-adjust: 110%;
+  font-display: swap;
+}
+
 :root {
   --ink: #2a1a2e;
   --plum: #3d2450;
@@ -13,8 +30,8 @@
   --mint: #8fd19e;
   --sky: #7fb8e6;
   --lilac: #c79bf2;
-  --font: 'Tiny5', 'Pixelify Sans', ui-monospace, 'Courier New', monospace;
-  --font-title: 'Pixelify Sans', 'Tiny5', ui-monospace, monospace;
+  --font: 'TT Body', 'Pixelify Sans', ui-monospace, 'Courier New', monospace;
+  --font-title: 'TT Digits', 'Pixelify Sans', ui-monospace, monospace;
 }
 
 * { box-sizing: border-box; }
@@ -538,6 +555,8 @@ kbd {
 .gear .desc { font-size: 14px; color: var(--plum-2); grid-column: 1; }
 .gear .stats { font-size: 13px; grid-column: 1; display: flex; gap: 10px; flex-wrap: wrap; }
 .gear .btn { grid-row: 1 / span 3; grid-column: 2; }
+.gear .buy-col { grid-row: 1 / span 3; grid-column: 2; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.gear .need { font-size: 13px; color: var(--rose); }
 .rod-swatch { display: inline-block; width: 22px; height: 6px; border: 2px solid var(--ink); vertical-align: middle; margin-right: 6px; }
 
 /* ----------------------------------------------------------- bucket -- */

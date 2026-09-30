@@ -63,7 +63,7 @@ It's useful for testing and for recording a demo. Dev catches still count toward
 
 ## Secrets
 
-The game itself holds no secrets: it's static files, and the only external request is the Pixelify Sans and Tiny5 fonts from Google Fonts. Progress is saved in the browser's `localStorage`.
+The game itself holds no secrets: it's static files, and the only external requests are the Pixelify Sans heading font from Google Fonts (the body font, Jersey 10, is served from `fonts/`) and, when you play online, the game's own API. Progress is saved in the browser's `localStorage`.
 
 Online play (optional) talks to a separate backend, [tiny-tides-backend](https://github.com/agongster/tiny-tides-backend) (FastAPI on Render, Postgres on Neon).
 - **Server secrets:** the database password and the key that signs login tokens are only in Render's environment settings, never in either repository.

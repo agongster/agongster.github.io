@@ -310,6 +310,15 @@ a few things: make the login more noticeable, as by default the user should try 
 have a profile button that links to the shop as well
 ```
 
+```
+sure, commit and push those. after that take a look at this screenshot. i have 61 coins but i'm unable to buy the 30 coin tackle. is this supposed to happen?
+```
+(with a screenshot of the Tackle tab, where the Bamboo Rod's price looked like 30)
+
+```
+can you make the font easier to read?
+```
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -319,6 +328,8 @@ have a profile button that links to the shop as well
   - Each rarity now has reel modifiers: rarer fish swim faster, fill the catch bar slower, and drain it faster when they slip out.
   - Rods got two new stats, **tame** (slows the fish) and **grip** (less drain), and much bigger gaps: net 14 → 16 → 21 → 26 and reel speed 30 → 34 → 45 → 56. The Shop lists the new stats.
   - The AI tuned the numbers with a simulated player who steers at the fish with a short reaction delay. With the Twig rod, a rare fish went from about 26% to about 1% for that bot. With the Star rod, a legendary went from 87% to 100%. The bot is worse than a real player, so it's only a guide to how far apart the rods are.
+- **"30 coin" rod:** the Bamboo Rod actually costs 90. In the Tiny5 font, 3 and 9 differ by only a couple of pixels, and the greyed-out button made it worse. Digits now come from a 1 KB digits-only subset of Jersey 10 (self-hosted in `fonts/`, SIL Open Font License), scaled to match Tiny5. Buy buttons you can't afford yet also say how many more coins you need.
+- **Easier-to-read font:** the AI compared Tiny5, Pixelify Sans, VT323, Jersey 10 and Fredoka on real game text, then moved all body text to Jersey 10. It keeps the pixel look but has normal letter shapes, and it was already the digit font. It's self-hosted (5 KB) so it can be scaled up to fill the space the old font did. Headings stay Pixelify Sans but borrow Jersey's digits, since Pixelify's 5 looks like a backwards S. Tiny5 is no longer loaded.
 
 ### Changes I made myself
 

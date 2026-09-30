@@ -339,12 +339,20 @@ $('#btn-begin').addEventListener('click', () => {
   $('#action-btn').focus({ preventScroll: true });
 });
 
+// A Buy button that says how short you are when you can't afford it yet.
+function buyButton(attrs, price) {
+  const short = price - save.coins;
+  if (short <= 0) return `<button class="btn gold" ${attrs}>Buy ${coinHTML(price)}</button>`;
+  return `<span class="buy-col"><button class="btn gold" ${attrs} disabled>Buy ${coinHTML(price)}</button>
+    <span class="need">${short} more coin${short === 1 ? '' : 's'}</span></span>`;
+}
+
 function renderTackle() {
   const rodRows = RODS.map(r => {
     const owned = save.rods.includes(r.id), equipped = save.rod === r.id;
     const btn = equipped ? '<button class="btn plain" disabled>Equipped</button>'
       : owned ? `<button class="btn mint" data-rod="${r.id}">Equip</button>`
-      : `<button class="btn gold" data-rod="${r.id}" ${save.coins < r.price ? 'disabled' : ''}>Buy ${coinHTML(r.price)}</button>`;
+      : buyButton(`data-rod="${r.id}"`, r.price);
     return `<li class="gear ${equipped ? 'equipped' : ''}">
       <b><span class="rod-swatch" style="background:${r.color}"></span>${r.name}</b>
       <span class="desc">${r.blurb}</span>
@@ -354,7 +362,7 @@ function renderTackle() {
   // buckets and tanks upgrade in order, one level at a time
   const upgradeRows = (levels, current, attr, what) => levels.map((b, i) => {
     const btn = i <= current ? `<button class="btn plain" disabled>${i === current ? 'In use' : 'Outgrown'}</button>`
-      : i === current + 1 ? `<button class="btn gold" ${attr}="${i}" ${save.coins < b.price ? 'disabled' : ''}>Buy ${coinHTML(b.price)}</button>`
+      : i === current + 1 ? buyButton(`${attr}="${i}"`, b.price)
       : '<button class="btn plain" disabled>Upgrade first</button>';
     return `<li class="gear ${i === current ? 'equipped' : ''}">
       <b>${b.name}</b><span class="desc">Holds ${b.cap} ${what}</span><span class="stats"></span>${btn}</li>`;
