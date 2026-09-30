@@ -445,6 +445,18 @@ kbd {
 .map-btn { background: var(--sky); }
 .online-btn { background: var(--gold); white-space: nowrap; }
 .profile-btn { background: var(--lilac); }
+.charm-btn { background: #c8f0a0; }
+/* a gentle shimmer while an enchantment is working */
+.boost-pill { font-family: var(--font); font-size: inherit; cursor: pointer; border-color: var(--lilac); color: #e8dcff; animation: shimmer 2s steps(4) infinite; }
+@keyframes shimmer { 50% { border-color: #ffd27a; } }
+@media (prefers-reduced-motion: reduce) { .boost-pill { animation: none; } }
+.charm-list img { width: 40px !important; height: 40px !important; }
+.charm-count { font-size: 13px; background: var(--gold); border: 2px solid var(--ink); padding: 0 4px; margin-left: 4px; }
+.charm-timer:empty { display: none; }
+.charm-timer { color: #3a8a4a; font-weight: 600; }
+.catch-bonus { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 4px 0 8px; font-size: 14px; color: var(--plum-2); background: #f4ecff; border: 2px dashed var(--lilac); padding: 4px 8px; }
+.catch-bonus[hidden] { display: none; }
+.catch-bonus img { width: 22px; height: 22px; image-rendering: pixelated; flex: none; }
 /* logged out, the HUD login button gently pulses so it's hard to miss */
 .online-btn.nudge { animation: nudge 1.6s steps(2) infinite; }
 @keyframes nudge { 50% { background: #ffe7a8; box-shadow: inset -3px -3px 0 rgba(0, 0, 0, .18), inset 3px 3px 0 rgba(255, 255, 255, .35), 0 3px 0 var(--ink), 0 0 0 3px var(--coral); } }

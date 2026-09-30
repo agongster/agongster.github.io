@@ -18,6 +18,7 @@
         <span class="pill" title="Coins"><span class="coin-icon" aria-hidden="true"></span><span id="coins">0</span><span class="sr-only"> coins</span></span>
         <span class="pill" title="Fish in your tank"><span class="tank-icon" aria-hidden="true"></span><span id="tank-pill-count">0/6</span></span>
         <button class="pill cloud-pill" id="cloud-pill" hidden title="Online save status"></button>
+        <button class="pill boost-pill" id="boost-pill" hidden title="Enchantments working right now"></button>
         <span class="pill phase-pill" id="phase-pill" title="Where you are, and the time of day. Some fish only come out at certain times.">Golden hour</span>
       </div>
       <nav class="hud-buttons" aria-label="Menus">
@@ -25,6 +26,7 @@
         <button class="btn profile-btn" id="btn-profile" hidden>Profile</button>
         <button class="btn map-btn" id="btn-map">Map</button>
         <button class="btn tank-btn" id="btn-tank">Tank</button>
+        <button class="btn charm-btn" id="btn-charms" hidden>Charms</button>
         <button class="btn" id="btn-shop">Shop</button>
         <button class="btn" id="btn-dex">Fishdex</button>
         <button class="btn icon-btn" id="btn-sound" aria-pressed="true" title="Sound on/off">
@@ -198,6 +200,18 @@
     </div>
   </div>
 
+  <!-- Charms (enchantments) -->
+  <div class="modal" id="modal-charms" role="dialog" aria-modal="true" aria-labelledby="charms-h" hidden>
+    <div class="panel">
+      <header class="panel-head">
+        <h2 id="charms-h">Charms</h2>
+        <button class="close-btn" data-close aria-label="Close">X</button>
+      </header>
+      <p class="tank-hint">Found tangled on the line now and then. Use one whenever you like. Its boost counts down while you fish.</p>
+      <ul id="charm-list" class="fish-list charm-list"></ul>
+    </div>
+  </div>
+
   <!-- Fishdex -->
   <div class="modal" id="modal-dex" role="dialog" aria-modal="true" aria-labelledby="dex-h" hidden>
     <div class="panel wide">
@@ -222,6 +236,7 @@
       <h2 id="catch-name"></h2>
       <p class="catch-meta" id="catch-meta"></p>
       <p class="catch-blurb" id="catch-blurb"></p>
+      <p class="catch-bonus" id="catch-bonus" hidden></p>
       <div class="catch-actions">
         <button class="btn mint" id="catch-tank">Tank</button>
         <button class="btn gold" id="catch-sell">Sell</button>

@@ -35,6 +35,8 @@ function refreshHUD() {
   if (openId === 'modal-shop') renderShop();
   if (openId === 'modal-map') renderMap();
   if (openId === 'modal-tank') renderTank();
+  if (openId === 'modal-charms') renderCharms();
+  renderBoosts();
 }
 
 // ================================================================= modals ==
@@ -542,6 +544,82 @@ function drawPreview() {
     g.drawImage(b, 16 - Math.round(b.width / 2), 39 - b.height + (Math.floor(t * 1.6) % 2));
   }
 }
+
+// ================================================================= charms ==
+// Enchantments: a little bottle in each one's colour.
+const CHARM_ROWS = [
+  '...kkkk...',
+  '...kcck...',
+  '....kk....',
+  '...kggk...',
+  '..kgggwk..',
+  '.kggggwgk.',
+  '.kgwggggk.',
+  '.kggggggk.',
+  '..kggggk..',
+  '...kkkk...',
+];
+const charmSprite = id => spriteDataUrl('charm:' + id, () =>
+  mapCanvas(CHARM_ROWS, { k: OUTLINE, c: '#b07a50', g: ENCHANT_BY_ID[id].color, w: '#ffffff' }));
+
+const clock = secs => `${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, '0')}`;
+const charmEffect = e => [e.luck ? `Luck +${Math.round(e.luck * 100)}` : '', e.net ? `Net +${e.net}` : ''].filter(Boolean).join(' · ');
+
+// The HUD: a Charms button once you've found one, and a timer while one works.
+function renderBoosts() {
+  const have = Object.keys(save.enchants).length > 0;
+  $('#btn-charms').hidden = !have && !save.boosts.length;
+  const total = Object.values(save.enchants).reduce((a, b) => a + b, 0);
+  $('#btn-charms').textContent = total ? `Charms (${total})` : 'Charms';
+  const pill = $('#boost-pill');
+  pill.hidden = !save.boosts.length;
+  if (save.boosts.length) {
+    const luck = boostSum('luck'), net = boostSum('net');
+    const soonest = Math.min(...save.boosts.map(b => b.left));
+    pill.textContent = `${[luck ? `Luck +${Math.round(luck * 100)}` : '', net ? `Net +${net}` : ''].filter(Boolean).join(' ')} · ${clock(soonest)}`;
+  }
+  if (openId === 'modal-charms') updateCharmTimers();
+}
+
+function openCharms() {
+  renderCharms();
+  openModal('modal-charms');
+  Sound.sfx.open();
+}
+
+function renderCharms() {
+  const rows = ENCHANTS.map(e => {
+    const n = save.enchants[e.id] || 0;
+    const running = save.boosts.find(b => b.id === e.id);
+    if (!n && !running) return '';
+    return `<li>
+      <img src="${charmSprite(e.id)}" alt="" />
+      <div><div class="fname">${e.name}${n ? ` <span class="charm-count">x${n}</span>` : ''}</div>
+        <div class="fmeta">${charmEffect(e)} for ${clock(e.secs)}. ${e.blurb}</div>
+        <div class="fmeta charm-timer" data-timer="${e.id}">${running ? `Working: ${clock(running.left)} left` : ''}</div></div>
+      ${n ? `<button class="btn mint" data-usecharm="${e.id}">${running ? 'Add time' : 'Use'}</button>` : '<span class="priceless">In use</span>'}
+    </li>`;
+  }).join('');
+  $('#charm-list').innerHTML = rows || '<li class="empty" style="display:block">No charms yet. Keep fishing: they turn up tangled on the line now and then.</li>';
+}
+
+function updateCharmTimers() {
+  for (const el of $$('#charm-list [data-timer]')) {
+    const running = save.boosts.find(b => b.id === el.dataset.timer);
+    el.textContent = running ? `Working: ${clock(running.left)} left` : '';
+  }
+}
+
+$('#charm-list').addEventListener('click', e => {
+  const b = e.target.closest('[data-usecharm]');
+  if (!b) return;
+  useEnchant(b.dataset.usecharm);
+  renderCharms();
+  const next = $('#charm-list [data-usecharm]');
+  (next || $('#modal-charms .close-btn')).focus({ preventScroll: true });
+});
+$('#btn-charms').addEventListener('click', openCharms);
+$('#boost-pill').addEventListener('click', openCharms);
 
 // ================================================================ fishdex ==
 const RARITY_ORDER = ['common', 'uncommon', 'rare', 'legendary', 'goat', 'junk'];
@@ -1168,6 +1246,9 @@ function showCatchCard(c) {
   $('#catch-name').textContent = sp.name;
   $('#catch-meta').innerHTML = `${c.size} cm · <span class="stars" aria-label="${c.stars} of 3 stars">${starText(c.stars)}</span>`;
   $('#catch-blurb').textContent = sp.blurb;
+  const bonus = G.foundEnchant && ENCHANT_BY_ID[G.foundEnchant];
+  $('#catch-bonus').hidden = !bonus;
+  if (bonus) $('#catch-bonus').innerHTML = `<img src="${charmSprite(bonus.id)}" alt="" /><span>Something sparkly was tangled on the line: a <b>${bonus.name}</b>! Use it from Charms.</span>`;
   const tank = $('#catch-tank');
   tank.disabled = !tankHasRoom(c);
   tank.textContent = tank.disabled ? 'Tank full' : 'Tank';

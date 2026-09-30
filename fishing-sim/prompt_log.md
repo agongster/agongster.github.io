@@ -345,6 +345,14 @@ i also want to make improvements to the tank, so the user should be able to cust
 currently in the multiplayer, users cannot go to other places in their friend's map. make it so that they can.
 ```
 
+```
+commit and push these changes/
+```
+
+```
+make it so that the user can occassionally catch enchantments that boost their luck and net temporarily. they can use these at will after catching. ALSO add 100 more types of new fish, and make fishing slightly easier for the low price rods and slightly harder for the higher price rods (in general), the luck metrics should still be the same for these though
+```
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -378,6 +386,15 @@ currently in the multiplayer, users cannot go to other places in their friend's 
   - **Who you see:** each player now sends which spot they're at with their live updates, and you only see anglers at your spot. The host's bar says "@friend is exploring your world" when a visitor is elsewhere.
   - **Following:** you follow the host only if you were at the same spot when they sailed. Otherwise the bar shows where they are, with a **Join them** button. The host's world updates also carry their unlocked spots, so a spot they unlock mid-visit opens up for visitors.
   - **Tests:** a two-browser test against a local backend ran through together, guest sails off alone, host moves (guest stays), guest joins, host moves (guest follows). No server change was needed.
+- **Enchantments:** about 1 catch in 16 also brings up a charm, shown on the catch card. There are four kinds: Clover Charm (luck +10, 1:30), Wide Net Rune (net +5, 1:30), Tide Pearl (luck +25, 1:00, rarer) and Starlight Elixir (both, 2:00, rarest).
+  - **Using them:** a **Charms** button appears once you have one. Use a charm whenever you like; using one that's already working adds time (up to 10 minutes).
+  - **While one works:** a shimmering pill in the top bar shows the boost and a countdown. The countdown only runs while you're out fishing, not in menus, and it survives a reload.
+  - **Effect:** luck and net boosts feed the same places the rod's do: which fish bite, how big they are, and the chase net's size. The dev panel got a "+1 of each charm" button.
+- **100 more fish (172 total):** 15 each for Sunset Dock and Lily Lagoon and 14 for each other spot, themed to the place: Marshmallow Shiner, Boba Puffer, Hermit Crab, Walrus Wrasse, Kitsune Eel, Lava Lamp Guppy, Hot Air Puffer, Celestial Carp, and more.
+  - Each spot got about 6 common, 4 uncommon, 3 rare and 1–2 legendary, with prices and difficulty in the existing ranges.
+  - They're drawn by the same code as before (body shapes, patterns, colours). A few reuse the crab, jelly, seahorse, axolotl and narwhal pixel art in new colours.
+  - A check confirmed no duplicate ids or names, and that every spot still has common fish at every time of day. All 172 sprites render.
+- **Rods rebalanced:** Twig and Bamboo got a bigger net, faster reel, and more fish-slowing and grip. Sunset and Star got a little less of each. Luck is unchanged. With the simulated player, Twig on uncommons went from 31% to 91% and Bamboo on rares from 7% to 54%, while Sunset on legendaries went from 27% to 9% and Star on LeBron from 95% to 20%. Better rods are still clearly better.
 
 ### Changes I made myself
 

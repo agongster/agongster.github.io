@@ -10,6 +10,7 @@ function freshSave() {
     started: false, name: '', look: { ...DEFAULT_LOOK }, boat: { ...DEFAULT_BOAT }, owned: [],
     coins: 0, aquarium: [], dex: {}, rod: 'twig', rods: ['twig'], tankLvl: 0,
     decor: starterDecor(), nextDecor: STARTER_DECOR.length + 1,
+    enchants: {}, boosts: [],  // enchantments you own ({ id: count }) and ones in use ([{ id, left }])
     location: 'dock', unlocked: ['dock'], newSpot: false,
     clock: 0, muted: false, nextUid: 1,
     stats: { caught: 0, earned: 0, sold: 0 },
@@ -76,6 +77,13 @@ function sanitizeSave(s) {
   let placedCount = 0;
   for (const d of s.decor) if (d.placed && ++placedCount > MAX_DECOR) d.placed = false;
   s.nextDecor = Math.max(Number(s.nextDecor) || 1, ...s.decor.map(d => d.uid + 1));
+  const owned = s.enchants && typeof s.enchants === 'object' ? s.enchants : {};
+  s.enchants = {};
+  for (const e of ENCHANTS) { const n = Math.floor(Number(owned[e.id]) || 0); if (n > 0) s.enchants[e.id] = Math.min(99, n); }
+  s.boosts = (Array.isArray(s.boosts) ? s.boosts : [])
+    .filter(b => b && ENCHANT_BY_ID[b.id] && Number(b.left) > 0)
+    .map(b => ({ id: b.id, left: Math.min(MAX_BOOST_SECS, Number(b.left)) }))
+    .filter((b, i, all) => all.findIndex(o => o.id === b.id) === i);
   if (!s.dex || typeof s.dex !== 'object') s.dex = {};
   for (const id of Object.keys(s.dex)) if (!FISH_BY_ID[id]) delete s.dex[id];
   if (!Array.isArray(s.rods) || !s.rods.includes('twig')) s.rods = ['twig'];
@@ -121,6 +129,47 @@ function fishCaughtCount(s = save) {
 const save = loadSave();
 
 const currentRod = () => RODS.find(r => r.id === save.rod) || RODS[0];
+
+// ---- enchantments: extra luck and net while one is in use
+const boostSum = key => save.boosts.reduce((sum, b) => sum + ENCHANT_BY_ID[b.id][key], 0);
+const fishingLuck = () => currentRod().luck + boostSum('luck');
+const fishingNet = () => currentRod().net + boostSum('net');
+
+function rollEnchant() {
+  let r = Math.random() * ENCHANTS.reduce((sum, e) => sum + e.weight, 0);
+  for (const e of ENCHANTS) if ((r -= e.weight) < 0) return e.id;
+  return ENCHANTS[0].id;
+}
+
+// Uses one you own. Using a kind that's already running adds to its time.
+function useEnchant(id) {
+  const e = ENCHANT_BY_ID[id];
+  if (!e || !(save.enchants[id] > 0)) return false;
+  if (--save.enchants[id] <= 0) delete save.enchants[id];
+  const running = save.boosts.find(b => b.id === id);
+  if (running) running.left = Math.min(MAX_BOOST_SECS, running.left + e.secs);
+  else save.boosts.push({ id, left: e.secs });
+  Sound.sfx.buy();
+  toast(`${e.name} is working!`);
+  persist();
+  refreshHUD();
+  return true;
+}
+
+// Counts down while you're fishing (not while a menu is open).
+function tickBoosts(dt) {
+  if (!save.boosts.length) return;
+  for (const b of save.boosts) b.left -= dt;
+  const done = save.boosts.filter(b => b.left <= 0);
+  if (done.length) {
+    save.boosts = save.boosts.filter(b => b.left > 0);
+    for (const b of done) toast(`${ENCHANT_BY_ID[b.id].name} wore off`);
+    persist();
+    refreshHUD();
+  }
+  G.boostHud = (G.boostHud || 0) - dt;
+  if (G.boostHud <= 0) { G.boostHud = 0.5; renderBoosts(); }
+}
 // While visiting a friend, the world (place, time of day, boat) is theirs.
 const worldLocationId = () => (G.visit ? G.visit.location : save.location);
 const currentLoc = () => LOCATIONS.find(l => l.id === worldLocationId()) || LOCATIONS[0];
@@ -441,14 +490,14 @@ function interest(s) {
 }
 
 function rollFish(stray = false) {
-  const rod = currentRod();
+  const luck = fishingLuck();
   const pool = FISH.filter(f => f.phases.includes(G.phaseId) && fishWhere(f).includes(worldLocationId()));
   const weightOf = f => {
     if (f.weight !== undefined) return f.weight;
     let w = RARITY[f.rarity].weight;
-    if (f.rarity === 'rare') w *= 1 + rod.luck * 5;
-    if (f.rarity === 'legendary') w *= 1 + rod.luck * 8;
-    if (f.rarity === 'junk') w *= Math.max(0.2, 1 - rod.luck * 3) * (stray ? 3 : 1);
+    if (f.rarity === 'rare') w *= 1 + luck * 5;
+    if (f.rarity === 'legendary') w *= 1 + luck * 8;
+    if (f.rarity === 'junk') w *= Math.max(0.2, 1 - luck * 3) * (stray ? 3 : 1);
     // spread the weight of a rarity across its members
     return w / pool.filter(o => o.rarity === f.rarity && o.weight === undefined).length;
   };
@@ -480,9 +529,8 @@ const RP = { x: 34, y: 8, w: 252, h: 138 };  // the underwater panel, in canvas 
 const KEY_DIRS = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
 
 function startReel() {
-  const rod = currentRod();
   G.reel = {
-    sp: G.bite, net: rod.net,
+    sp: G.bite, net: fishingNet(),
     fx: RP.w * 0.6, fy: RP.h * 0.45, tx: RP.w * 0.6, ty: RP.h * 0.45, timer: 0.8, dir: -1,
     nx: RP.w * 0.42, ny: RP.h * 0.5, vx: 0, vy: 0,
     progress: 0.35, grace: 0.9, tick: 0, inNet: false, bubbles: [],
@@ -559,9 +607,9 @@ function updateReel(dt) {
 }
 
 function catchFish() {
-  const sp = G.reel.sp, rod = currentRod();
+  const sp = G.reel.sp;
   let norm = Math.pow(Math.random(), 1.4);
-  norm = Math.min(1, norm + rod.luck * 0.35 * Math.random());
+  norm = Math.min(1, norm + fishingLuck() * 0.35 * Math.random());
   const size = Math.round(lerp(sp.size[0], sp.size[1], norm));
   const stars = norm < 0.5 ? 1 : norm < 0.85 ? 2 : 3;
   const value = Math.max(1, Math.round(sp.price * (0.8 + 0.5 * norm) * (stars === 3 ? 1.2 : 1)));
@@ -573,6 +621,12 @@ function catchFish() {
   };
   save.stats.caught++;
   G.pending = { uid: save.nextUid++, id: sp.id, size, stars, value, isNew };
+  // now and then something sparkly comes up with the catch
+  G.foundEnchant = null;
+  if (Math.random() < ENCHANT_CHANCE) {
+    G.foundEnchant = rollEnchant();
+    save.enchants[G.foundEnchant] = Math.min(99, (save.enchants[G.foundEnchant] || 0) + 1);
+  }
   if (typeof Net !== 'undefined') Net.send({ t: 'catch', fish: sp.id, size });
   if (G.hooked) { G.hooked.mode = 'gone'; G.hooked.respawn = rand(2, 5); G.hooked = null; }
   checkUnlocks();
@@ -615,6 +669,7 @@ function finishCatch(action) {
   const c = G.pending;
   if (!c) return;
   G.pending = null;
+  G.foundEnchant = null;
   if (action === 'auto') action = tankHasRoom(c) ? 'tank' : 'sell';
   if (action === 'sell' && isUnsellable(c)) action = 'tank';
   if (action === 'tank' && tankHasRoom(c)) {
@@ -755,6 +810,9 @@ function update(dt) {
     G.aim.x = 226 + Math.sin(G.time * 0.45) * 70;
     G.aim.y = 140 + Math.sin(G.time * 0.7) * 22;
   }
+
+  // enchantments only run down while you're out fishing, not in a menu
+  if (save.started && !openId) tickBoosts(dt);
 
   // a menu opened mid-cast pauses the fishing (but not the scenery)
   const paused = openId && openId !== 'modal-catch' && FISHING_STATES.includes(G.state);

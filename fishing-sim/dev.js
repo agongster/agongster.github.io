@@ -35,6 +35,9 @@
       <button data-dev="coins">+1000 coins</button>
       <button data-dev="unlock">Unlock map</button>
     </div>
+    <div class="dev-row">
+      <button data-dev="charms">+1 of each charm</button>
+    </div>
     <label>Time of day
       <select id="dev-time">
         <option value="">(jump to...)</option>
@@ -88,6 +91,12 @@
       case 'win':
         if (G.state === 'bite') startReel();
         if (G.state === 'reeling') catchFish();
+        break;
+      case 'charms':
+        for (const en of ENCHANTS) save.enchants[en.id] = Math.min(99, (save.enchants[en.id] || 0) + 1);
+        persist();
+        refreshHUD();
+        toast('Dev: one of every charm');
         break;
       case 'coins':
         save.coins += 1000;
