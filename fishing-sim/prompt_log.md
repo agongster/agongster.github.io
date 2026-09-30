@@ -288,3 +288,38 @@ implement all multiplayer features now
 ### Changes I made myself
 
 > ✏️ TODO
+
+## Session 12: going live, login up front, and rarity-based difficulty (2026-09-30, Claude Code / Claude Opus 5.5)
+
+### Prompts (verbatim)
+
+```
+i see the commit pushed to github but it's not updating on render
+```
+
+```
+this is the error i get when i try to sign up with an account. also, Render On Commit is turned on for Auto-Deploy, the branch is set to main. I cannot find the Github settings place to change allowed repos in Render.
+```
+(with a screenshot of the sign-up form showing "Couldn't reach the server. Check your connection and try again.")
+
+```
+a few things: make the login more noticeable, as by default the user should try to sign up or log in with an account. also, make it so that the rarer the fish is, the harder it is to catch, and the more upgraded the rod is, the more significantly easier it is to catch fish. right now the difference is not very noticeable.
+```
+
+```
+have a profile button that links to the shop as well
+```
+
+### What the AI did in response
+
+- **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
+- **Login up front:** when logged out, the title screen leads with a "Play online" card with big Sign up / Log in buttons. "Play offline" and "Keep fishing offline" become smaller buttons under an "or play on this device only" line. After you log in from the title, it goes straight back to the title. In the game, the HUD button reads "Log in / Sign up" and gently pulses (no pulse if the device asks for reduced motion).
+- **Profile:** the account window's Account tab became **Profile**. It shows your angler, name, username, catches, coins and Fishdex, plus "Change your look" and "Customize your boat" buttons that open the Shop on the right tab. There's a Profile button in the HUD and on the title screen when you're logged in.
+- **Difficulty:**
+  - Each rarity now has reel modifiers: rarer fish swim faster, fill the catch bar slower, and drain it faster when they slip out.
+  - Rods got two new stats, **tame** (slows the fish) and **grip** (less drain), and much bigger gaps: net 14 → 16 → 21 → 26 and reel speed 30 → 34 → 45 → 56. The Shop lists the new stats.
+  - The AI tuned the numbers with a simulated player who steers at the fish with a short reaction delay. With the Twig rod, a rare fish went from about 26% to about 1% for that bot. With the Star rod, a legendary went from 87% to 100%. The bot is worse than a real player, so it's only a guide to how far apart the rods are.
+
+### Changes I made myself
+
+> ✏️ TODO

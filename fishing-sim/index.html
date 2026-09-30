@@ -21,7 +21,8 @@
         <span class="pill phase-pill" id="phase-pill" title="Where you are, and the time of day. Some fish only come out at certain times.">Golden hour</span>
       </div>
       <nav class="hud-buttons" aria-label="Menus">
-        <button class="btn online-btn" id="btn-online">Log in</button>
+        <button class="btn online-btn" id="btn-online">Log in / Sign up</button>
+        <button class="btn profile-btn" id="btn-profile" hidden>Profile</button>
         <button class="btn map-btn" id="btn-map">Map</button>
         <button class="btn tank-btn" id="btn-tank">Tank</button>
         <button class="btn" id="btn-bucket">Bucket</button>
@@ -60,6 +61,19 @@
     <div class="panel title-panel">
       <h1 id="title-h" class="logo">Tiny<br />Tides</h1>
       <p class="tagline">a cozy little sunset fishing sim</p>
+      <div class="online-card" id="title-auth">
+        <p class="online-card-h">Play online</p>
+        <p class="online-card-sub">Save your fish to the cloud, add friends, and fish together.</p>
+        <div class="auth-buttons">
+          <button class="btn big gold" id="btn-title-signup">Sign up</button>
+          <button class="btn big mint" id="btn-title-login">Log in</button>
+        </div>
+      </div>
+      <div class="online-card signed-in" id="title-user" hidden>
+        <p>Logged in as <b id="title-username"></b></p>
+        <button class="btn" id="btn-title-account">Profile</button>
+      </div>
+      <p class="or-line" id="title-or"><span>or play on this device only</span></p>
       <div class="stack">
         <button class="btn big" id="btn-continue" hidden>Keep fishing</button>
         <button class="btn big" id="btn-new">New angler</button>
@@ -75,8 +89,7 @@
           <li>Catch more fish to unlock new spots on the <b>Map</b>, each with its own fish. The sky loops from sunrise through daytime, golden hour and sunset to night, and some fish only come out at certain times.</li>
         </ol>
       </details>
-      <button class="link-btn" id="btn-title-online">Log in to save online, add friends, and fish together</button>
-      <p class="fine">Made by April Gong · progress saves in this browser</p>
+      <p class="fine">Made by April Gong</p>
       <button class="link-btn" id="btn-reset" hidden>Erase save</button>
     </div>
   </div>

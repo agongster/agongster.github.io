@@ -66,7 +66,7 @@ const Online = (() => {
   function setStatus(s) {
     status = s;
     renderPill();
-    if (openId === 'modal-account' && view === 'account') render();
+    if (openId === 'modal-account' && view === 'profile') render();
   }
 
   // ---------------------------------------------------------- save sync --
@@ -269,6 +269,8 @@ const Online = (() => {
     Net.home();
     view = 'friends';
     render();
+    renderPill();
+    window.dispatchEvent(new Event('tt-login'));
     claimGifts();
     loadFriends();
   }
@@ -390,7 +392,10 @@ const Online = (() => {
     pill.textContent = session ? text : '';
     pill.dataset.state = status;
     const pending = session ? friends.incoming.length : 0;
-    $('#btn-online').textContent = session ? `Friends${pending ? ` (${pending})` : ''}` : 'Log in';
+    const btn = $('#btn-online');
+    btn.textContent = session ? `Friends${pending ? ` (${pending})` : ''}` : 'Log in / Sign up';
+    btn.classList.toggle('nudge', !session);
+    $('#btn-profile').hidden = !session;
   }
 
   const where = f => (!f.online ? 'offline' : f.at === 'home' ? 'fishing at home' : `visiting @${f.at}`);
@@ -416,14 +421,15 @@ const Online = (() => {
       return;
     }
     if (session) {
-      if (!['friends', 'gifts', 'account'].includes(view)) view = 'friends';
+      if (!['friends', 'gifts', 'profile'].includes(view)) view = 'friends';
       $('#account-h').textContent = `@${session.user.username}`;
       const tabs = `<div class="tabs small" role="tablist">
         <button role="tab" data-view="friends" aria-selected="${view === 'friends'}">Friends${friends.incoming.length ? ` (${friends.incoming.length})` : ''}</button>
         <button role="tab" data-view="gifts" aria-selected="${view === 'gifts'}">Gifts</button>
-        <button role="tab" data-view="account" aria-selected="${view === 'account'}">Account</button>
+        <button role="tab" data-view="profile" aria-selected="${view === 'profile'}">Profile</button>
       </div>`;
-      body.innerHTML = tabs + (view === 'friends' ? friendsHTML() : view === 'gifts' ? giftsHTML() : accountHTML());
+      body.innerHTML = tabs + (view === 'friends' ? friendsHTML() : view === 'gifts' ? giftsHTML() : profileHTML());
+      if (view === 'profile') drawAvatar();
       return;
     }
     $('#account-h').textContent = 'Play online';
@@ -506,7 +512,7 @@ const Online = (() => {
       <h3>Sent</h3>${list(gifts.sent, 'to')}`;
   }
 
-  function accountHTML() {
+  function profileHTML() {
     const escape = escapeHTML;
     const statusText = {
       saved: 'Your progress is saved online.', saving: 'Saving...', waking: 'Waking up the server...',
@@ -514,8 +520,18 @@ const Online = (() => {
       idle: 'Connected.', conflict: 'Waiting for you to pick a save.',
     }[status] || '';
     return `
-      <p class="account-name">Logged in as <b>@${escape(session.user.username)}</b></p>
-      <p class="fine">${escape(session.user.email)}</p>
+      <div class="profile-card">
+        <canvas id="profile-avatar" width="32" height="30" aria-label="Your angler"></canvas>
+        <div>
+          <p class="account-name"><b>${escape(save.name || 'Angler')}</b> · @${escape(session.user.username)}</p>
+          <p class="fine">${summary(save)}</p>
+          <p class="fine">${escape(session.user.email)}</p>
+        </div>
+      </div>
+      <div class="account-actions">
+        <button class="btn gold" data-act="shop">Change your look</button>
+        <button class="btn" data-act="boat">Customize your boat</button>
+      </div>
       <p>${statusText}</p>
       <div class="account-actions">
         <button class="btn mint" data-act="sync">Save now</button>
@@ -523,7 +539,19 @@ const Online = (() => {
       </div>`;
   }
 
-  function openAccount() {
+  // a still of your angler for the profile tab
+  function drawAvatar() {
+    const c = $('#profile-avatar');
+    if (!c) return;
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    g.fillStyle = '#ffc9a0'; g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(anglerSprite(save.look, {}), c.width / 2 - ANGLER_W / 2, c.height - 2 - ANGLER_FEET);
+  }
+
+  function openAccount(want) {
+    if (want === 'login' || want === 'signup') { if (!session) { view = want; errorText = ''; } }
+    else if (want === 'profile' && session) view = 'profile';
     if (openId !== 'modal-account') openModal('modal-account');
     render();
   }
@@ -587,6 +615,10 @@ const Online = (() => {
       }
       const act = e.target.closest('[data-act]');
       if (act && act.dataset.act === 'logout') logout();
+      if (act && (act.dataset.act === 'shop' || act.dataset.act === 'boat')) {
+        forceClose();
+        openShop(false, act.dataset.act === 'boat' ? 'boat' : 'wardrobe');
+      }
       if (act && act.dataset.act === 'sync') { clearTimeout(pushTimer); session.dirty = true; push(); }
       const pick = e.target.closest('[data-choose]');
       if (pick && choice) {
@@ -605,12 +637,13 @@ const Online = (() => {
       }
     });
     $('#btn-online').addEventListener('click', () => {
-      if (session && !['friends', 'gifts', 'account', 'choose'].includes(view)) view = 'friends';
+      if (session && !['friends', 'gifts', 'profile', 'choose'].includes(view)) view = 'friends';
       if (session) loadFriends();
       openAccount();
       Sound.sfx.open();
     });
-    $('#cloud-pill').addEventListener('click', () => { view = session ? 'account' : 'login'; openAccount(); });
+    $('#cloud-pill').addEventListener('click', () => { view = session ? 'profile' : 'login'; openAccount(); });
+    $('#btn-profile').addEventListener('click', () => { openAccount('profile'); Sound.sfx.open(); });
     window.addEventListener('pagehide', flush);
     document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
     // keep presence fresh while the friends list is showing

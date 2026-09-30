@@ -311,6 +311,18 @@ kbd {
 .tagline { margin: 6px 0 16px; font-size: 18px; color: var(--plum-2); }
 .stack { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .stack .btn { width: min(100%, 280px); }
+.online-card {
+  background: #fff; border: 3px solid var(--ink); box-shadow: 0 0 0 3px var(--gold);
+  padding: 10px 12px 14px; margin: 0 auto 6px; width: min(100%, 380px);
+}
+.online-card-h { font-family: var(--font-title); font-size: 22px; margin: 0; }
+.online-card-sub { font-size: 14px; color: var(--plum-2); margin: 4px 0 10px; }
+.auth-buttons { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.auth-buttons .btn { flex: 1 1 120px; }
+.online-card.signed-in p { margin: 0 0 8px; }
+.or-line { display: flex; align-items: center; gap: 8px; width: min(100%, 380px); margin: 12px auto 10px; font-size: 14px; color: var(--plum-2); }
+.or-line::before, .or-line::after { content: ''; flex: 1; border-top: 2px dashed rgba(61, 36, 80, .35); }
+.or-line[hidden] { display: none; }
 .how { text-align: left; margin: 18px 0 8px; background: #fff; border: 3px solid var(--ink); padding: 8px 12px; }
 .how summary { cursor: pointer; font-weight: 700; }
 .how ol { padding-left: 1.2em; margin: 8px 0 0; }
@@ -413,7 +425,15 @@ kbd {
 .progress { height: 10px; border: 2px solid var(--ink); background: #fff; }
 .progress > span { display: block; height: 100%; background: var(--mint); }
 .map-btn { background: var(--sky); }
-.online-btn { background: var(--gold); }
+.online-btn { background: var(--gold); white-space: nowrap; }
+.profile-btn { background: var(--lilac); }
+/* logged out, the HUD login button gently pulses so it's hard to miss */
+.online-btn.nudge { animation: nudge 1.6s steps(2) infinite; }
+@keyframes nudge { 50% { background: #ffe7a8; box-shadow: inset -3px -3px 0 rgba(0, 0, 0, .18), inset 3px 3px 0 rgba(255, 255, 255, .35), 0 3px 0 var(--ink), 0 0 0 3px var(--coral); } }
+@media (prefers-reduced-motion: reduce) { .online-btn.nudge { animation: none; box-shadow: 0 3px 0 var(--ink), 0 0 0 3px var(--coral); } }
+.profile-card { display: flex; gap: 12px; align-items: center; margin: 4px 0 8px; }
+.profile-card .fine { margin: 2px 0; }
+#profile-avatar { width: 96px; height: 90px; image-rendering: pixelated; border: 3px solid var(--ink); flex: none; }
 .cloud-pill { font-family: var(--font); font-size: inherit; cursor: pointer; border-color: var(--mint); }
 .cloud-pill[data-state="offline"], .cloud-pill[data-state="conflict"] { border-color: var(--rose); }
 .cloud-pill[data-state="saving"], .cloud-pill[data-state="waking"] { border-color: var(--gold); }

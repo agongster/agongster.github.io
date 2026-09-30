@@ -110,10 +110,23 @@ function reloadGameFromSave() {
 }
 
 function showTitle() {
+  // Logged out, the account buttons lead and playing offline is the quieter option.
+  const user = typeof Online !== 'undefined' ? Online.username() : null;
+  $('#title-auth').hidden = !!user;
+  $('#title-user').hidden = !user;
+  $('#title-or').hidden = !!user;
+  if (user) $('#title-username').textContent = '@' + user;
   $('#btn-continue').hidden = !save.started;
   $('#btn-reset').hidden = !save.started;
-  $('#btn-new').textContent = save.started ? 'New angler' : 'Start';
-  if (save.started) $('#btn-continue').setAttribute('data-autofocus', '');
+  $('#btn-continue').textContent = user ? 'Keep fishing' : 'Keep fishing offline';
+  $('#btn-new').textContent = save.started ? 'New angler' : user ? 'Start' : 'Play offline';
+  for (const id of ['btn-continue', 'btn-new']) {
+    $('#' + id).classList.toggle('plain', !user);
+    $('#' + id).classList.toggle('big', !!user);
+  }
+  $$('#modal-title [data-autofocus]').forEach(b => b.removeAttribute('data-autofocus'));
+  const first = !user ? '#btn-title-signup' : save.started ? '#btn-continue' : '#btn-new';
+  $(first).setAttribute('data-autofocus', '');
   openModal('modal-title');
 }
 
@@ -133,10 +146,20 @@ $('#btn-new').addEventListener('click', () => {
 });
 
 let accountFromTitle = false;
-$('#btn-title-online').addEventListener('click', () => {
+const openAccountFromTitle = view => () => {
   Sound.init();
   accountFromTitle = true;
-  Online.open();
+  Online.open(view);
+};
+$('#btn-title-signup').addEventListener('click', openAccountFromTitle('signup'));
+$('#btn-title-login').addEventListener('click', openAccountFromTitle('login'));
+$('#btn-title-account').addEventListener('click', openAccountFromTitle('profile'));
+// logging in from the title goes straight back to it, now with "Keep fishing"
+window.addEventListener('tt-login', () => {
+  if (openId !== 'modal-account' || !accountFromTitle) return;
+  accountFromTitle = false;
+  forceClose();
+  showTitle();
 });
 
 $('#btn-reset').addEventListener('click', () => {
@@ -149,10 +172,11 @@ $('#btn-reset').addEventListener('click', () => {
 // =================================================================== shop ==
 const shop = { tab: 'wardrobe', cat: 'hair', creator: false, trial: null };
 
-function openShop(creator = false) {
+function openShop(creator = false, tab = 'wardrobe') {
   shop.creator = creator;
   shop.trial = null;
-  shop.tab = 'wardrobe';
+  boatShop.trial = null;
+  shop.tab = creator ? 'wardrobe' : tab;
   $('#name-input').value = save.name;
   renderShop();
   openModal('modal-shop');
@@ -324,7 +348,7 @@ function renderTackle() {
     return `<li class="gear ${equipped ? 'equipped' : ''}">
       <b><span class="rod-swatch" style="background:${r.color}"></span>${r.name}</b>
       <span class="desc">${r.blurb}</span>
-      <span class="stats"><span>Net size ${r.net}</span><span>Reel speed ${Math.round(r.gain * 100)}</span><span>Luck +${Math.round(r.luck * 100)}</span></span>
+      <span class="stats"><span>Net size ${r.net}</span><span>Reel speed ${Math.round(r.gain * 100)}</span><span>Fish slowed ${Math.round((1 - r.tame) * 100)}%</span><span>Grip +${Math.round((1 - r.grip) * 100)}%</span><span>Luck +${Math.round(r.luck * 100)}</span></span>
       ${btn}</li>`;
   }).join('');
   // buckets and tanks upgrade in order, one level at a time

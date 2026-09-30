@@ -468,6 +468,9 @@ function startReel() {
 
 function updateReel(dt) {
   const r = G.reel, d = r.sp.diff, rod = currentRod();
+  const tier = RARITY[r.sp.rarity].reel;
+  // rarer fish swim faster; better rods tire them out
+  const pace = tier.speed * rod.tame;
   const m = 14;
 
   // the fish picks somewhere new to swim every so often, sometimes darting far
@@ -476,12 +479,12 @@ function updateReel(dt) {
     const dart = Math.random() < d * 0.05;
     r.tx = dart ? (r.fx < RP.w / 2 ? rand(RP.w * 0.65, RP.w - m) : rand(m, RP.w * 0.35)) : clamp(r.fx + rand(-90, 90), m, RP.w - m);
     r.ty = dart ? rand(m, RP.h - 20) : clamp(r.fy + rand(-55, 55), m, RP.h - 20);
-    r.timer = rand(0.5, 1.4) / (0.6 + d * 0.22);
+    r.timer = rand(0.5, 1.4) / ((0.6 + d * 0.22) * pace);
   }
   // eases toward its target, but never faster than the net can follow
-  const k = Math.min(1, dt * (0.8 + d * 0.4));
+  const k = Math.min(1, dt * (0.8 + d * 0.4) * pace);
   let dx = (r.tx - r.fx) * k, dy = (r.ty - r.fy) * k;
-  const maxStep = (35 + d * 14) * dt, step = Math.hypot(dx, dy);
+  const maxStep = Math.min(135, (35 + d * 14) * pace) * dt, step = Math.hypot(dx, dy);
   if (step > maxStep) { dx *= maxStep / step; dy *= maxStep / step; }
   r.fx += dx;
   r.fy += dy + Math.sin(G.time * (3 + d)) * d * 0.06;
@@ -508,13 +511,13 @@ function updateReel(dt) {
 
   r.inNet = Math.hypot(r.fx - r.nx, r.fy - r.ny) < r.net;
   if (r.inNet) {
-    r.progress += rod.gain * dt;
+    r.progress += rod.gain * tier.gain * dt;
     r.tick -= dt;
     if (r.tick <= 0) { Sound.sfx.reel(); r.tick = 0.07; }
   } else if (r.grace > 0) {
     r.grace -= dt;
   } else {
-    r.progress -= (0.1 + d * 0.03) * dt;
+    r.progress -= (0.1 + d * 0.03) * tier.drain * rod.grip * dt;
   }
   if (Math.random() < dt * 3) r.bubbles.push({ x: rand(0, RP.w), y: RP.h - 8, v: rand(8, 18) });
   r.bubbles = r.bubbles.filter(b => (b.y -= b.v * dt) > 0);

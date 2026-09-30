@@ -91,14 +91,17 @@ const LOCATIONS = [
 ];
 
 // -------------------------------------------------------------- the fish --
+// reel: how each tier fights on the line. speed scales how fast it swims,
+// gain how fast the catch bar fills while it's in your net, drain how fast
+// the bar empties while it's out.
 const RARITY = {
-  junk:      { label: 'Junk',      weight: 9,  color: '#b8a89a', biteWindow: 1.0 },
-  common:    { label: 'Common',    weight: 58, color: '#fff4e0', biteWindow: 0.95 },
-  uncommon:  { label: 'Uncommon',  weight: 22, color: '#8fd19e', biteWindow: 0.85 },
-  rare:      { label: 'Rare',      weight: 8,  color: '#7fb8e6', biteWindow: 0.75 },
-  legendary: { label: 'Legendary', weight: 2.5, color: '#ffd23f', biteWindow: 0.65 },
+  junk:      { label: 'Junk',      weight: 9,  color: '#b8a89a', biteWindow: 1.0,  reel: { speed: 0.7,  gain: 1.4,  drain: 0.6 } },
+  common:    { label: 'Common',    weight: 58, color: '#fff4e0', biteWindow: 0.95, reel: { speed: 1,    gain: 1,    drain: 1 } },
+  uncommon:  { label: 'Uncommon',  weight: 22, color: '#8fd19e', biteWindow: 0.85, reel: { speed: 1.03, gain: 0.85, drain: 1.1 } },
+  rare:      { label: 'Rare',      weight: 8,  color: '#7fb8e6', biteWindow: 0.75, reel: { speed: 1.06, gain: 0.72, drain: 1.2 } },
+  legendary: { label: 'Legendary', weight: 2.5, color: '#ffd23f', biteWindow: 0.65, reel: { speed: 1.1,  gain: 0.6,  drain: 1.35 } },
   // weight 0: nothing is caught by being 'goat' tier alone; LeBron sets his own weight below
-  goat:      { label: 'The GOAT', weight: 0, color: '#c79bf2', biteWindow: 0.8 },
+  goat:      { label: 'The GOAT', weight: 0, color: '#c79bf2', biteWindow: 0.8,  reel: { speed: 1.12, gain: 0.55, drain: 1.45 } },
 };
 
 const ALL_DAY = ['sunrise', 'day', 'golden', 'sunset', 'dusk', 'night'];
@@ -549,15 +552,17 @@ const DEFAULT_BOAT = { base: 'rowboat', hull: 'coral', trim: 'cream', sail: 'pla
 // gain: how fast the catch bar fills while the fish is in your net
 // luck: shifts odds toward rare fish and bigger sizes
 // wait: multiplier on how long fish take to notice your bobber
+// net: radius of the chase net. gain: how fast the bar fills. tame: slows
+// the fish down. grip: how much of the drain you feel when it slips out.
 const RODS = [
-  { id: 'twig', name: 'Twig Rod', color: '#7a4a2a', price: 0, net: 15, gain: 0.3, luck: 0, wait: 1,
-    blurb: 'A stick, some string, and a lot of hope.' },
-  { id: 'bamboo', name: 'Bamboo Rod', color: '#c8a050', price: 90, net: 17, gain: 0.34, luck: 0.05, wait: 0.9,
+  { id: 'twig', name: 'Twig Rod', color: '#7a4a2a', price: 0, net: 14, gain: 0.3, tame: 1, grip: 1, luck: 0, wait: 1,
+    blurb: 'A stick, some string, and a lot of hope. Rare fish laugh at it.' },
+  { id: 'bamboo', name: 'Bamboo Rod', color: '#c8a050', price: 90, net: 16, gain: 0.34, tame: 0.9, grip: 0.85, luck: 0.05, wait: 0.9,
     blurb: 'Bendy and dependable. A bigger net for chasing.' },
-  { id: 'sunset', name: 'Sunset Rod', color: '#ff7a5c', price: 350, net: 19, gain: 0.38, luck: 0.12, wait: 0.8,
-    blurb: 'Painted the colour of the sky. Fish seem to like it.' },
-  { id: 'star', name: 'Star Rod', color: '#b89cff', price: 1000, net: 22, gain: 0.43, luck: 0.25, wait: 0.7,
-    blurb: 'Hums quietly at night. Rare fish can\'t resist it.' },
+  { id: 'sunset', name: 'Sunset Rod', color: '#ff7a5c', price: 350, net: 21, gain: 0.45, tame: 0.8, grip: 0.68, luck: 0.12, wait: 0.8,
+    blurb: 'Painted the colour of the sky. Fish tire out fast on it.' },
+  { id: 'star', name: 'Star Rod', color: '#b89cff', price: 1000, net: 26, gain: 0.56, tame: 0.74, grip: 0.55, luck: 0.25, wait: 0.7,
+    blurb: 'Hums quietly at night. Even legends come quietly.' },
 ];
 
 const TANKS = [
