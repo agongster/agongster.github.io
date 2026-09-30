@@ -220,3 +220,71 @@ i want the boat base to have more unique options, like a duck parade boat or a s
 ### Changes I made myself
 
 > ✏️ TODO
+
+---
+
+## Session 10: multiplayer plan, backend steps 1 and 2 (2026-09-29, Claude Code / Claude Opus 5.5)
+
+### Prompts (verbatim)
+
+```
+i now want to make this game multiplayer, where people can friend other users based on unique usernames, and they can visit each other's worlds and gift each other coins, and fish together in the same world. please outline a step by step plan for implementing this, and instruct me on what i would need to do to set this up. most likely i would use render for anything requiring a backend, neon for a database.
+```
+
+```
+Your service has not been deployed because the GitHub repository is empty. Make a commit before retrying.
+```
+
+```
+service url: https://tiny-tides-backend.onrender.com
+```
+
+### What happened
+
+- **Plan:** a 6-step plan: deploy, accounts and cloud saves, friends, visiting, gifting, and real-time co-op fishing as the stretch goal and cut line. I set up Neon, the GitHub repo and the Render service myself.
+- **Step 1:** the AI wrote a minimal FastAPI backend (`/api/health`, Neon URL handling, CORS that ignores a trailing slash) and pushed it to the empty repo. Verified live: database connected, CORS allowed from GitHub Pages.
+- **Step 2, backend:**
+  - Sign up with email, a case-insensitively unique username and a password (bcrypt), then log in by email or username with a JWT.
+  - A versioned cloud save: a stale write gets a 409 instead of overwriting.
+  - 7 pytest tests.
+- **Step 2, game:** `online.js` with an account menu, auto-upload, a cloud status pill, a "which save?" choice when two devices diverge, and dev mode locked while logged in. Tested with two browser profiles against a local backend.
+- **Where the AI got it wrong:**
+  - It pinned `psycopg[binary]==3.2.3` (copied from Tally), which had no package for this Mac's Python 3.9. Its first local test "passed" only because the install had silently failed and the output was cut off; the server never started. It then switched to Python 3.11 (what Render runs) and bumped psycopg.
+  - The first version of the login form wiped everything you'd typed whenever it showed an error, so the second attempt sent empty fields. The two-device test caught it.
+
+### Changes I made myself
+
+> ✏️ TODO
+
+---
+
+## Session 11: all multiplayer features (2026-09-29, Claude Code / Claude Opus 5.5)
+
+### Prompts (verbatim)
+
+```
+of the multiplayer features what is currently implemented?
+```
+
+```
+implement all multiplayer features now
+```
+
+### What the AI did in response
+
+- **Backend** ([tiny-tides-backend](https://github.com/agongster/tiny-tides-backend), 17 tests):
+  - **Friends:** friend requests by username (asking back accepts), accept, decline, unfriend, and a friends list with who's online and where.
+  - **Worlds:** a friends-only world snapshot for visiting, with no coins or bucket exposed.
+  - **Gifts:** coins move with one conditional database update, so nobody can overspend. The limits are 1–1000 per gift and 2000 a day. Gifts wait in a mailbox, and every server-side coin change bumps the save version so a stale game can't undo it.
+  - **Coin check:** saves that gain impossibly many coins at once are refused.
+  - **Live rooms:** WebSocket rooms (host plus 3 visitors) that relay casts, catches, emotes and the host's world, and push alerts for friend requests and gifts.
+- **Game:**
+  - `net.js`: live rooms, visiting (with a sailing transition), following the host when they sail, drawing other anglers with name tags, lines, bobbers and catches, a napping host when offline, and Wave/Heart emotes.
+  - `online.js`: Friends, Gifts and Account tabs, and the gift form.
+  - A read-only view of a friend's tank.
+- **Testing:** two browser profiles against a local backend ran the whole loop: befriend, visit, see each other fish, follow the host, gift, host leaves (napping), go home. A phone-sized check covered the layout too.
+- **Where the AI got it wrong:** its first version put the login token in the WebSocket URL (`?token=...`). The server log from the test run showed full tokens printed on every connection, which on Render would let anyone who reads the logs act as that player. The token now goes in the first message after connecting, and a test checks that missing or forged tokens are rejected.
+
+### Changes I made myself
+
+> ✏️ TODO

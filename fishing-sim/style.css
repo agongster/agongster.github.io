@@ -413,6 +413,71 @@ kbd {
 .progress { height: 10px; border: 2px solid var(--ink); background: #fff; }
 .progress > span { display: block; height: 100%; background: var(--mint); }
 .map-btn { background: var(--sky); }
+.online-btn { background: var(--gold); }
+.cloud-pill { font-family: var(--font); font-size: inherit; cursor: pointer; border-color: var(--mint); }
+.cloud-pill[data-state="offline"], .cloud-pill[data-state="conflict"] { border-color: var(--rose); }
+.cloud-pill[data-state="saving"], .cloud-pill[data-state="waking"] { border-color: var(--gold); }
+.auth-form { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 10px; }
+.auth-form label { display: flex; flex-direction: column; gap: 3px; font-weight: 600; }
+.auth-form input {
+  font-family: var(--font); font-size: 18px; padding: 6px 8px;
+  border: 3px solid var(--ink); background: #fff; color: var(--ink);
+}
+.auth-error { color: var(--rose); min-height: 1.2em; margin: 0; font-weight: 600; }
+.account-name { font-size: 20px; margin: 0; }
+.account-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.save-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.save-card { background: #fff; border: 3px solid var(--ink); padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+.save-card .btn { margin-top: 6px; }
+@media (max-width: 640px) { .save-choices { grid-template-columns: 1fr; } }
+
+/* ---------------------------------------------------------- friends -- */
+#modal-account h3 { font-family: var(--font-title); margin: 14px 0 6px; font-size: 18px; }
+.add-friend { display: flex; gap: 6px; margin-top: 4px; }
+.add-friend input {
+  flex: 1; min-width: 0;
+  font-family: var(--font); font-size: 17px; padding: 6px 8px;
+  border: 3px solid var(--ink); background: #fff; color: var(--ink);
+}
+.friend-list, .gift-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.friend {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px;
+  background: #fff; border: 3px solid var(--ink); padding: 6px 10px;
+}
+.friend-name { display: flex; flex-direction: column; min-width: 0; }
+.friend-name b { overflow: hidden; text-overflow: ellipsis; }
+.friend .dot { width: 10px; height: 10px; background: #b8a8c0; border: 2px solid var(--ink); }
+.friend.online .dot { background: var(--mint); }
+.friend:not(:has(.dot)) { grid-template-columns: 1fr auto; }
+.friend .small-x { padding: 6px 9px; }
+.gift-form { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; border-top: 2px dashed var(--ink); padding-top: 8px; margin-top: 2px; }
+.gift-form label { display: flex; flex-direction: column; gap: 2px; font-weight: 600; }
+.gift-form input { font-family: var(--font); font-size: 16px; padding: 5px 8px; border: 3px solid var(--ink); background: #fff; color: var(--ink); }
+.gift-quick { display: flex; gap: 4px; flex-wrap: wrap; }
+.gift-quick .btn { padding: 3px 10px; font-size: 14px; }
+.gift-list li { display: flex; justify-content: space-between; gap: 10px; background: #fff; border: 3px solid var(--ink); padding: 5px 10px; font-size: 15px; }
+@media (max-width: 640px) {
+  .friend { grid-template-columns: auto 1fr; }
+  .friend .row-actions { grid-column: 1 / -1; }
+}
+
+/* --------------------------------------------------- fishing together -- */
+.social-bar {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px;
+  background: var(--ink); color: var(--cream);
+  border: 3px solid var(--mint); padding: 6px 10px;
+  align-self: center; width: min(100%, calc((100dvh - 190px) * 16 / 9));
+}
+.social-bar .social-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.social-bar .btn { padding: 3px 10px; font-size: 14px; }
+#player-tags { position: absolute; inset: 0; pointer-events: none; }
+.player-tag {
+  position: absolute; transform: translate(-50%, -100%);
+  background: rgba(42, 26, 46, .8); color: var(--cream);
+  border: 2px solid var(--sky); padding: 0 6px;
+  font-size: clamp(10px, 1.4vw, 14px); white-space: nowrap;
+}
+.player-tag.host { border-color: var(--gold); }
 .tank-btn { background: var(--mint); }
 .tank-wrap { position: relative; margin-bottom: 8px; }
 #tank-canvas {

@@ -34,6 +34,7 @@ A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock (a
 > - Visible fish shadows you can aim for, and a 2D underwater chase for reeling (steering in two directions instead of Stardew Valley's one).
 > - The sea chart and the sailing trip between seven hand-coloured locations.
 > - Boat customization: nine silly boat styles (cardboard box, banana, watermelon, bathtub, teacup, giant sneaker, swan, duck parade with ducklings), sail designs, flags, string lights that glow at night, a solid gold hull. Your boat shows up tied at the dock, at every other spot, while sailing, and on the sea chart.
+> - Fishing together with friends: live casts, catches and emotes, visiting each other's worlds, and gifting coins.
 > - The aquarium, where fish swim, crabs (and LeBron) walk along the sand, and tapping a fish shows its name.
 > - Game juice: the fish arcs out of the water onto the dock, the catch card has spinning rays, the lantern and lighthouse glow at night.
 
@@ -62,7 +63,24 @@ It's useful for testing and for recording a demo. Dev catches still count toward
 
 ## Secrets
 
-There aren't any. The game has no backend and calls no APIs. The only external request is the Pixelify Sans font from Google Fonts. Progress is saved in the browser's `localStorage` under `tiny-tides-save-v1`, so nothing leaves the player's device.
+The game itself holds no secrets: it's static files, and the only external request is the Pixelify Sans and Tiny5 fonts from Google Fonts. Progress is saved in the browser's `localStorage`.
+
+Online play (optional) talks to a separate backend, [tiny-tides-backend](https://github.com/agongster/tiny-tides-backend) (FastAPI on Render, Postgres on Neon).
+- **Server secrets:** the database password and the key that signs login tokens are only in Render's environment settings, never in either repository.
+- **Passwords:** hashed with bcrypt on the server.
+- **What the browser keeps:** a login token in `localStorage`, and nothing else sensitive.
+- **Local testing:** the game accepts `?api=` for a local backend, but only `localhost` addresses. Otherwise a crafted link could make the login form send a password to someone else's server.
+
+## Playing with friends
+
+Tap **Log in** (top bar, or on the title screen) to sign up with an email, a unique username and a password. You can log in with either the email or the username.
+
+- **Cloud saves:** progress uploads a few seconds after it changes and when you close the tab. Every upload carries a version number, so an old tab can't overwrite newer progress. If this device and your account have both changed, the game asks which to keep.
+- **Friends:** add people by username from the **Friends** button. Requests and acceptances pop up live, and the list shows who's online and where they're fishing.
+- **Visiting:** **Visit** sails you to a friend's world: their island, their boat, their time of day. You can peek at their aquarium, but it's read-only. If they're offline, their angler naps on the dock and you can fish there anyway.
+- **Fishing together:** when you're in the same world (up to four anglers), you see each other on the dock or boat with name tags, casting lines and bobbers, and fish flying out of the water when someone catches one. Wave or send a heart. When the host sails somewhere, visitors follow.
+- **Gifts:** send 1–1000 coins with an optional note (up to 2000 a day). An online friend gets them instantly; otherwise they arrive next time they play.
+- **Dev mode** is off while logged in, so online coins stay fair.
 
 ## How I used AI
 
@@ -89,6 +107,8 @@ There aren't any. The game has no backend and calls no APIs. The only external r
 | `sprites.js` | Pixel-art generation: colour helpers, the angler renderer, buddy and junk pixel maps, the procedural fish generator, and the automatic outline pass. |
 | `audio.js` | Web Audio synthesised sound effects and a generative lullaby that changes chords with the time of day. |
 | `game.js` | Save/load, the scene renderer, the fishing state machine, economy, and the main loop. |
+| `online.js` | Accounts, cloud saves, friends and gifts: the API calls, sync and conflict handling, and the Friends/Gifts/Account menu. |
+| `net.js` | Fishing together: the live connection to a world, visiting and going home, and drawing other players. |
 | `dev.js` | The dev-mode panel (fish picker and testing shortcuts). |
 | `ui.js` | DOM side: HUD, modals, shop/bucket/Fishdex rendering, and mouse/touch/keyboard input. |
 | `style.css` | Warm sunset palette, pixel-bordered panels, responsive rules for phones. |

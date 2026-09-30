@@ -17,9 +17,11 @@
       <div class="hud-stats">
         <span class="pill" title="Coins"><span class="coin-icon" aria-hidden="true"></span><span id="coins">0</span><span class="sr-only"> coins</span></span>
         <span class="pill" title="Fish in your bucket"><span class="pail-icon" aria-hidden="true"></span><span id="bucket-count">0/6</span></span>
+        <button class="pill cloud-pill" id="cloud-pill" hidden title="Online save status"></button>
         <span class="pill phase-pill" id="phase-pill" title="Where you are, and the time of day. Some fish only come out at certain times.">Golden hour</span>
       </div>
       <nav class="hud-buttons" aria-label="Menus">
+        <button class="btn online-btn" id="btn-online">Log in</button>
         <button class="btn map-btn" id="btn-map">Map</button>
         <button class="btn tank-btn" id="btn-tank">Tank</button>
         <button class="btn" id="btn-bucket">Bucket</button>
@@ -31,10 +33,13 @@
       </nav>
     </header>
 
+    <div id="social-bar" class="social-bar" hidden></div>
+
     <main id="stage" aria-label="Fishing spot. Tap the water to cast, tap when a fish bites, then steer the net with the arrow keys to chase the fish.">
       <canvas id="scene" width="320" height="180"></canvas>
       <div id="prompt" aria-live="polite"></div>
       <div id="toasts" aria-live="polite"></div>
+      <div id="player-tags" aria-hidden="true"></div>
     </main>
 
     <div id="action-row">
@@ -70,6 +75,7 @@
           <li>Catch more fish to unlock new spots on the <b>Map</b>, each with its own fish. The sky loops from sunrise through daytime, golden hour and sunset to night, and some fish only come out at certain times.</li>
         </ol>
       </details>
+      <button class="link-btn" id="btn-title-online">Log in to save online, add friends, and fish together</button>
       <p class="fine">Made by April Gong · progress saves in this browser</p>
       <button class="link-btn" id="btn-reset" hidden>Erase save</button>
     </div>
@@ -120,6 +126,17 @@
       <footer class="panel-foot" id="creator-foot" hidden>
         <button class="btn big" id="btn-begin">Start fishing!</button>
       </footer>
+    </div>
+  </div>
+
+  <!-- Account -->
+  <div class="modal" id="modal-account" role="dialog" aria-modal="true" aria-labelledby="account-h" hidden>
+    <div class="panel">
+      <header class="panel-head">
+        <h2 id="account-h">Play online</h2>
+        <button class="close-btn" data-close aria-label="Close">X</button>
+      </header>
+      <div id="account-body"></div>
     </div>
   </div>
 
@@ -207,6 +224,8 @@
   <script src="audio.js"></script>
   <script src="game.js"></script>
   <script src="ui.js"></script>
+  <script src="online.js"></script>
+  <script src="net.js"></script>
   <script src="dev.js"></script>
 </body>
 </html>

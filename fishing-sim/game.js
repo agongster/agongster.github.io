@@ -71,6 +71,7 @@ function persist() {
 }
 function writeSave() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* storage full or blocked */ }
+  if (typeof Online !== 'undefined') Online.localSaved();
 }
 function resetSave() {
   try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ }
@@ -94,7 +95,10 @@ function fishCaughtCount(s = save) {
 const save = loadSave();
 
 const currentRod = () => RODS.find(r => r.id === save.rod) || RODS[0];
-const currentLoc = () => LOCATIONS.find(l => l.id === save.location) || LOCATIONS[0];
+// While visiting a friend, the world (place, time of day, boat) is theirs.
+const worldLocationId = () => (G.visit ? G.visit.location : save.location);
+const currentLoc = () => LOCATIONS.find(l => l.id === worldLocationId()) || LOCATIONS[0];
+const worldBoat = () => (G.visit ? G.visit.boat : save.boat);
 const bucketCap = () => BUCKETS[save.bucketLvl].cap;
 const tankCap = () => TANKS[save.tankLvl].cap;
 const findCosmetic = (cat, id) => COSMETICS[cat].find(i => i.id === id);
@@ -175,12 +179,15 @@ const G = {
   blinkT: 2, blinking: 0, buddyBlinkT: 3, buddyBlinking: 0, cheer: 0,
   pal: null, phaseId: 'golden', lastPhaseId: null,
   msgTimer: 0,
+  visit: null,     // a friend's world while visiting (set by net.js)
+  myEmote: null,
   dev: { fish: '', instant: false },  // set from the dev panel (dev.js)
 };
 
 function phaseInfo() {
   const total = PHASES.length * PHASE_SECONDS;
-  const c = ((save.clock % total) + total) % total;
+  const clock = G.visit ? G.visit.clock : save.clock;
+  const c = ((clock % total) + total) % total;
   const i = Math.floor(c / PHASE_SECONDS);
   const local = (c - i * PHASE_SECONDS) / PHASE_SECONDS;
   let b = local > 0.7 ? (local - 0.7) / 0.3 : 0;
@@ -298,7 +305,7 @@ function spookAll(x, y, r) {
   }
 }
 
-const shadowFits = s => s.sp && s.sp.phases.includes(G.phaseId) && fishWhere(s.sp).includes(save.location);
+const shadowFits = s => s.sp && s.sp.phases.includes(G.phaseId) && fishWhere(s.sp).includes(worldLocationId());
 
 function updateShadows(dt) {
   for (const s of SHADOWS) {
@@ -409,7 +416,7 @@ function interest(s) {
 
 function rollFish(stray = false) {
   const rod = currentRod();
-  const pool = FISH.filter(f => f.phases.includes(G.phaseId) && fishWhere(f).includes(save.location));
+  const pool = FISH.filter(f => f.phases.includes(G.phaseId) && fishWhere(f).includes(worldLocationId()));
   const weightOf = f => {
     if (f.weight !== undefined) return f.weight;
     let w = RARITY[f.rarity].weight;
@@ -537,6 +544,7 @@ function catchFish() {
   };
   save.stats.caught++;
   G.pending = { uid: save.nextUid++, id: sp.id, size, stars, value, isNew };
+  if (typeof Net !== 'undefined') Net.send({ t: 'catch', fish: sp.id, size });
   if (G.hooked) { G.hooked.mode = 'gone'; G.hooked.respawn = rand(2, 5); G.hooked = null; }
   checkUnlocks();
   persist();
@@ -603,12 +611,25 @@ const canTravel = () => ['idle', 'waiting', 'retract'].includes(G.state);
 
 function sailTo(id) {
   const loc = LOCATIONS.find(l => l.id === id);
-  if (!loc || !save.unlocked.includes(id) || id === save.location || !canTravel()) return false;
+  if (G.visit || !loc || !save.unlocked.includes(id) || id === save.location || !canTravel()) return false;
+  return startTravel({
+    label: `Sailing to ${loc.name}...`,
+    arrive: `Welcome to ${loc.name}!`,
+    onSwitch: () => { save.location = loc.id; persist(); },
+  });
+}
+
+// Fade out, sail across open water, fade in somewhere else. onSwitch runs at
+// the darkest moment, when the world swaps over.
+function startTravel({ label, arrive, onSwitch }) {
+  if (G.state === 'sailing') return false;
   spookAll(G.bob.x, G.bob.y, 999);
-  G.travel = { to: loc, t: 0, switched: false };
+  G.reel = null;
+  if (G.pending) finishCatch('keep');
+  G.travel = { t: 0, switched: false, label, arrive, onSwitch };
   setState('sailing');
   Sound.sfx.sail();
-  setPrompt(`Sailing to ${loc.name}...`);
+  setPrompt(label);
   return true;
 }
 
@@ -617,7 +638,7 @@ function updateTravel(dt) {
   tr.t += dt;
   if (!tr.switched && tr.t >= 1.6) {
     tr.switched = true;
-    save.location = tr.to.id;
+    tr.onSwitch();
     initShadows();
     gradientAge = 99;
     persist();
@@ -626,7 +647,7 @@ function updateTravel(dt) {
   if (tr.t >= 3.3) {
     G.travel = null;
     setState('idle');
-    toast(`Welcome to ${tr.to.name}!`);
+    toast(tr.arrive);
     setPrompt(idlePrompt());
   }
 }
@@ -697,7 +718,8 @@ const FISHING_STATES = ['casting', 'waiting', 'bite', 'reeling'];
 
 function update(dt) {
   G.time += dt;
-  if (save.started) save.clock += dt;
+  if (G.visit) G.visit.clock += dt;
+  else if (save.started) save.clock += dt;
 
   const ph = phaseInfo();
   G.pal = tintForLocation(mixPhase(ph.cur, ph.next, ph.blend));
@@ -725,6 +747,8 @@ function update(dt) {
     updateState(dt);
     updateShadows(dt);
   }
+
+  if (typeof Net !== 'undefined') Net.tick(dt);
 
   if (G.msgTimer > 0) {
     G.msgTimer -= dt;
@@ -986,6 +1010,7 @@ function draw() {
     curve(g, tip.x, tip.y, (tip.x + end.x) / 2, Math.max(tip.y, end.y) + sag, end.x, end.y - 3, 'rgba(255,244,224,0.75)');
   }
 
+  if (typeof Net !== 'undefined') Net.drawLines(g);
   drawFrontProps(g, pal, loc);
 
   // --- particles
@@ -1307,25 +1332,29 @@ function drawBobber(g) {
 function drawPlatform(g, pal, loc) {
   if (loc.platform === 'boat') {
     const bx = 44, by = FEET_Y - 3 + G.platY;
-    drawBoatBack(g, bx, by);
+    const boat = worldBoat();
+    drawBoatBack(g, bx, by, boat);
     drawLantern(g, bx + 5, by - 26, by - 1, pal);
     drawBucketProp(g, 56, 124 + G.platY);
     drawBuddy(g, 72);
+    if (typeof Net !== 'undefined') Net.drawPlayers(g, loc);
     drawAnglerInScene(g);
     drawRod(g);
-    drawBoatFront(g, bx, by, pal);
-    drawBoatExtras(g, bx, by, pal, save.boat, { lightsFrom: { x: bx + 6, y: by - 25 } });
+    drawBoatFront(g, bx, by, pal, boat);
+    drawBoatExtras(g, bx, by, pal, boat, { lightsFrom: { x: bx + 6, y: by - 25 } });
   } else {
     drawDock(g, pal);
     // your boat, tied up at the dock until you unlock somewhere to sail
     const mx = -2, my = 160 + Math.round(Math.sin(G.time * 1.6) * 0.8);
-    drawBoatBack(g, mx, my);
-    drawBoatFront(g, mx, my, pal);
-    drawBoatExtras(g, mx, my, pal, save.boat, { lightsFrom: { x: mx + 6, y: my - 12 } });
+    const boat = worldBoat();
+    drawBoatBack(g, mx, my, boat);
+    drawBoatFront(g, mx, my, pal, boat);
+    drawBoatExtras(g, mx, my, pal, boat, { lightsFrom: { x: mx + 6, y: my - 12 } });
     curve(g, mx + 78, my - 2, 100, 152, 94, 141, '#e8d0a0');
     drawLantern(g, 20, 92, 126, pal);
     drawBucketProp(g, 40, 122);
     drawBuddy(g, 66);
+    if (typeof Net !== 'undefined') Net.drawPlayers(g, loc);
     drawAnglerInScene(g);
     drawRod(g);
   }

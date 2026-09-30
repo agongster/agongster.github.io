@@ -29,7 +29,8 @@ function refreshHUD() {
   $$('.coins-mirror').forEach(e => { e.textContent = save.coins; });
   $('#bucket-count').textContent = `${save.bucket.length}/${bucketCap()}`;
   const phase = PHASES.find(p => p.id === G.phaseId);
-  $('#phase-pill').textContent = `${currentLoc().name} · ${phase ? phase.name : ''}`;
+  $('#phase-pill').textContent = `${G.visit ? `@${G.visit.host} · ` : ''}${currentLoc().name} · ${phase ? phase.name : ''}`;
+  if (typeof Net !== 'undefined') Net.renderBar();
   $('#btn-map').classList.toggle('glow', !!save.newSpot);
   if (openId === 'modal-shop') renderShop();
   if (openId === 'modal-map') renderMap();
@@ -63,9 +64,12 @@ function closeModal() {
     return;
   }
   if (openId === 'modal-title' || (openId === 'modal-shop' && shop.creator)) return;
+  if (openId === 'modal-account' && Online.choosing()) return;
   $('#' + openId).hidden = true;
   if (openId === 'modal-shop') { shop.trial = null; boatShop.trial = null; }
+  const backToTitle = openId === 'modal-account' && accountFromTitle;
   openId = null;
+  if (backToTitle) { accountFromTitle = false; showTitle(); return; }
   Sound.sfx.click();
   if (returnFocus && document.contains(returnFocus)) returnFocus.focus({ preventScroll: true });
 }
@@ -92,6 +96,19 @@ document.addEventListener('keydown', e => {
 });
 
 // ================================================================== title ==
+// After a save is swapped in from the cloud, redraw everything that reads it.
+function reloadGameFromSave() {
+  Sound.setMuted(save.muted);
+  $('#btn-sound').setAttribute('aria-pressed', String(!save.muted));
+  initShadows();
+  gradientAge = 99;
+  tankSwimmers.clear();
+  refreshHUD();
+  if (openId === 'modal-title') showTitle();
+  if (openId === 'modal-tank') renderTank();
+  if (openId === 'modal-dex') renderDex();
+}
+
 function showTitle() {
   $('#btn-continue').hidden = !save.started;
   $('#btn-reset').hidden = !save.started;
@@ -109,9 +126,17 @@ $('#btn-continue').addEventListener('click', () => {
 
 $('#btn-new').addEventListener('click', () => {
   Sound.init();
-  if (save.started && !confirm('Start a new angler? This erases your coins, fish and outfits.')) return;
+  const online = typeof Online !== 'undefined' && Online.loggedIn() ? ` It also replaces your online save for @${Online.username()}.` : '';
+  if (save.started && !confirm(`Start a new angler? This erases your coins, fish and outfits.${online}`)) return;
   if (save.started) { resetSave(); refreshHUD(); }
   openShop(true);
+});
+
+let accountFromTitle = false;
+$('#btn-title-online').addEventListener('click', () => {
+  Sound.init();
+  accountFromTitle = true;
+  Online.open();
 });
 
 $('#btn-reset').addEventListener('click', () => {
@@ -612,31 +637,40 @@ const tankSwimmers = new Map();
 let tankLabel = null;
 const TANK_W = 240, TANK_H = 135, TANK_SAND = TANK_H - 14;
 
-function openTank() {
+// view: null for your own tank, or { owner, fish } for a friend's (read-only)
+let tankView = null;
+const tankFish = () => (tankView ? tankView.fish.filter(c => c && FISH_BY_ID[c.id]) : save.aquarium);
+
+function openTank(view = null) {
+  if ((view && view.owner) !== (tankView && tankView.owner)) tankSwimmers.clear();
+  tankView = view;
   renderTank();
   openModal('modal-tank');
   Sound.sfx.open();
 }
 
 function renderTank() {
-  $('#tank-h').textContent = TANKS[save.tankLvl].name;
-  $('#tank-count').textContent = `${save.aquarium.length}/${tankCap()} fish`;
+  const fish = tankFish();
+  $('#tank-h').textContent = tankView ? `@${tankView.owner}'s tank` : TANKS[save.tankLvl].name;
+  $('#tank-count').textContent = tankView ? `${fish.length} fish` : `${fish.length}/${tankCap()} fish`;
+  $('.tank-hint').textContent = tankView ? 'Tap a fish to say hi. Just looking: these belong to your friend!'
+    : 'Tap a fish to say hi. Move fish in from your bucket or straight off the line.';
   const list = $('#tank-list');
-  list.innerHTML = save.aquarium.length ? save.aquarium.slice().reverse().map(c => {
+  list.innerHTML = fish.length ? fish.slice().reverse().map(c => {
     const sp = FISH_BY_ID[c.id];
     return `<li>
       <img src="${fishDataUrl(sp)}" alt="" />
       <div><div class="fname">${sp.name}</div>
         <div class="fmeta">${c.size} cm · <span class="stars" aria-label="${c.stars} of 3 stars">${starText(c.stars)}</span> · ${RARITY[sp.rarity].label}</div></div>
-      ${sp.unsellable ? '<span class="priceless">Here forever</span>'
+      ${tankView ? '' : sp.unsellable ? '<span class="priceless">Here forever</span>'
         : `<button class="btn gold" data-tanksell="${c.uid}" aria-label="Sell ${sp.name} for ${c.value} coins">Sell ${coinHTML(c.value)}</button>`}
     </li>`;
-  }).join('') : '<li class="empty" style="display:block">Your tank is empty. Tap "Tank" on a catch, or move fish in from your bucket.</li>';
+  }).join('') : `<li class="empty" style="display:block">${tankView ? 'Their tank is empty.' : 'Your tank is empty. Tap "Tank" on a catch, or move fish in from your bucket.'}</li>`;
 
   // keep the swimmers in sync with what's in the tank
-  const uids = new Set(save.aquarium.map(c => c.uid));
+  const uids = new Set(fish.map(c => c.uid));
   for (const uid of tankSwimmers.keys()) if (!uids.has(uid)) tankSwimmers.delete(uid);
-  for (const c of save.aquarium) {
+  for (const c of fish) {
     if (tankSwimmers.has(c.uid)) continue;
     const sp = FISH_BY_ID[c.id];
     const spr = fishSprite(sp);
@@ -667,7 +701,7 @@ $('#tank-canvas').addEventListener('pointerdown', e => {
   }
   if (best !== null) {
     const f = tankSwimmers.get(best);
-    const c = save.aquarium.find(x => x.uid === best);
+    const c = tankFish().find(x => x.uid === best);
     tankLabel = { uid: best, until: performance.now() + 2500, text: `${f.sp.name} · ${c.size} cm` };
     f.wait = 1.2;
     Sound.sfx.nibble();
@@ -779,6 +813,7 @@ function renderMap() {
     const found = species.filter(f => save.dex[f.id]).length;
     let action;
     if (here) action = '<button class="btn plain" disabled>You are here</button>';
+    else if (open && G.visit) action = '<button class="btn plain" disabled>Go home to sail</button>';
     else if (open) action = `<button class="btn mint" data-sail="${loc.id}" ${canTravel() ? '' : 'disabled'}>${canTravel() ? 'Sail here' : 'Finish reeling first'}</button>`;
     else {
       const pct = Math.round((count / loc.need) * 100);
@@ -1006,7 +1041,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('pagehide', writeSave);
 
 $('#btn-map').addEventListener('click', openMap);
-$('#btn-tank').addEventListener('click', openTank);
+$('#btn-tank').addEventListener('click', () => openTank(null));
 $('#btn-bucket').addEventListener('click', openBucket);
 $('#btn-shop').addEventListener('click', () => openShop(false));
 $('#btn-dex').addEventListener('click', openDex);

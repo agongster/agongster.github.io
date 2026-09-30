@@ -49,6 +49,10 @@
   const timeSel = panel.querySelector('#dev-time');
 
   function setOpen(open) {
+    if (open && Online.loggedIn()) {
+      toast('Dev mode is off while you are logged in, so online coins stay fair.');
+      return;
+    }
     panel.hidden = !open;
     document.body.classList.toggle('dev-on', open);
     if (!open) { G.dev.fish = ''; G.dev.instant = false; fishSel.value = ''; instant.checked = false; }
@@ -101,6 +105,8 @@
     }
     b.blur();
   });
+
+  panel.addEventListener('tt-close', () => setOpen(false));
 
   document.addEventListener('keydown', e => {
     if (e.key !== '`' || (e.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName))) return;
