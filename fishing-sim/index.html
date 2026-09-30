@@ -16,7 +16,7 @@
     <header id="hud">
       <div class="hud-stats">
         <span class="pill" title="Coins"><span class="coin-icon" aria-hidden="true"></span><span id="coins">0</span><span class="sr-only"> coins</span></span>
-        <span class="pill" title="Fish in your bucket"><span class="pail-icon" aria-hidden="true"></span><span id="bucket-count">0/6</span></span>
+        <span class="pill" title="Fish in your tank"><span class="tank-icon" aria-hidden="true"></span><span id="tank-pill-count">0/6</span></span>
         <button class="pill cloud-pill" id="cloud-pill" hidden title="Online save status"></button>
         <span class="pill phase-pill" id="phase-pill" title="Where you are, and the time of day. Some fish only come out at certain times.">Golden hour</span>
       </div>
@@ -25,7 +25,6 @@
         <button class="btn profile-btn" id="btn-profile" hidden>Profile</button>
         <button class="btn map-btn" id="btn-map">Map</button>
         <button class="btn tank-btn" id="btn-tank">Tank</button>
-        <button class="btn" id="btn-bucket">Bucket</button>
         <button class="btn" id="btn-shop">Shop</button>
         <button class="btn" id="btn-dex">Fishdex</button>
         <button class="btn icon-btn" id="btn-sound" aria-pressed="true" title="Sound on/off">
@@ -85,7 +84,7 @@
           <li>The <b>shadows</b> are real fish, and bigger shadows are rarer ones. Cast just <b>ahead</b> of one to lure it in. Land right on top of it and it gets spooked!</li>
           <li>Little nibbles are fake-outs. When the bobber sinks and a <b>!</b> pops up, <b>tap fast</b>.</li>
           <li>Reeling is a chase: steer your <b>net</b> with the <b>arrow keys</b> or <b>WASD</b> (or drag / use the D-pad on a phone) and keep the fish inside it until the bar fills.</li>
-          <li>Show off favourites in your <b>Tank</b> (aquarium), where they swim around, or sell your catch from the <b>Bucket</b>, then spend coins in the <b>Shop</b> on outfits, buddies, rods and bigger buckets.</li>
+          <li>Put your catch in your <b>Tank</b> (aquarium), where it swims around, or sell it straight away. Sell fish from the tank whenever you like, then spend coins in the <b>Shop</b> on outfits, buddies, rods and bigger tanks.</li>
           <li>Catch more fish to unlock new spots on the <b>Map</b>, each with its own fish. The sky loops from sunrise through daytime, golden hour and sunset to night, and some fish only come out at certain times.</li>
         </ol>
       </details>
@@ -105,6 +104,7 @@
       <div class="tabs" id="shop-tabs" role="tablist">
         <button role="tab" data-shoptab="wardrobe" aria-selected="true">Wardrobe</button>
         <button role="tab" data-shoptab="boat" aria-selected="false">Boat</button>
+        <button role="tab" data-shoptab="decor" aria-selected="false">Tank</button>
         <button role="tab" data-shoptab="tackle" aria-selected="false">Tackle</button>
       </div>
 
@@ -132,6 +132,11 @@
           <div class="tabs small" id="boat-tabs" role="tablist"></div>
           <div id="boat-grid" class="item-grid"></div>
         </div>
+      </section>
+
+      <section id="shop-decor" hidden>
+        <p class="tank-hint">Props go straight into your tank. Open the Tank and press Decorate to move them around.</p>
+        <div id="decor-grid" class="item-grid decor-grid"></div>
       </section>
 
       <section id="shop-tackle" class="tackle" hidden></section>
@@ -178,24 +183,18 @@
         <canvas id="tank-canvas" width="240" height="135" aria-label="Your aquarium, with your fish swimming around"></canvas>
         <span id="tank-label" class="tank-label" hidden></span>
       </div>
-      <p class="tank-hint">Tap a fish to say hi. Move fish in from your bucket or straight off the line.</p>
-      <ul id="tank-list" class="bucket-list"></ul>
-    </div>
-  </div>
-
-  <!-- Bucket -->
-  <div class="modal" id="modal-bucket" role="dialog" aria-modal="true" aria-labelledby="bucket-h" hidden>
-    <div class="panel">
-      <header class="panel-head">
-        <h2 id="bucket-h">Bucket</h2>
-        <span class="pill"><span class="coin-icon" aria-hidden="true"></span><span class="coins-mirror">0</span></span>
-        <button class="close-btn" data-close aria-label="Close">X</button>
-      </header>
-      <div class="bucket-summary">
-        <span id="bucket-sub"></span>
-        <button class="btn" id="btn-sell-all">Sell all</button>
+      <div class="tank-summary">
+        <p class="tank-hint">Tap a fish to say hi.</p>
+        <span class="row-actions">
+          <button class="btn mint" id="btn-decorate" aria-pressed="false">Decorate</button>
+          <button class="btn" id="btn-sell-all">Sell all</button>
+        </span>
       </div>
-      <ul id="bucket-list" class="bucket-list"></ul>
+      <div id="decor-panel" class="decor-panel" hidden>
+        <div id="decor-selected" class="decor-selected"></div>
+        <div id="decor-tray" class="decor-tray"></div>
+      </div>
+      <ul id="tank-list" class="fish-list"></ul>
     </div>
   </div>
 
@@ -224,7 +223,6 @@
       <p class="catch-meta" id="catch-meta"></p>
       <p class="catch-blurb" id="catch-blurb"></p>
       <div class="catch-actions">
-        <button class="btn" id="catch-keep">Keep</button>
         <button class="btn mint" id="catch-tank">Tank</button>
         <button class="btn gold" id="catch-sell">Sell</button>
         <button class="btn plain" id="catch-release">Release</button>

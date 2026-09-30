@@ -110,7 +110,7 @@ const EVERYWHERE = ['dock', 'lagoon', 'cove', 'bay', 'blossom', 'ember', 'cloud'
 // where: which locations it lives in (leave it out for Sunset Dock only)
 // weight: optional fixed catch weight, overriding the rarity's (see LeBron)
 // bottom: in the aquarium it walks along the sand instead of swimming
-// unsellable: can never be sold, only kept (in the bucket or the tank)
+// unsellable: can never be sold, only kept in the tank (where he always fits)
 // shape: 'fish' (default), 'round', 'eel', 'puffer', or map: a pixel map in sprites.js
 // pattern: none | stripes | spots | patches | stars | gradient
 // diff: how hard it fights on the line (1 = sleepy, 6 = feral)
@@ -571,8 +571,38 @@ const TANKS = [
   { cap: 24, price: 600, name: 'Grand aquarium' },
 ];
 
-const BUCKETS = [
-  { cap: 6, price: 0, name: 'Tin pail' },
-  { cap: 12, price: 110, name: 'Big bucket' },
-  { cap: 24, price: 400, name: 'Cooler' },
+// The aquarium canvas, in pixels, and where its sand starts.
+const TANK_W = 240, TANK_H = 135, TANK_SAND = TANK_H - 14;
+
+// Props for the tank, bought in the Shop and dragged into place in the Tank.
+// w and h are the prop's size in tank pixels (the tank is 240 x 135). Props
+// sit on the sand unless they float, which lets them go anywhere in the water.
+// The pixel art for each one is drawDecor() in ui.js.
+const DECOR = [
+  { id: 'castle', name: 'Sandcastle', price: 0, w: 32, h: 44, blurb: 'Every tank starts with one.' },
+  { id: 'chest', name: 'Treasure chest', price: 0, w: 16, h: 12, blurb: 'Burps a bubble now and then.' },
+  { id: 'kelp', name: 'Kelp', price: 0, w: 8, h: 36, blurb: 'Sways in a current that isn\'t there.' },
+  { id: 'starfish', name: 'Starfish', price: 25, w: 10, h: 5, blurb: 'Has been lying there all day. Living the dream.' },
+  { id: 'pinkweed', name: 'Pink seaweed', price: 35, w: 8, h: 26, blurb: 'Kelp, but make it fashion.' },
+  { id: 'coral', name: 'Peach coral', price: 60, w: 20, h: 20, blurb: 'Fish love hiding behind it.' },
+  { id: 'clam', name: 'Pearl clam', price: 80, w: 16, h: 9, blurb: 'Opens up to show off its pearl.' },
+  { id: 'sign', name: 'Welcome sign', price: 70, w: 20, h: 16, blurb: 'Says "home" in fish.' },
+  { id: 'arch', name: 'Rock arch', price: 90, w: 34, h: 20, blurb: 'For swimming through, dramatically.' },
+  { id: 'duck', name: 'Rubber duck', price: 120, w: 14, h: 11, float: true, blurb: 'Floats. Squeaks. Judges.' },
+  { id: 'diver', name: 'Tiny diver', price: 150, w: 12, h: 18, blurb: 'Looking for treasure. It\'s right there.' },
+  { id: 'jelly', name: 'Jellyfish lamp', price: 180, w: 12, h: 16, float: true, blurb: 'A gentle night light that drifts.' },
+  { id: 'pineapple', name: 'Pineapple house', price: 200, w: 18, h: 28, blurb: 'Someone very cheerful lives here.' },
+  { id: 'volcano', name: 'Bubble volcano', price: 220, w: 24, h: 16, blurb: 'Erupts in bubbles. Very safe.' },
+  { id: 'wreck', name: 'Little shipwreck', price: 280, w: 46, h: 24, blurb: 'Nobody knows what happened. (A duck did it.)' },
+  { id: 'trophy', name: 'GOAT trophy', price: 400, w: 14, h: 20, blurb: 'For the tank that has everything.' },
 ];
+const DECOR_BY_ID = Object.fromEntries(DECOR.map(d => [d.id, d]));
+const MAX_DECOR = 30;  // props placed in the tank at once
+
+// The tank everyone starts with (and what older saves get): x is the prop's
+// centre, y its bottom, both in tank pixels.
+const STARTER_DECOR = [
+  { id: 'kelp', x: 9, y: 121 }, { id: 'castle', x: 37, y: 121 }, { id: 'kelp', x: 71, y: 121 },
+  { id: 'kelp', x: 151, y: 121 }, { id: 'chest', x: 198, y: 121 }, { id: 'kelp', x: 225, y: 121 },
+];
+

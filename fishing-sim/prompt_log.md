@@ -333,6 +333,18 @@ this popup pops up A LOT. like every time i leave the tab and sometimes when i'm
 i am testing multiplayer with my friend and it doesn't seem to be syncing correctly. when she visits my world it shows as me napping, even though i'm active in my world, and i can't see her at all.
 ```
 
+```
+it works now, no need to deploy anything new. remove the "keep" function, we will only have a tank and not a bucket.
+```
+
+```
+i also want to make improvements to the tank, so the user should be able to customize it. as in, they can buy props for the tank and move them around to place.
+```
+
+```
+currently in the multiplayer, users cannot go to other places in their friend's map. make it so that they can.
+```
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -353,6 +365,19 @@ i am testing multiplayer with my friend and it doesn't seem to be syncing correc
   - **Fix (server):** a replaced connection no longer announces "leave" or a second "join". The old one gets an explicit `replaced` message, and closing it happens in the background.
   - **Fix (game):** a tab that's been replaced stops syncing and says so, rather than fighting the other tab. It ignores messages from old connections. It pings the server and reconnects if a ping gets no answer, which still works in background tabs where browsers slow down timers.
   - **Tests:** a new server test covers reconnecting. Local browser tests covered a 4-second network drop, a second tab, and a frozen server (the game reconnected by itself).
+- **No more bucket:** a catch now goes in the **Tank**, gets sold, or gets released. The bucket, its HUD pill, its window, its shop upgrades and the bucket prop on the dock are gone. The HUD shows the tank count instead, and the Tank window has a **Sell all** button (with a confirm).
+  - Leaving the catch card any other way (Escape, or sailing off) puts the fish in the tank if there's room, or else sells it.
+  - LeBron can't be sold, so he always fits, even in a full tank.
+  - **Old saves:** bucket fish move into the tank, even past its size (you just can't add more until you sell), and bucket upgrades are refunded (110 or 510 coins). A browser test checked this, including that reloading doesn't refund twice.
+- **Tank props:** a new **Tank** tab in the Shop sells 16 props, each drawn in pixel art in code. Three are free starters: the sandcastle, treasure chest and kelp, which every tank already had. The rest range from a 25-coin starfish to a 400-coin GOAT trophy, and some animate: the clam opens, the volcano erupts bubbles, the jellyfish glows. You can buy a prop more than once.
+  - **Decorate:** in the Tank, press **Decorate** to drag props with a mouse or finger. Tap one to flip it or put it away, and arrow keys nudge the selected one. Floor props stay on the sand (lower looks nearer), while floating ones (the duck, the jellyfish) go anywhere in the water. Put-away props wait in a tray, and up to 30 can be in the tank at once.
+  - **Saving and sharing:** the layout saves with everything else, and friends see it when they open "Their tank". That needed a one-word server change (`decor` added to the fields a visitor can see). Older saves get the starter layout, which matches the old fixed decorations.
+  - **Where the AI got it wrong:** the Shop's new help text reused the `tank-hint` class, and the Tank updated whichever `.tank-hint` came first on the page. That was the Shop's, so the Tank's hints (including "Over capacity!") silently stopped changing. A screenshot caught it; the Tank now targets its own hint.
+- **Exploring a friend's map:** visitors could only follow the host. Now:
+  - **Sailing:** the Map, while visiting, shows the host's unlocked spots ("@host's sea"). You can sail to any of them, even spots you haven't unlocked yourself. Spots the host hasn't found say so, and a gold flag and an "@host is here" tag mark the host.
+  - **Who you see:** each player now sends which spot they're at with their live updates, and you only see anglers at your spot. The host's bar says "@friend is exploring your world" when a visitor is elsewhere.
+  - **Following:** you follow the host only if you were at the same spot when they sailed. Otherwise the bar shows where they are, with a **Join them** button. The host's world updates also carry their unlocked spots, so a spot they unlock mid-visit opens up for visitors.
+  - **Tests:** a two-browser test against a local backend ran through together, guest sails off alone, host moves (guest stays), guest joins, host moves (guest follows). No server change was needed.
 
 ### Changes I made myself
 

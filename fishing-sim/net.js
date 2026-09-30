@@ -13,6 +13,7 @@ const Net = (() => {
 
   const SLOTS = { dock: [62, 118, 36], boat: [68, 112, 54] };
   const isHome = () => !G.visit;
+  const isLoc = id => typeof id === 'string' && LOCATIONS.some(l => l.id === id);
 
   // ---------------------------------------------------------- connection --
   function wsUrl(host) {
@@ -128,13 +129,16 @@ const Net = (() => {
         others.delete(m.from);
         renderBar();
         break;
-      case 'hello':
-        addOther(m.from, m);
+      case 'hello': {
+        const o = addOther(m.from, m);
+        if (isLoc(m.l) && o.loc !== m.l) { o.loc = m.l; renderBar(); }
         break;
+      }
       case 'state': {
         const o = addOther(m.from);
         o.s = m.s;
         o.a = Number(m.a) || 0.55;
+        if (isLoc(m.l) && o.loc !== m.l) { o.loc = m.l; renderBar(); }
         if (Number.isFinite(m.x) && Number.isFinite(m.y)) o.tbob = { x: clamp(m.x, 0, W), y: clamp(m.y, 0, H) };
         o.seen = G.time;
         break;
@@ -189,18 +193,30 @@ const Net = (() => {
     return o;
   }
 
-  function sendHello() { send({ t: 'hello', look: save.look, name: save.name }); }
-  function sendWorld() { send({ t: 'world', location: save.location, clock: Math.round(save.clock), boat: save.boat }); }
+  // l is the spot each player is at, so we only draw people at our spot
+  function sendHello() { send({ t: 'hello', look: save.look, name: save.name, l: worldLocationId() }); }
+  function sendWorld() { send({ t: 'world', location: save.location, clock: Math.round(save.clock), boat: save.boat, unlocked: save.unlocked }); }
 
   // The host's world changed (they sailed somewhere, or time drifted).
   function applyWorld(w) {
     if (!G.visit) return;
     if (w.boat) G.visit.boat = { ...DEFAULT_BOAT, ...w.boat };
     if (Number.isFinite(w.clock) && Math.abs(w.clock - G.visit.clock) > 4) G.visit.clock = w.clock;
-    if (w.location && w.location !== G.visit.location && LOCATIONS.some(l => l.id === w.location)) {
-      G.visit.pendingLocation = w.location;
+    if (Array.isArray(w.unlocked)) G.visit.unlocked = hostUnlocked(w.unlocked, w.location);
+    if (isLoc(w.location) && w.location !== G.visit.hostLocation) {
+      // the host sailed: follow them if we were fishing together, otherwise stay put
+      const together = G.visit.location === G.visit.hostLocation;
+      G.visit.hostLocation = w.location;
+      if (!G.visit.unlocked.includes(w.location)) G.visit.unlocked.push(w.location);
+      if (together && w.location !== G.visit.location) G.visit.pendingLocation = w.location;
+      refreshHUD();  // the bar, and the map if it's open
     }
   }
+
+  const hostUnlocked = (list, at) => {
+    const ids = LOCATIONS.map(l => l.id).filter(id => id === 'dock' || id === at || (Array.isArray(list) && list.includes(id)));
+    return ids;
+  };
 
   // Called from the game loop every frame.
   function tick(dt) {
@@ -221,9 +237,9 @@ const Net = (() => {
     }
     if (!ws || ws.readyState !== 1) return;
     stateTimer -= dt; helloTimer -= dt; worldTimer -= dt;
-    const state = JSON.stringify([G.state, Math.round(G.bob.x), Math.round(G.bob.y)]);
+    const state = JSON.stringify([G.state, Math.round(G.bob.x), Math.round(G.bob.y), worldLocationId()]);
     if (stateTimer <= 0 && (state !== lastState || stateTimer < -1.3)) {
-      send({ t: 'state', s: G.state, x: Math.round(G.bob.x), y: Math.round(G.bob.y), a: +G.rodA.toFixed(2) });
+      send({ t: 'state', s: G.state, x: Math.round(G.bob.x), y: Math.round(G.bob.y), a: +G.rodA.toFixed(2), l: worldLocationId() });
       lastState = state;
       stateTimer = 0.15;
     }
@@ -254,9 +270,12 @@ const Net = (() => {
           name: w.name || w.username,
           look: { ...DEFAULT_LOOK, ...(w.look || {}) },
           boat: { ...DEFAULT_BOAT, ...(w.boat || {}) },
-          location: LOCATIONS.some(l => l.id === w.location) ? w.location : 'dock',
+          location: isLoc(w.location) ? w.location : 'dock',
+          hostLocation: isLoc(w.location) ? w.location : 'dock',
+          unlocked: hostUnlocked(w.unlocked, w.location),
           clock: Number(w.clock) || 0,
           aquarium: Array.isArray(w.aquarium) ? w.aquarium : [],
+          decor: Array.isArray(w.decor) ? w.decor : null,  // null: an older server, show the starter tank
           caught: w.caught || 0,
         };
         connect(w.username);
@@ -286,9 +305,18 @@ const Net = (() => {
   // -------------------------------------------------------------- drawing --
   // Everyone in our scene who isn't us: live players, plus a napping host if
   // we're visiting someone who isn't online.
+  // Where another player is. Older games don't say, so assume the host is
+  // wherever their world says and everyone else is with us.
+  function spotOf(o) {
+    if (o.loc) return o.loc;
+    if (G.visit && o.name === G.visit.host) return G.visit.hostLocation;
+    return worldLocationId();
+  }
+
   function players() {
-    const list = [...others.values()].filter(o => o.look);
-    if (G.visit && !others.has(G.visit.host)) {
+    const here = worldLocationId();
+    const list = [...others.values()].filter(o => o.look && spotOf(o) === here);
+    if (G.visit && !others.has(G.visit.host) && G.visit.hostLocation === here) {
       list.push({ name: G.visit.host, look: G.visit.look, slot: 0, asleep: true, s: 'idle', a: 0.4, bob: { x: 0, y: 0 }, t: G.time });
       for (const o of list) if (!o.asleep && o.slot === 0) o.slotShift = true;
     }
@@ -412,13 +440,19 @@ const Net = (() => {
     // the host just arrived or left: refresh the "N on" count on the Friends button
     if (G.visit && hostOn !== lastHostOn) Online.refreshFriends();
     lastHostOn = hostOn;
+    const host = G.visit && (others.get(G.visit.host) || { name: G.visit.host });
+    const apart = G.visit && spotOf(host) !== G.visit.location;
+    const hostSpot = apart && LOCATIONS.find(l => l.id === spotOf(host));
+    const here = guests.filter(n => spotOf(others.get(n)) === worldLocationId());
     const who = G.visit
-      ? `Visiting <b>@${escapeHTML(G.visit.host)}</b>'s world <span class="status-chip ${hostOn ? 'on' : ''}">${hostOn ? 'Online' : 'Offline, napping'}</span>`
-      : `${guests.map(n => `<b>@${escapeHTML(n)}</b>`).join(', ')} ${guests.length === 1 ? 'is' : 'are'} fishing with you!`;
+      ? `Visiting <b>@${escapeHTML(G.visit.host)}</b>'s world <span class="status-chip ${hostOn ? 'on' : ''}">${hostOn ? 'Online' : 'Offline, napping'}</span>${apart ? ` <span class="social-where">they're at ${hostSpot.name}</span>` : ''}`
+      : here.length ? `${here.map(n => `<b>@${escapeHTML(n)}</b>`).join(', ')} ${here.length === 1 ? 'is' : 'are'} fishing with you!`
+      : `${guests.map(n => `<b>@${escapeHTML(n)}</b>`).join(', ')} ${guests.length === 1 ? 'is' : 'are'} exploring your world`;
     bar.innerHTML = `<span class="social-who">${who}</span>
       <span class="social-actions">
         <button class="btn" data-social="wave">Wave</button>
         <button class="btn" data-social="heart">Heart</button>
+        ${apart ? '<button class="btn mint" data-social="join">Join them</button>' : ''}
         ${G.visit ? `<button class="btn mint" data-social="tank">Their tank</button>
         <button class="btn gold" data-social="gift">Gift</button>
         <button class="btn plain" data-social="home">Go home</button>` : ''}
@@ -431,7 +465,11 @@ const Net = (() => {
     const act = b.dataset.social;
     if (act === 'wave' || act === 'heart') emote(act);
     if (act === 'home') goHome();
-    if (act === 'tank' && G.visit) openTank({ owner: G.visit.host, fish: G.visit.aquarium });
+    if (act === 'join' && G.visit) {
+      const host = others.get(G.visit.host) || { name: G.visit.host };
+      if (!sailTo(spotOf(host))) toast('Finish reeling first!');
+    }
+    if (act === 'tank' && G.visit) openTank({ owner: G.visit.host, fish: G.visit.aquarium, decor: G.visit.decor });
     if (act === 'gift' && G.visit) Online.openGift(G.visit.host);
     b.blur();
   });
