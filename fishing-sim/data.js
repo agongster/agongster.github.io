@@ -830,6 +830,9 @@ const COSMETICS = {
     { id: 'long', name: 'Long', price: 45 },
     { id: 'pigtails', name: 'Pigtails', price: 60 },
     { id: 'bun', name: 'Bun', price: 60 },
+    { id: 'curly', name: 'Big curls', price: 1200 },
+    { id: 'mohawk', name: 'Mohawk', price: 2000 },
+    { id: 'sidetail', name: 'Side ponytail', price: 2500 },
   ],
   hat: [
     { id: 'none', name: 'No hat', price: 0 },
@@ -841,6 +844,13 @@ const COSMETICS = {
     { id: 'frog', name: 'Frog hat', price: 260 },
     { id: 'fishhat', name: 'Fish hat', price: 500 },
     { id: 'crown', name: 'Crown', price: 1200 },
+    { id: 'party', name: 'Party hat', price: 1500 },
+    { id: 'chef', name: "Chef's hat", price: 2000 },
+    { id: 'pirate', name: 'Pirate hat', price: 3500 },
+    { id: 'wizard', name: 'Wizard hat', price: 5000 },
+    { id: 'tophat', name: 'Top hat', price: 8000 },
+    { id: 'halo', name: 'Halo', price: 12000 },
+    { id: 'diamondcrown', name: 'Diamond crown', price: 30000 },
   ],
   top: [
     { id: 'tee', name: 'Tee', price: 0 },
@@ -849,6 +859,10 @@ const COSMETICS = {
     { id: 'hoodie', name: 'Hoodie', price: 110 },
     { id: 'raincoat', name: 'Raincoat', price: 160 },
     { id: 'sailor', name: 'Sailor top', price: 240 },
+    { id: 'kimono', name: 'Kimono', price: 1500 },
+    { id: 'tux', name: 'Tuxedo', price: 4000 },
+    { id: 'goldjacket', name: 'Gold jacket', price: 9000 },
+    { id: 'robe', name: 'Royal robe', price: 20000 },
   ],
   face: [
     { id: 'blush', name: 'Blush', price: 0 },
@@ -856,6 +870,10 @@ const COSMETICS = {
     { id: 'freckles', name: 'Freckles', price: 20 },
     { id: 'glasses', name: 'Glasses', price: 70 },
     { id: 'shades', name: 'Heart shades', price: 220 },
+    { id: 'mustache', name: 'Moustache', price: 800 },
+    { id: 'monocle', name: 'Monocle', price: 2500 },
+    { id: 'starshades', name: 'Star shades', price: 5000 },
+    { id: 'diamondshades', name: 'Diamond shades', price: 15000 },
   ],
   buddy: [
     { id: 'none', name: 'No buddy', price: 0 },
@@ -863,6 +881,18 @@ const COSMETICS = {
     { id: 'cat', name: 'Cat', price: 320 },
     { id: 'frog', name: 'Frog', price: 380 },
     { id: 'capy', name: 'Capybara', price: 700 },
+    { id: 'bunny', name: 'Bunny', price: 1000 },
+    { id: 'penguin', name: 'Penguin', price: 1500 },
+    { id: 'fox', name: 'Fox', price: 2200 },
+    { id: 'panda', name: 'Panda', price: 3000 },
+    { id: 'axolotl', name: 'Axolotl', price: 4000 },
+    { id: 'corgi', name: 'Corgi', price: 5000 },
+    { id: 'otter', name: 'Otter (with clam)', price: 6500 },
+    { id: 'redpanda', name: 'Red panda', price: 8000 },
+    { id: 'ghost', name: 'Friendly ghost', price: 10000 },
+    { id: 'dragon', name: 'Baby dragon', price: 15000 },
+    { id: 'unicorn', name: 'Unicorn', price: 25000 },
+    { id: 'goldduck', name: 'Golden duck', price: 50000 },
   ],
 };
 
@@ -895,6 +925,8 @@ const BOAT_PARTS = {
     { id: 'sneaker', name: 'Big sneaker', price: 300, usesColor: true },
     { id: 'swan', name: 'Swan boat', price: 400 },
     { id: 'duck', name: 'Duck parade', price: 600 },
+    { id: 'yacht', name: 'Yacht', price: 12000, usesColor: true },
+    { id: 'royal', name: 'Royal barge', price: 40000 },
   ],
   hull: [
     { id: 'coral', name: 'Coral', price: 0, color: '#e0566e' },
@@ -905,6 +937,9 @@ const BOAT_PARTS = {
     { id: 'sunshine', name: 'Sunshine', price: 90, color: '#ffc83a' },
     { id: 'midnight', name: 'Midnight', price: 150, color: '#3e3a80' },
     { id: 'gold', name: 'Solid gold', price: 1500, color: '#ffd23f', shiny: true },
+    { id: 'obsidian', name: 'Obsidian', price: 3000, color: '#2a2430' },
+    { id: 'rosegold', name: 'Rose gold', price: 8000, color: '#e8a090', shiny: true },
+    { id: 'diamond', name: 'Diamond', price: 25000, color: '#c8f0ff', shiny: true },
   ],
   trim: [
     { id: 'cream', name: 'Cream', price: 0, color: '#fff4e0' },
@@ -912,6 +947,9 @@ const BOAT_PARTS = {
     { id: 'pink', name: 'Pink', price: 20, color: '#ff9ec4' },
     { id: 'mint', name: 'Mint', price: 20, color: '#8fe0c0' },
     { id: 'gold', name: 'Gold', price: 60, color: '#ffd23f' },
+    { id: 'platinum', name: 'Platinum', price: 2500, color: '#e8f0f8' },
+    { id: 'ruby', name: 'Ruby', price: 4000, color: '#e0303a' },
+    { id: 'emerald', name: 'Emerald', price: 4000, color: '#2ea86a' },
   ],
   sail: [
     { id: 'plain', name: 'Plain sail', price: 0 },
@@ -919,6 +957,9 @@ const BOAT_PARTS = {
     { id: 'heart', name: 'Heart', price: 120 },
     { id: 'star', name: 'Star', price: 180 },
     { id: 'fish', name: 'Fish', price: 250 },
+    { id: 'rainbow', name: 'Rainbow sail', price: 3000 },
+    { id: 'gold', name: 'Golden sail', price: 8000 },
+    { id: 'crown', name: 'Royal crest', price: 15000 },
   ],
   flag: [
     { id: 'none', name: 'No flag', price: 0 },
@@ -926,6 +967,9 @@ const BOAT_PARTS = {
     { id: 'heart', name: 'Heart flag', price: 80 },
     { id: 'pirate', name: 'Pirate', price: 150 },
     { id: 'fish', name: 'Fish flag', price: 200 },
+    { id: 'crown', name: 'Crown flag', price: 2500 },
+    { id: 'rainbow', name: 'Rainbow flag', price: 4000 },
+    { id: 'goat', name: 'GOAT flag', price: 12000 },
   ],
   decor: [
     { id: 'none', name: 'Nothing', price: 0 },
@@ -933,6 +977,8 @@ const BOAT_PARTS = {
     { id: 'flowers', name: 'Flower box', price: 70 },
     { id: 'duck', name: 'Rubber duck', price: 90 },
     { id: 'lights', name: 'String lights', price: 160 },
+    { id: 'fireworks', name: 'Fireworks', price: 6000 },
+    { id: 'treasure', name: 'Treasure hoard', price: 15000 },
   ],
 };
 
@@ -952,23 +998,31 @@ const DEFAULT_BOAT = { base: 'rowboat', hull: 'coral', trim: 'cream', sail: 'pla
 // gain: how fast the catch bar fills while the fish is in your net
 // luck: shifts odds toward rare fish and bigger sizes
 // wait: multiplier on how long fish take to notice your bobber
-// net: radius of the chase net. gain: how fast the bar fills. tame: slows
-// the fish down. grip: how much of the drain you feel when it slips out.
+// net: radius of the chase net. gain: how fast the bar fills. grip: how much
+// of the drain you feel when it slips out. netSpeed: how fast you can move the
+// net (pixels a second). sparkle: a twinkle at the rod tip. Rods never slow
+// the fish down.
 const RODS = [
-  { id: 'twig', name: 'Twig Rod', color: '#7a4a2a', price: 0, net: 16, gain: 0.34, tame: 0.95, grip: 0.9, luck: 0, wait: 1,
+  { id: 'twig', name: 'Twig Rod', color: '#7a4a2a', price: 0, net: 16, gain: 0.34, grip: 0.88, netSpeed: 150, luck: 0, wait: 1,
     blurb: 'A stick, some string, and a lot of hope. Rare fish laugh at it.' },
-  { id: 'bamboo', name: 'Bamboo Rod', color: '#c8a050', price: 90, net: 18, gain: 0.38, tame: 0.87, grip: 0.78, luck: 0.05, wait: 0.9,
+  { id: 'bamboo', name: 'Bamboo Rod', color: '#c8a050', price: 90, net: 18, gain: 0.38, grip: 0.64, netSpeed: 175, luck: 0.05, wait: 0.9,
     blurb: 'Bendy and dependable. A bigger net for chasing.' },
-  { id: 'sunset', name: 'Sunset Rod', color: '#ff7a5c', price: 350, net: 20, gain: 0.42, tame: 0.82, grip: 0.7, luck: 0.12, wait: 0.8,
-    blurb: 'Painted the colour of the sky. Fish tire out fast on it.' },
-  { id: 'star', name: 'Star Rod', color: '#b89cff', price: 1000, net: 23, gain: 0.5, tame: 0.78, grip: 0.62, luck: 0.25, wait: 0.7,
-    blurb: 'Hums quietly at night. Even legends come quietly.' },
+  { id: 'sunset', name: 'Sunset Rod', color: '#ff7a5c', price: 350, net: 20, gain: 0.42, grip: 0.57, netSpeed: 185, luck: 0.12, wait: 0.8,
+    blurb: 'Painted the colour of the sky. Reels in fast and holds on tight.' },
+  { id: 'star', name: 'Star Rod', color: '#b89cff', price: 10000, net: 23, gain: 0.5, grip: 0.44, netSpeed: 210, luck: 0.25, wait: 0.7, sparkle: '#fff3c4',
+    blurb: 'Hums quietly at night. A big net that goes where you point it.' },
+  { id: 'aurora', name: 'Aurora Rod', color: '#7ae0c0', price: 40000, net: 25, gain: 0.54, grip: 0.36, netSpeed: 235, luck: 0.3, wait: 0.65, sparkle: '#b89cff',
+    blurb: 'Spun from the northern lights. The net practically flies.' },
+  { id: 'goat', name: 'GOAT Rod', color: '#ffd23f', price: 150000, net: 28, gain: 0.6, grip: 0.28, netSpeed: 265, luck: 0.35, wait: 0.6, sparkle: '#ffffff',
+    blurb: 'Solid gold. Signed by a certain basketball player. The best there is.' },
 ];
 
 const TANKS = [
   { cap: 6, price: 0, name: 'Fishbowl' },
   { cap: 12, price: 180, name: 'Glass tank' },
   { cap: 24, price: 600, name: 'Grand aquarium' },
+  { cap: 40, price: 6000, name: 'Royal aquarium' },
+  { cap: 64, price: 30000, name: 'Ocean palace' },
 ];
 
 // Enchantments: now and then one is tangled on the line with a catch
@@ -1013,6 +1067,11 @@ const DECOR = [
   { id: 'volcano', name: 'Bubble volcano', price: 220, w: 24, h: 16, blurb: 'Erupts in bubbles. Very safe.' },
   { id: 'wreck', name: 'Little shipwreck', price: 280, w: 46, h: 24, blurb: 'Nobody knows what happened. (A duck did it.)' },
   { id: 'trophy', name: 'GOAT trophy', price: 400, w: 14, h: 20, blurb: 'For the tank that has everything.' },
+  { id: 'rainbowcoral', name: 'Rainbow coral', price: 3000, w: 21, h: 22, blurb: 'Every colour at once. Very loud. Very lovely.' },
+  { id: 'crystal', name: 'Crystal cluster', price: 8000, w: 18, h: 22, blurb: 'Hums a little at night. The fish find it soothing.' },
+  { id: 'goldcastle', name: 'Golden castle', price: 15000, w: 32, h: 44, blurb: 'The sandcastle, but make it treasure.' },
+  { id: 'hoard', name: 'Treasure hoard', price: 25000, w: 30, h: 17, blurb: 'A dragon would be jealous.' },
+  { id: 'statue', name: 'Golden fish statue', price: 50000, w: 20, h: 31, blurb: 'A monument to the one that got away. It did not get away.' },
 ];
 const DECOR_BY_ID = Object.fromEntries(DECOR.map(d => [d.id, d]));
 const MAX_DECOR = 30;  // props placed in the tank at once

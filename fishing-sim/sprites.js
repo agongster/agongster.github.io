@@ -132,6 +132,14 @@ function drawAngler(g, look, d, blink) {
     P(1, 8 + d, 14, 12, hd);
     P(1, 8 + d, 2, 11, hc); P(13, 8 + d, 2, 11, hc);
   }
+  if (look.hair === 'sidetail') {
+    P(13, 7 + d, 3, 9, hc); P(14, 16 + d, 2, 1, hd); P(15, 9 + d, 1, 6, hd);
+    P(13, 7 + d, 3, 1, '#ff9ec4');
+  }
+  if (look.hair === 'curly') {
+    P(0, 7 + d, 2, 8, hc); P(14, 7 + d, 2, 8, hc);
+    P(0, 9 + d, 1, 1, hd); P(15, 12 + d, 1, 1, hd); P(1, 13 + d, 1, 1, hd);
+  }
   if (look.hair === 'pigtails') {
     P(-1, 9 + d, 3, 6, hc); P(14, 9 + d, 3, 6, hc);
     P(-1, 14 + d, 3, 1, hd); P(14, 14 + d, 3, 1, hd);
@@ -139,7 +147,7 @@ function drawAngler(g, look, d, blink) {
   }
 
   // --- legs
-  const legC = look.top === 'overalls' ? denim : look.top === 'sailor' ? tc : pants;
+  const legC = look.top === 'overalls' ? denim : look.top === 'sailor' ? tc : look.top === 'tux' ? '#2a2a3a' : pants;
   P(5, 21, 2, 3, legC); P(9, 21, 2, 3, legC);
   P(4, 20, 8, 1, legC);
   P(4, 24, 3, 1, shoes); P(9, 24, 3, 1, shoes);
@@ -179,6 +187,34 @@ function drawAngler(g, look, d, blink) {
       P(7, 16, 2, 2, '#e0566e');
       P(4, 19, 8, 1, '#e0dcd4');
       break;
+    case 'kimono': {
+      P(4, 15, 8, 5, tc); sleeves(4, tc); P(2, 16, 1, 3, tc); P(13, 16, 1, 3, tc);
+      P(6, 15, 1, 1, cream); P(7, 16, 1, 1, cream); P(9, 15, 1, 1, cream); P(8, 16, 1, 1, cream);
+      P(4, 18, 8, 1, '#e0566e'); P(7, 18, 2, 1, '#ffd23f'); P(11, 15, 1, 3, ts);
+      break;
+    }
+    case 'tux': {
+      const bk = '#2a2a3a';
+      P(4, 15, 8, 5, bk); sleeves(4, bk);
+      P(6, 15, 4, 4, '#ffffff'); P(7, 17, 1, 1, bk); P(8, 18, 1, 1, bk);
+      P(6, 15, 1, 1, '#e0566e'); P(9, 15, 1, 1, '#e0566e'); P(7, 15, 2, 1, '#b83a55');
+      P(5, 16, 1, 3, '#3a3a50'); P(10, 16, 1, 3, '#3a3a50');
+      break;
+    }
+    case 'goldjacket': {
+      const gd = '#ffd23f', gs = '#e0a020';
+      P(4, 15, 8, 5, gd); sleeves(4, gd); P(11, 15, 1, 5, gs); P(3, 18, 1, 1, gs);
+      P(7, 15, 2, 4, '#2a2a3a'); P(6, 15, 1, 3, '#fff3a0'); P(9, 15, 1, 3, '#fff3a0');
+      P(5, 18, 1, 1, '#fff3a0');
+      break;
+    }
+    case 'robe': {
+      const rd = '#b8302a', rs = '#8a2020';
+      P(3, 15, 10, 7, rd); sleeves(4, rd); P(12, 15, 1, 6, rs);
+      P(3, 15, 10, 1, '#ffffff'); P(5, 15, 1, 1, OUTLINE); P(10, 15, 1, 1, OUTLINE);
+      P(7, 16, 2, 5, '#ffd23f'); P(3, 21, 10, 1, '#ffffff'); P(6, 21, 1, 1, OUTLINE); P(10, 21, 1, 1, OUTLINE);
+      break;
+    }
     default: // tee
       P(4, 15, 8, 5, tc); sleeves(2, tc);
       P(11, 15, 1, 5, ts); P(4, 19, 8, 1, ts);
@@ -211,6 +247,27 @@ function drawAngler(g, look, d, blink) {
         P(x, 10 + d, 1, 2, fr); P(x + 2, 10 + d, 1, 2, fr);
       }
       P(7, 10 + d, 2, 1, fr);
+      break;
+    }
+    case 'mustache':
+      P(5, 12 + d, 6, 1, '#5a3a2a'); P(4, 13 + d, 1, 1, '#5a3a2a'); P(11, 13 + d, 1, 1, '#5a3a2a');
+      break;
+    case 'monocle': {
+      const gd = '#ffd23f';
+      P(9, 9 + d, 3, 1, gd); P(9, 12 + d, 3, 1, gd); P(9, 10 + d, 1, 2, gd); P(11, 10 + d, 1, 2, gd);
+      P(12, 12 + d, 1, 3, gd);
+      break;
+    }
+    case 'starshades': {
+      const st = '#ffd23f';
+      for (const x of [4, 9]) { P(x + 1, 9 + d, 1, 1, st); P(x, 10 + d, 3, 1, st); P(x, 11 + d, 1, 1, st); P(x + 2, 11 + d, 1, 1, st); }
+      P(5, 10 + d, 1, 1, '#fff3a0'); P(10, 10 + d, 1, 1, '#fff3a0');
+      P(7, 10 + d, 2, 1, '#3b2433');
+      break;
+    }
+    case 'diamondshades': {
+      for (const x of [4, 9]) { P(x, 9 + d, 3, 3, '#7ae0ff'); P(x, 9 + d, 1, 1, '#ffffff'); P(x + 2, 11 + d, 1, 1, '#4ab0e0'); }
+      P(7, 10 + d, 2, 1, '#e8f4ff');
       break;
     }
     case 'shades': {
@@ -257,6 +314,21 @@ function drawAngler(g, look, d, blink) {
       P(3, 4 + d, 10, 1, hc); P(2, 5 + d, 12, 3, hc);
       P(2, 8 + d, 4, 1, hc); P(10, 8 + d, 4, 1, hc);
       P(2, 9 + d, 1, 1, hc); P(13, 9 + d, 1, 1, hc);
+      P(4, 5 + d, 3, 1, hl);
+      break;
+    case 'curly':
+      P(2, 3 + d, 12, 1, hc); P(1, 4 + d, 14, 4, hc); P(0, 5 + d, 1, 3, hc); P(15, 5 + d, 1, 3, hc);
+      P(1, 8 + d, 3, 1, hc); P(6, 8 + d, 4, 1, hc); P(12, 8 + d, 3, 1, hc);
+      P(3, 4 + d, 1, 1, hl); P(6, 5 + d, 1, 1, hl); P(9, 4 + d, 1, 1, hl); P(12, 5 + d, 1, 1, hl); P(4, 7 + d, 1, 1, hd); P(10, 6 + d, 1, 1, hd);
+      break;
+    case 'mohawk':
+      P(7, -1 + d, 2, 1, hc); P(6, 0 + d, 4, 5, hc); P(5, 5 + d, 6, 2, hc);
+      P(2, 6 + d, 3, 3, hd); P(11, 6 + d, 3, 3, hd);
+      P(7, 0 + d, 1, 4, hl);
+      break;
+    case 'sidetail':
+      P(3, 4 + d, 10, 1, hc); P(2, 5 + d, 12, 3, hc);
+      P(2, 8 + d, 3, 1, hc); P(8, 8 + d, 6, 1, hc); P(13, 9 + d, 1, 2, hc);
       P(4, 5 + d, 3, 1, hl);
       break;
     default: // bob
@@ -323,6 +395,55 @@ function drawAngler(g, look, d, blink) {
       P(12, 2 + d, 1, 2, fc); P(13, 1 + d, 2, 2, fd); P(13, 3 + d, 2, 2, fd);
       P(3, 2 + d, 1, 1, OUTLINE); P(1, 4 + d, 1, 1, fd);
       P(6, 2 + d, 1, 2, fd);
+      break;
+    }
+    case 'party': {
+      const a = '#7fb8e6', b = '#ff9ec4';
+      P(7, -1 + d, 2, 1, '#ffd23f');
+      P(7, 0 + d, 2, 1, a); P(6, 1 + d, 4, 1, b); P(6, 2 + d, 4, 1, a); P(5, 3 + d, 6, 1, b); P(5, 4 + d, 6, 1, a);
+      P(4, 5 + d, 8, 1, '#ffd23f');
+      break;
+    }
+    case 'chef': {
+      const wt = '#ffffff', sh = '#e4dcef';
+      P(4, -1 + d, 8, 1, wt); P(3, 0 + d, 10, 3, wt); P(4, 3 + d, 8, 2, wt);
+      P(4, 5 + d, 8, 1, sh); P(3, 6 + d, 10, 1, wt);
+      P(5, 0 + d, 1, 2, sh); P(9, 0 + d, 1, 2, sh); P(11, 1 + d, 1, 1, sh);
+      break;
+    }
+    case 'pirate': {
+      const bk = '#2a2a3a';
+      P(4, 2 + d, 8, 1, bk); P(2, 3 + d, 12, 3, bk); P(0, 5 + d, 16, 2, bk);
+      P(0, 6 + d, 16, 1, '#ffd23f'); P(7, 3 + d, 2, 2, '#ffffff'); P(7, 4 + d, 1, 1, bk);
+      break;
+    }
+    case 'wizard': {
+      const pu = '#6a5ab8', pd = '#4a3a98';
+      P(9, -2 + d, 1, 1, pu); P(8, -1 + d, 2, 1, pu); P(7, 0 + d, 3, 1, pu); P(6, 1 + d, 4, 1, pu);
+      P(6, 2 + d, 5, 1, pu); P(5, 3 + d, 6, 1, pu); P(4, 4 + d, 8, 1, pu);
+      P(1, 5 + d, 14, 1, pd); P(0, 6 + d, 16, 1, pd);
+      P(7, 2 + d, 1, 1, '#ffd23f'); P(9, 4 + d, 1, 1, '#ffd23f'); P(5, 4 + d, 1, 1, '#fff3a0');
+      break;
+    }
+    case 'tophat': {
+      const bk = '#2a2a3a';
+      P(4, -2 + d, 8, 6, bk); P(4, 2 + d, 8, 1, '#e0566e'); P(1, 4 + d, 14, 1, bk); P(0, 5 + d, 16, 1, bk);
+      P(5, -1 + d, 1, 3, '#5a5a6a');
+      break;
+    }
+    case 'halo': {
+      const hg = '#ffe680', hd2 = '#ffc840';
+      P(4, -2 + d, 8, 1, hg); P(3, -1 + d, 1, 1, hg); P(12, -1 + d, 1, 1, hg); P(4, 0 + d, 8, 1, hd2);
+      P(5, -2 + d, 2, 1, '#fffbe0');
+      break;
+    }
+    case 'diamondcrown': {
+      const pl = '#e8f4ff', ps = '#b0c8e8';
+      P(4, 0 + d, 1, 1, pl); P(7, -1 + d, 2, 1, pl); P(11, 0 + d, 1, 1, pl);
+      P(4, 1 + d, 2, 1, pl); P(7, 0 + d, 2, 2, pl); P(10, 1 + d, 2, 1, pl);
+      P(4, 2 + d, 8, 2, pl); P(4, 4 + d, 8, 1, ps);
+      P(5, 2 + d, 1, 1, '#ff9ec4'); P(7, 2 + d, 2, 1, '#7ae0ff'); P(10, 2 + d, 1, 1, '#b89cff');
+      P(7, -1 + d, 1, 1, '#ffffff'); P(8, 0 + d, 1, 1, '#7ae0ff');
       break;
     }
     case 'crown': {
@@ -395,6 +516,181 @@ const BUDDY_ART = {
     ],
     pal: { y: '#ffb030', L: '#6fbf73', b: '#b07a50', r: '#8a5a3a', e: OUTLINE, m: '#d4a474', n: '#5a3424' },
     blinkRow: 4, bodyKey: 'b',
+  },
+  // ---- fancier friends (the eyes sit on blinkRow; blinking paints them bodyKey)
+  bunny: {
+    rows: [
+      '.b...b....',
+      '.bp..bp...',
+      '.bb..bb...',
+      '.bbbbbb...',
+      'bbebbebb..',
+      'bbbnnbbbt.',
+      '.bbbbbbbtt',
+      '.bbbbbbb..',
+      '.bb..bb...',
+    ],
+    pal: { b: '#f8f2ec', p: '#ffb0c8', e: OUTLINE, n: '#ff8fa0', t: '#ffffff' },
+    blinkRow: 4, bodyKey: 'b',
+  },
+  penguin: {
+    rows: [
+      '..bbbbb..',
+      '.bbbbbbb.',
+      '.bfefefb.',
+      '.bffoffb.',
+      'bbfffffbb',
+      'bbfffffbb',
+      '.bfffffb.',
+      '..o...o..',
+    ],
+    pal: { b: '#3a3a50', f: '#f8f8ff', e: OUTLINE, o: '#ffb040' },
+    blinkRow: 2, bodyKey: 'f',
+  },
+  fox: {
+    rows: [
+      'b.....b....',
+      'bb...bb....',
+      'bbbbbbb....',
+      'bebbbebb..t',
+      'bffbffbb.tt',
+      '.ffnff.btts',
+      '.bbbbbbbbts',
+      'bbbbbbbbbt.',
+      'bs.bb.bs...',
+    ],
+    pal: { b: '#ff8a3a', f: '#fff4e8', n: OUTLINE, e: OUTLINE, t: '#ff8a3a', s: '#fff4e8' },
+    blinkRow: 3, bodyKey: 'b',
+  },
+  panda: {
+    rows: [
+      'pp....pp',
+      'pbbbbbbp',
+      'bppbbppb',
+      'bpebbepb',
+      'bbbnnbbb',
+      '.bbbbbb.',
+      'pbbbbbbp',
+      'pp.bb.pp',
+    ],
+    pal: { b: '#f8f8f8', p: '#3a3a48', e: '#ffffff', n: '#3a3a48' },
+    blinkRow: 3, bodyKey: 'p',
+  },
+  axolotl: {
+    rows: [
+      'm.aaaaa.m.',
+      'mmaaaaaamm',
+      '.aeaaaeaa.',
+      '.aaapaaa..',
+      '..aaaaaaa.',
+      '.aaaaaaaaa',
+      '.a.a..a.a.',
+    ],
+    pal: { a: '#ffb0cc', m: '#e0508a', e: OUTLINE, p: '#e0508a' },
+    blinkRow: 2, bodyKey: 'a',
+  },
+  corgi: {
+    rows: [
+      'b....b......',
+      'bb..bb......',
+      'bbbbbb......',
+      'bebbebb.....',
+      'bffnffbbbbbt',
+      '.ffffbbbbbbb',
+      '..bbbbbbbbb.',
+      '..fb.fb..fb.',
+    ],
+    pal: { b: '#f0a050', f: '#fff4e8', n: OUTLINE, e: OUTLINE, t: '#f0a050' },
+    blinkRow: 3, bodyKey: 'b',
+  },
+  otter: {
+    rows: [
+      '..bbbb....',
+      '.bbbbbb...',
+      '.bebbeb...',
+      '.bfnffb...',
+      '.bffffbb..',
+      'bbcbbcbbb.',
+      '.bbbbbbbbt',
+      '..bb..bb.t',
+    ],
+    pal: { b: '#8a5a3a', f: '#d8b090', e: OUTLINE, n: OUTLINE, c: '#e8d8f0', t: '#8a5a3a' },
+    blinkRow: 2, bodyKey: 'b',
+  },
+  redpanda: {
+    rows: [
+      'b......b...',
+      'bbbbbbbb...',
+      'bffbbffb...',
+      'bfebbefb...',
+      'bbbnnbbb..t',
+      '.bbbbbb..ts',
+      '.dbbbbbd.ts',
+      'dddddddd.t.',
+      'dd.dd.dd...',
+    ],
+    pal: { b: '#d0603a', f: '#fff4e8', e: OUTLINE, n: OUTLINE, d: '#5a2a2a', t: '#d0603a', s: '#f0c0a0' },
+    blinkRow: 3, bodyKey: 'f',
+  },
+  ghost: {
+    rows: [
+      '..gggg...',
+      '.gggggg..',
+      'gggggggg.',
+      'geggggeg.',
+      'gggppggg.',
+      'gggggggg.',
+      'gggggggg.',
+      'g.gg.gg.g',
+    ],
+    pal: { g: '#f4f0ff', e: OUTLINE, p: '#ffb0c8' },
+    blinkRow: 3, bodyKey: 'g',
+  },
+  dragon: {
+    rows: [
+      '.......h.h...',
+      '......gggg...',
+      '.....ggegg...',
+      '......ggnn...',
+      '.v..gggggg...',
+      'vvv.gglllgg..',
+      '.vvgglllggg.t',
+      '..ggggggggttt',
+      '..g.g..g.g...',
+    ],
+    pal: { g: '#6fcf8f', h: '#ffd23f', e: OUTLINE, n: '#4a9a6a', v: '#b89cff', l: '#d8f8c0', t: '#6fcf8f' },
+    blinkRow: 2, bodyKey: 'g',
+  },
+  unicorn: {
+    rows: [
+      '....y......',
+      '....y......',
+      '..mbbb.....',
+      '.mmbbeb....',
+      '.mbbbbbp...',
+      '.mbbbbb....',
+      'mmbbbbbbbbm',
+      'm.bbbbbbbbm',
+      '..bb..bb...',
+      '..hh..hh...',
+    ],
+    pal: { y: '#ffd23f', m: '#c89cff', b: '#ffffff', e: OUTLINE, p: '#ffb0c8', h: '#c8b8d8' },
+    blinkRow: 3, bodyKey: 'b',
+  },
+  goldduck: {
+    rows: [
+      '..yyyy....',
+      '.yyyyyy...',
+      '.yyyyeyoo.',
+      '.yyyyyyoo.',
+      '..yyyyy...',
+      'yyyyyyyy..',
+      'yywwwwyyy.',
+      '.yyyyyyy..',
+      '..o...o...',
+    ],
+    pal: { y: '#ffd23f', w: '#e0a020', e: OUTLINE, o: '#ff8a3a' },
+    blinkRow: 2, bodyKey: 'y',
   },
 };
 const buddyCache = new Map();

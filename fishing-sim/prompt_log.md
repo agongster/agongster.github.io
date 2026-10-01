@@ -353,6 +353,30 @@ commit and push these changes/
 make it so that the user can occassionally catch enchantments that boost their luck and net temporarily. they can use these at will after catching. ALSO add 100 more types of new fish, and make fishing slightly easier for the low price rods and slightly harder for the higher price rods (in general), the luck metrics should still be the same for these though
 ```
 
+```
+yes
+```
+
+```
+add a chat room to the multiplayer version of the game. make the star rod 10000 coins.
+```
+
+```
+make the fish do slightly more movements, so the user has to move the net around a bit more to catch the fish
+```
+
+```
+are the user passwords all encrypted and secure?
+```
+
+```
+do not slow the fish when upgrading the tackle
+```
+
+```
+i think improve grip and speed that you can move the net range at. also, please make it so the buddies are visible in the boats. and add a lot of new buddy options with higher prices. generally, make much more expensive options for everything available.
+```
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -395,6 +419,26 @@ make it so that the user can occassionally catch enchantments that boost their l
   - They're drawn by the same code as before (body shapes, patterns, colours). A few reuse the crab, jelly, seahorse, axolotl and narwhal pixel art in new colours.
   - A check confirmed no duplicate ids or names, and that every spot still has common fish at every time of day. All 172 sprites render.
 - **Rods rebalanced:** Twig and Bamboo got a bigger net, faster reel, and more fish-slowing and grip. Sunset and Star got a little less of each. Luck is unchanged. With the simulated player, Twig on uncommons went from 31% to 91% and Bamboo on rares from 7% to 54%, while Sunset on legendaries went from 27% to 9% and Star on LeBron from 95% to 20%. Better rods are still clearly better.
+- **Chat:** each world (your own or a friend's) is a chat room.
+  - **Server:** a new `chat` message type. The server trims each message to one line of up to 150 characters, allows 5 per 10 seconds per player (anything faster gets a "slow down" reply), keeps the last 30 messages of each room, and sends them to anyone who joins. A new server test covers all of this.
+  - **Game:** a **Chat** button in the multiplayer bar shows an unread count and opens a small panel with the log and a text box. Enter sends and Escape leaves the box; typing never casts the line. On bigger screens, messages pop up over the sender's head for a few seconds. On phones the anglers stand too close for that, so the name tag lights up with "..." instead.
+  - **Safety:** messages are built with `textContent`, never HTML, because they're whatever people typed. A test sent `<img src=x onerror=...>` and it showed as plain text.
+- **Star Rod** now costs 10,000 coins (was 1,000).
+- **Livelier fish in the chase:**
+  - **Movement:** the fish picks a new spot about 30% more often, and every ordinary move goes at least 32px, so it no longer sits still (a common fish used to hold still about 8–13% of the time; now about 2%). It swims 12–20% further per second, darts slightly more, and has a small side-to-side swish. Its top speed is a touch lower, so the net can always keep up.
+  - **Balance:** that alone made fishing clearly harder (Bamboo on rare fish fell from about 57% to 20% in the simulation), so the catch bar now drains 15% more slowly when the fish slips out. Overall catch rates end up close to before (e.g. Twig on uncommons 89% vs 93%, Star on legendaries 93% vs 81%), but every fight has more chasing and takes a few seconds longer.
+  - **Where the AI got it wrong:** its first "before" measurement was invalid. The simulator keeps its own copy of the movement code, so stashing the game file changed nothing and both runs used the new movement. It rebuilt the old version in the simulator to get a real baseline.
+- **Password check (question only):** the AI read the server code and confirmed passwords are hashed with bcrypt (salted, cost 12) and never stored, logged or returned. It flagged three small gaps it could fix: no limit on login attempts, bcrypt ignoring anything past 72 characters, and a timing hint that reveals which emails have accounts.
+- **Rods no longer slow fish:** the "tame" stat and its "Fish slowed" label are gone, and two rod descriptions that promised it were reworded. The simulation showed this made better rods much weaker (Star on legendaries fell from 93% to 29%), which led to the next change.
+- **Grip and net speed:** every rod has better grip and a new **net speed** stat: how fast the net moves and how quickly it gets going (150 to 210 across the four rods, up from a flat 150). Two new top rods: **Aurora Rod** (40,000) and **GOAT Rod** (150,000), each with a sparkle at the tip. In the simulation, Star on legendaries is back to 91%, Bamboo on rare fish is 23%, and the new rods catch nearly anything.
+- **Buddies in boats:** buddies were drawn behind the hull, so only their ears showed. In a boat they now sit up on the side, drawn after the hull, and are visible in all nine styles (checked with screenshots).
+- **Twelve new buddies,** each drawn as pixel art with a blink: Bunny (1,000), Penguin, Fox, Panda, Axolotl, Corgi, Otter (with a clam), Red panda, Friendly ghost, Baby dragon, Unicorn (25,000) and Golden duck (50,000).
+- **Expensive options everywhere:**
+  - **Hats:** party, chef, pirate, wizard, top hat, halo, and a diamond crown (30,000).
+  - **Tops:** kimono, tuxedo, gold jacket, and a royal robe (20,000).
+  - **Hair:** big curls, mohawk, side ponytail. **Faces:** moustache, monocle, star shades, diamond shades (15,000).
+  - **Boats:** two new styles, a Yacht in your colours (12,000) and a gold Royal barge with a crown figurehead (40,000). Also obsidian, rose gold and diamond hulls (to 25,000); platinum, ruby and emerald stripes; rainbow and golden sails and a royal crest; crown, rainbow and GOAT flags; animated fireworks and a treasure hoard on deck.
+  - **Tank:** rainbow coral, crystal cluster, golden castle, treasure hoard, and a golden fish statue (50,000). Two bigger aquariums: Royal (40 fish, 6,000) and Ocean palace (64 fish, 30,000).
 
 ### Changes I made myself
 

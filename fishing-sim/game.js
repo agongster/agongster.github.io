@@ -543,25 +543,39 @@ function startReel() {
 function updateReel(dt) {
   const r = G.reel, d = r.sp.diff, rod = currentRod();
   const tier = RARITY[r.sp.rarity].reel;
-  // rarer fish swim faster; better rods tire them out
-  const pace = tier.speed * rod.tame;
+  // rarer fish swim faster (whatever rod you use)
+  const pace = tier.speed;
   const m = 14;
 
-  // the fish picks somewhere new to swim every so often, sometimes darting far
+  // the fish picks somewhere new to swim every so often, sometimes darting far.
+  // Every move goes a fair way, so even a calm fish keeps the net busy.
   r.timer -= dt;
   if (r.timer <= 0) {
-    const dart = Math.random() < d * 0.05;
-    r.tx = dart ? (r.fx < RP.w / 2 ? rand(RP.w * 0.65, RP.w - m) : rand(m, RP.w * 0.35)) : clamp(r.fx + rand(-90, 90), m, RP.w - m);
-    r.ty = dart ? rand(m, RP.h - 20) : clamp(r.fy + rand(-55, 55), m, RP.h - 20);
-    r.timer = rand(0.5, 1.4) / ((0.6 + d * 0.22) * pace);
+    const dart = Math.random() < 0.02 + d * 0.045;
+    if (dart) {
+      r.tx = r.fx < RP.w / 2 ? rand(RP.w * 0.65, RP.w - m) : rand(m, RP.w * 0.35);
+      r.ty = rand(m, RP.h - 20);
+    } else {
+      const ang = rand(0, Math.PI * 2), dist = rand(32, 95);
+      let tx = r.fx + Math.cos(ang) * dist, ty = r.fy + Math.sin(ang) * dist * 0.6;
+      // bumped into a wall? head the other way instead
+      if (tx < m || tx > RP.w - m) tx = r.fx - Math.cos(ang) * dist;
+      if (ty < m || ty > RP.h - 20) ty = r.fy - Math.sin(ang) * dist * 0.6;
+      r.tx = clamp(tx, m, RP.w - m);
+      r.ty = clamp(ty, m, RP.h - 20);
+    }
+    r.timer = rand(0.4, 1.05) / ((0.6 + d * 0.22) * pace);
   }
   // eases toward its target, but never faster than the net can follow
-  const k = Math.min(1, dt * (0.8 + d * 0.4) * pace);
+  const k = Math.min(1, dt * (0.85 + d * 0.4) * pace);
   let dx = (r.tx - r.fx) * k, dy = (r.ty - r.fy) * k;
-  const maxStep = Math.min(135, (35 + d * 14) * pace) * dt, step = Math.hypot(dx, dy);
+  const maxStep = Math.min(135, (34 + d * 14) * pace) * dt, step = Math.hypot(dx, dy);
   if (step > maxStep) { dx *= maxStep / step; dy *= maxStep / step; }
-  r.fx += dx;
-  r.fy += dy + Math.sin(G.time * (3 + d)) * d * 0.06;
+  // plus a little swish from side to side and a bob up and down
+  r.fx += dx + Math.sin(G.time * (2.4 + d * 0.3)) * (0.18 + d * 0.03);
+  r.fy += dy + Math.sin(G.time * (3 + d)) * d * 0.07;
+  r.fx = clamp(r.fx, 6, RP.w - 6);
+  r.fy = clamp(r.fy, 6, RP.h - 10);
   if (Math.abs(dx) > 0.05) r.dir = Math.sign(dx);
   if (Math.random() < dt * 2) r.bubbles.push({ x: r.fx + r.dir * 6, y: r.fy - 2, v: rand(12, 22) });
 
@@ -574,11 +588,13 @@ function updateReel(dt) {
   }
   const len = Math.hypot(ax, ay);
   if (len > 1) { ax /= len; ay /= len; }
-  r.vx += ax * 800 * dt; r.vy += ay * 800 * dt;
+  // better rods move the net faster and get it going quicker
+  const top = rod.netSpeed;
+  r.vx += ax * 800 * (top / 150) * dt; r.vy += ay * 800 * (top / 150) * dt;
   const drag = Math.exp(-5 * dt);
   r.vx *= drag; r.vy *= drag;
   const sp = Math.hypot(r.vx, r.vy);
-  if (sp > 150) { r.vx *= 150 / sp; r.vy *= 150 / sp; }
+  if (sp > top) { r.vx *= top / sp; r.vy *= top / sp; }
   r.nx += r.vx * dt; r.ny += r.vy * dt;
   if (r.nx < r.net || r.nx > RP.w - r.net) { r.nx = clamp(r.nx, r.net, RP.w - r.net); r.vx = 0; }
   if (r.ny < r.net || r.ny > RP.h - r.net) { r.ny = clamp(r.ny, r.net, RP.h - r.net); r.vy = 0; }
@@ -591,7 +607,8 @@ function updateReel(dt) {
   } else if (r.grace > 0) {
     r.grace -= dt;
   } else {
-    r.progress -= (0.1 + d * 0.03) * tier.drain * rod.grip * dt;
+    // (a touch gentler than it used to be, since the fish now moves around more)
+    r.progress -= (0.1 + d * 0.03) * tier.drain * rod.grip * 0.85 * dt;
   }
   if (Math.random() < dt * 3) r.bubbles.push({ x: rand(0, RP.w), y: RP.h - 8, v: rand(8, 18) });
   r.bubbles = r.bubbles.filter(b => (b.y -= b.v * dt) > 0);
@@ -1409,12 +1426,13 @@ function drawPlatform(g, pal, loc) {
     const boat = worldBoat();
     drawBoatBack(g, bx, by, boat);
     drawLantern(g, bx + 5, by - 26, by - 1, pal);
-    drawBuddy(g, 72);
     if (typeof Net !== 'undefined') Net.drawPlayers(g, loc);
     drawAnglerInScene(g);
     drawRod(g);
     drawBoatFront(g, bx, by, pal, boat);
     drawBoatExtras(g, bx, by, pal, boat, { lightsFrom: { x: bx + 6, y: by - 25 } });
+    // in a boat, the buddy sits up on the side so the hull doesn't hide it
+    drawBuddy(g, 70, by - 1, false);
   } else {
     drawDock(g, pal);
     // your boat, tied up at the dock until you unlock somewhere to sail
@@ -1488,6 +1506,49 @@ function birdBody(g, bx, by, light, dark) {
 // Every boat style draws a back half (behind the angler) and a front half
 // (in front of them), always around the same rim line at y = by.
 const BOAT_STYLES = {
+  // a sleek little yacht in your colours, with a cabin behind you
+  yacht: {
+    back(g, bx, by, c) {
+      rect(g, bx + 46, by - 15, 28, 13, '#f4efe6'); rect(g, bx + 46, by - 15, 28, 1, '#ffffff');
+      rect(g, bx + 44, by - 16, 32, 2, c.hullDark);
+      for (const wx of [50, 58, 66]) { rect(g, bx + wx, by - 11, 5, 4, '#7fb8e6'); rect(g, bx + wx, by - 11, 2, 1, '#e8f8ff'); }
+      rect(g, bx + 3, by - 4, 74, 4, '#d8d0c8');
+    },
+    front(g, bx, by, c) {
+      for (let i = 0; i < 9; i++) rect(g, bx + 80 + i, by - 7 + i, 3, 9 - i, i < 1 ? '#ffffff' : c.hull);
+      rect(g, bx, by - 1, 82, 1, '#ffffff');
+      rect(g, bx, by, 82, 2, c.hull);
+      rect(g, bx, by + 2, 82, 1, c.trim);
+      for (let i = 0; i < 5; i++) {
+        const inset = i < 2 ? 0 : (i - 1) * 3;
+        rect(g, bx + inset, by + 3 + i, 84 - inset * 2, 1, i > 2 ? c.hullDark : c.hull);
+      }
+      rect(g, bx + 8, by + 3, 70, 1, c.trim);
+    },
+  },
+  // gold all over, a purple drape, and a crown on the bow
+  royal: {
+    back(g, bx, by) {
+      rect(g, bx + 2, by - 6, 76, 2, '#c89a20'); rect(g, bx + 2, by - 4, 76, 4, '#8a6a10');
+      for (let x = 6; x < 76; x += 10) rect(g, bx + x, by - 10, 2, 5, '#e0b030');
+    },
+    front(g, bx, by) {
+      const gd = '#ffd23f', gs = '#d8a020', pu = '#7a4ab8';
+      for (let i = 0; i < 8; i++) rect(g, bx + 78 + i, by - 7 + i, 3, 9 - i, i < 2 ? '#fff3a0' : gd);
+      rect(g, bx, by - 1, 82, 1, '#fff3a0'); rect(g, bx, by, 82, 2, gd);
+      for (let x = 0; x < 80; x += 8) { rect(g, bx + x, by + 2, 8, 2, pu); rect(g, bx + x + 3, by + 4, 2, 1, pu); }
+      for (let i = 0; i < 5; i++) {
+        const inset = i < 2 ? 0 : (i - 1) * 3;
+        rect(g, bx + inset, by + 4 + i, 84 - inset * 2, 1, i > 2 ? gs : gd);
+      }
+      // the crown figurehead
+      const cx = bx + 86, cy = by - 14;
+      rect(g, cx, cy + 3, 7, 3, gd); rect(g, cx, cy + 1, 1, 2, gd); rect(g, cx + 3, cy, 1, 3, gd); rect(g, cx + 6, cy + 1, 1, 2, gd);
+      rect(g, cx + 3, cy + 4, 1, 1, '#e0566e'); rect(g, cx + 1, cy + 4, 1, 1, '#7ae0ff'); rect(g, cx + 5, cy + 4, 1, 1, '#8fd19e');
+      rect(g, cx + 3, cy + 6, 1, 3, gs);
+      if (Math.sin(G.time * 3) > 0.6) rect(g, cx + 3, cy - 2, 1, 1, '#ffffff');
+    },
+  },
   rowboat: {
     back(g, bx, by) {
       rect(g, bx + 3, by - 5, 74, 2, '#6a3a2e');
@@ -1685,13 +1746,18 @@ const FLAG_ART = {
   heart: { rows: ['wwwwwww', 'wppwppw', 'wpppppw', 'wwpppww', 'wwwpwww'], pal: { w: '#fff4e0', p: '#ff5c8a' } },
   pirate: { rows: ['kkkkkkk', 'kkwwwkk', 'kkwkwkk', 'kkkwkkk', 'kwkkkwk'], pal: { k: '#2a1a2e', w: '#fff4e0' } },
   fish: { rows: ['bbbbbbb', 'obooobb', 'ooooeob', 'obooobb', 'bbbbbbb'], pal: { b: '#7fb8e6', o: '#ff8a3c', e: OUTLINE } },
+  crown: { rows: ['ppppppp', 'pgpgpgp', 'pgggggp', 'pgrgbgp', 'ppppppp'], pal: { p: '#7a4ab8', g: '#ffd23f', r: '#e0566e', b: '#7ae0ff' } },
+  rainbow: { rows: ['rrrrrrr', 'ooooooo', 'yyyyyyy', 'ggggggg', 'bbbbbbb'], pal: { r: '#ff6a7a', o: '#ffa850', y: '#ffe070', g: '#8fe0a0', b: '#7ab0f0' } },
+  goat: { rows: ['ggggggg', 'gwgggwg', 'gwwwwwg', 'ggwkwgg', 'gggwggg'], pal: { g: '#ffd23f', w: '#fff8e8', k: OUTLINE } },
 };
 
 const SAIL_MOTIFS = {
   heart: { rows: ['.hh.hh.', 'hhhhhhh', 'hhhhhhh', '.hhhhh.', '..hhh..', '...h...'], col: '#ff5c8a' },
   star: { rows: ['...s...', '...s...', 'sssssss', '.sssss.', '..sss..', '.ss.ss.', 's.....s'], col: '#ffc83a' },
   fish: { rows: ['..bbb...', 'f.bbbbb.', 'ffbbbbeb', 'f.bbbbb.', '..bbb...'], col: '#6aa8e0' },
+  crown: { rows: ['c..c..c', 'cc.c.cc', 'ccccccc', 'cfcfcfc', 'ccccccc'], col: '#d8a020' },
 };
+const RAINBOW = ['#ff6a7a', '#ffa850', '#ffe070', '#8fe0a0', '#7ab0f0', '#b89cff'];
 
 function drawSail(g, bx, by, boat = save.boat) {
   const { hull, trim } = boatColors(boat);
@@ -1704,6 +1770,8 @@ function drawSail(g, bx, by, boat = save.boat) {
     let col = cream;
     if (boat.sail === 'plain' && i % 6 === 0) col = '#ffd27a';
     if (boat.sail === 'stripes' && Math.floor(i / 3) % 2) col = stripe;
+    if (boat.sail === 'rainbow') col = RAINBOW[Math.floor(i / 4.5) % RAINBOW.length];
+    if (boat.sail === 'gold' || boat.sail === 'crown') col = i % 5 === 0 ? '#fff3a0' : '#ffd23f';
     rect(g, bx + 42, top + i, widthAt(i), 1, col);
   }
   const motif = SAIL_MOTIFS[boat.sail];
@@ -1753,6 +1821,31 @@ function drawBoatExtras(g, bx, by, pal, boat = save.boat, { sail = false, lights
       rect(g, dx + 4, dy + 1, 1, 1, '#ff9a3c'); rect(g, dx + 3, dy, 1, 1, OUTLINE);
       break;
     }
+    case 'treasure': {
+      // a little hoard of gold on deck
+      const tx = bx + 58, ty = by - 1;
+      rect(g, tx, ty - 5, 12, 5, '#a8603e'); rect(g, tx, ty - 7, 12, 2, '#c07850'); rect(g, tx, ty - 5, 12, 1, '#ffd23f');
+      rect(g, tx + 1, ty - 9, 10, 2, '#ffd23f'); rect(g, tx + 3, ty - 10, 6, 1, '#ffd23f');  // spilling out the top
+      rect(g, tx - 5, ty - 3, 5, 3, '#ffd23f'); rect(g, tx - 4, ty - 4, 3, 1, '#ffd23f');     // piles either side
+      rect(g, tx + 12, ty - 3, 5, 3, '#ffd23f'); rect(g, tx + 13, ty - 4, 3, 1, '#ffd23f');
+      rect(g, tx - 4, ty - 3, 1, 1, '#fff3a0'); rect(g, tx + 14, ty - 3, 1, 1, '#fff3a0');
+      rect(g, tx + 4, ty - 10, 2, 2, '#7ae0ff'); rect(g, tx + 8, ty - 9, 2, 2, '#ff6a7a');
+      if (Math.sin(G.time * 4) > 0.5) rect(g, tx + 6, ty - 12, 1, 1, '#ffffff');
+      break;
+    }
+    case 'fireworks': {
+      // bursts over the boat every couple of seconds
+      for (let k = 0; k < 2; k++) {
+        const phase = (G.time * 0.5 + k * 0.5) % 1, cx = bx + 25 + k * 40, cy = by - 40 - k * 6;
+        const col = RAINBOW[(Math.floor(G.time * 0.5 + k * 0.5) + k * 2) % RAINBOW.length];
+        if (phase < 0.35) rect(g, cx, by - 6 - (phase / 0.35) * 34 - k * 6, 1, 2, '#fff3c4');
+        else if (phase < 0.8) {
+          const r = (phase - 0.35) * 26;
+          for (let a = 0; a < 8; a++) rect(g, cx + Math.cos(a * Math.PI / 4) * r, cy + Math.sin(a * Math.PI / 4) * r, 1, 1, col);
+        }
+      }
+      break;
+    }
     case 'lights': {
       const from = lightsFrom || { x: bx + 6, y: by - 14 }, to = { x: bx + 80, y: by - 7 };
       const cols = ['#ff6a7a', '#ffd23f', '#7ad0f0', '#8fe0a0'];
@@ -1780,13 +1873,12 @@ function drawLampGlow(g, pal, loc) {
   disc(g, x, y, 6, rgba('#fff0b0', 0.12 * pal.lamp * flick));
 }
 
-function drawBuddy(g, cx) {
+function drawBuddy(g, cx, feet = FEET_Y + 2 + G.platY, shadow = true) {
   if (save.look.buddy === 'none') return;
   const spr = buddySprite(save.look.buddy, G.buddyBlinking > 0);
   if (!spr) return;
   const hop = Math.floor(G.time * 1.6) % 2;
-  const feet = FEET_Y + 2 + G.platY;
-  ellipse(g, cx, feet, Math.round(spr.width / 2), 1, 'rgba(42,26,46,0.25)');
+  if (shadow) ellipse(g, cx, feet, Math.round(spr.width / 2), 1, 'rgba(42,26,46,0.25)');
   g.drawImage(spr, cx - Math.round(spr.width / 2), feet - spr.height + hop);
 }
 
@@ -1813,7 +1905,7 @@ function drawRod(g) {
   curve(g, h.x, h.y + 3, mx, my, tip.x, tip.y, rod.color, 0.25);
   rect(g, h.x, h.y + 2, 2, 3, OUTLINE);
   rect(g, h.x - 1, h.y - 1, 2, 2, '#b8b0c0');
-  if (rod.id === 'star' && Math.sin(G.time * 4) > 0.3) rect(g, tip.x - 1, tip.y - 1, 1, 1, '#fff3c4');
+  if (rod.sparkle && Math.sin(G.time * 4) > 0.3) rect(g, tip.x - 1, tip.y - 1, 1, 1, rod.sparkle);
 }
 
 function drawFrontProps(g, pal, loc) {

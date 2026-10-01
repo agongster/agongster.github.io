@@ -10,6 +10,8 @@ const Net = (() => {
   let pingAt = 0, replaced = false, pongs = false;
   let stateTimer = 0, helloTimer = 0, worldTimer = 0, lastState = '';
   const others = new Map(); // username -> player drawn in our scene
+  // chat for the room we're in: [{ from, text }], plus what's unread while the panel is shut
+  let chatLog = [], chatOpen = false, unread = 0, chatSentAt = 0;
 
   const SLOTS = { dock: [62, 118, 36], boat: [68, 112, 54] };
   const isHome = () => !G.visit;
@@ -96,6 +98,8 @@ const Net = (() => {
 
   function disconnect() {
     room = null;
+    chatLog = []; unread = 0;
+    renderChat();
     clearTimeout(reconnectTimer);
     if (ws) { const s = ws; ws = null; s.onclose = null; try { s.close(); } catch (e) { /* already closed */ } }
     others.clear();
@@ -112,6 +116,9 @@ const Net = (() => {
       case 'roster':
         you = m.you;
         others.clear();
+        chatLog = Array.isArray(m.chat) ? m.chat.filter(c => c && typeof c.text === 'string').slice(-30) : [];
+        unread = 0;
+        renderChat();
         for (const mm of m.members) addOther(mm.username, mm.hello);
         if (!isHome() && m.world) applyWorld(m.world);
         renderBar();
@@ -161,6 +168,22 @@ const Net = (() => {
         break;
       case 'pong':
         pongs = true;
+        break;
+      case 'chat': {
+        if (typeof m.text !== 'string' || !m.from) break;
+        chatLog.push({ from: m.from, text: m.text });
+        if (chatLog.length > 50) chatLog.shift();
+        // a speech bubble over whoever said it, for a few seconds
+        const say = { text: m.text, until: G.time + 5 };
+        if (m.from === you) { G.mySay = say; chatSentAt = 0; }
+        else { addOther(m.from).say = say; if (!chatOpen) { unread++; Sound.sfx.nibble(); } }
+        renderChat();
+        renderBar();
+        break;
+      }
+      case 'chat_slow':
+        chatSentAt = 0;
+        toast('Slow down a little! Try again in a few seconds.');
         break;
       case 'replaced':
         stopReplaced();
@@ -412,9 +435,12 @@ const Net = (() => {
     const wanted = new Map();
     for (const o of list) {
       const waving = o.emote && o.emote.until > G.time && o.emote.e === 'wave';
-      wanted.set(o.name, { x: slotX(o, loc), text: o.asleep ? `@${o.name} (napping)` : waving ? `@${o.name}: hi!` : `@${o.name}`, host: G.visit && o.name === G.visit.host, asleep: o.asleep });
+      const said = o.say && o.say.until > G.time ? o.say.text : null;
+      const text = o.asleep ? `@${o.name} (napping)` : said ? (roomForBubbles() ? `@${o.name}: ${bubble(said)}` : `@${o.name} ...`) : waving ? `@${o.name}: hi!` : `@${o.name}`;
+      wanted.set(o.name, { x: slotX(o, loc), text, host: G.visit && o.name === G.visit.host, asleep: o.asleep, talking: !!said });
     }
-    if (list.length && G.myEmote && G.myEmote.until > G.time && G.myEmote.e === 'wave') wanted.set('\u0000me', { x: CHAR_X, text: 'hi!', me: true });
+    if (G.mySay && G.mySay.until > G.time && roomForBubbles()) wanted.set('\u0000me', { x: CHAR_X, text: bubble(G.mySay.text), me: true, talking: true });
+    else if (list.length && G.myEmote && G.myEmote.until > G.time && G.myEmote.e === 'wave') wanted.set('\u0000me', { x: CHAR_X, text: 'hi!', me: true });
     for (const el of [...box.children]) if (!wanted.has(el.dataset.name)) el.remove();
     for (const [name, t] of wanted) {
       let el = box.querySelector(`[data-name="${CSS.escape(name)}"]`);
@@ -422,10 +448,63 @@ const Net = (() => {
       if (el.textContent !== t.text) el.textContent = t.text;
       el.classList.toggle('host', !!t.host);
       el.classList.toggle('asleep', !!t.asleep);
+      el.classList.toggle('talking', !!t.talking);
       el.style.left = `${(t.x / W) * 100}%`;
       el.style.top = `${((FEET_Y - 32 + G.platY) / H) * 100}%`;
     }
   }
+
+  // ---------------------------------------------------------------- chat --
+  const bubble = text => (text.length > 40 ? text.slice(0, 38) + '...' : text);
+  // On a small screen the anglers stand too close for speech bubbles, so the
+  // name tag just lights up while someone talks; the words are in the chat.
+  const roomForBubbles = () => $('#scene').clientWidth >= 520;
+
+  // Built with textContent, never innerHTML: chat is whatever people typed.
+  function renderChat() {
+    const log = $('#chat-log');
+    if (!log) return;
+    log.textContent = '';
+    if (!chatLog.length) {
+      const li = document.createElement('li');
+      li.className = 'chat-empty';
+      li.textContent = 'No messages yet. Say hi!';
+      log.appendChild(li);
+    }
+    for (const c of chatLog) {
+      const li = document.createElement('li');
+      if (c.from === you) li.className = 'mine';
+      const who = document.createElement('b');
+      who.textContent = `@${c.from}`;
+      li.append(who, ' ', c.text);
+      log.appendChild(li);
+    }
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function setChatOpen(open) {
+    chatOpen = open;
+    if (open) unread = 0;
+    $('#chat-panel').hidden = !open || $('#social-bar').hidden;
+    renderBar();
+    if (open) { renderChat(); $('#chat-input').focus({ preventScroll: true }); }
+  }
+
+  $('#chat-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const input = $('#chat-input');
+    const text = input.value.replace(/\s+/g, ' ').trim().slice(0, 150);
+    if (!text) return;
+    if (!ws || ws.readyState !== 1) { toast("You're not connected right now. Try again in a moment."); return; }
+    send({ t: 'chat', text });
+    input.value = '';
+    // the server echoes every message back; an older server ignores chat entirely
+    const sentAt = Date.now();
+    chatSentAt = sentAt;
+    setTimeout(() => { if (chatSentAt === sentAt) toast("Chat didn't go through. The server may need updating."); }, 4000);
+  });
+  // Escape in the chat box just leaves the box
+  $('#chat-input').addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); e.target.blur(); } });
 
   // ------------------------------------------------------------- the bar --
   // A strip under the HUD that appears when visiting or when friends drop by.
@@ -434,8 +513,9 @@ const Net = (() => {
     const bar = $('#social-bar');
     if (!bar) return;
     const guests = [...others.keys()];
-    if (!G.visit && !guests.length) { bar.hidden = true; return; }
+    if (!G.visit && !guests.length) { bar.hidden = true; $('#chat-panel').hidden = true; return; }
     bar.hidden = false;
+    $('#chat-panel').hidden = !chatOpen;
     const hostOn = G.visit && others.has(G.visit.host);
     // the host just arrived or left: refresh the "N on" count on the Friends button
     if (G.visit && hostOn !== lastHostOn) Online.refreshFriends();
@@ -452,6 +532,7 @@ const Net = (() => {
       <span class="social-actions">
         <button class="btn" data-social="wave">Wave</button>
         <button class="btn" data-social="heart">Heart</button>
+        <button class="btn lilac" data-social="chat" aria-pressed="${chatOpen}">${chatOpen ? 'Hide chat' : unread ? `Chat (${unread})` : 'Chat'}</button>
         ${apart ? '<button class="btn mint" data-social="join">Join them</button>' : ''}
         ${G.visit ? `<button class="btn mint" data-social="tank">Their tank</button>
         <button class="btn gold" data-social="gift">Gift</button>
@@ -465,6 +546,7 @@ const Net = (() => {
     const act = b.dataset.social;
     if (act === 'wave' || act === 'heart') emote(act);
     if (act === 'home') goHome();
+    if (act === 'chat') { setChatOpen(!chatOpen); return; }
     if (act === 'join' && G.visit) {
       const host = others.get(G.visit.host) || { name: G.visit.host };
       if (!sailTo(spotOf(host))) toast('Finish reeling first!');

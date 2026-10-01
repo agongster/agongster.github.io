@@ -356,7 +356,7 @@ function renderTackle() {
     return `<li class="gear ${equipped ? 'equipped' : ''}">
       <b><span class="rod-swatch" style="background:${r.color}"></span>${r.name}</b>
       <span class="desc">${r.blurb}</span>
-      <span class="stats"><span>Net size ${r.net}</span><span>Reel speed ${Math.round(r.gain * 100)}</span><span>Fish slowed ${Math.round((1 - r.tame) * 100)}%</span><span>Grip +${Math.round((1 - r.grip) * 100)}%</span><span>Luck +${Math.round(r.luck * 100)}</span></span>
+      <span class="stats"><span>Net size ${r.net}</span><span>Reel speed ${Math.round(r.gain * 100)}</span><span>Net speed ${r.netSpeed}</span><span>Grip +${Math.round((1 - r.grip) * 100)}%</span><span>Luck +${Math.round(r.luck * 100)}</span></span>
       ${btn}</li>`;
   }).join('');
   // tanks upgrade in order, one level at a time
@@ -955,6 +955,48 @@ function drawDecor(g, d, t) {
       R(22, -24, 2, 12, '#6a3a2e'); R(24, -22, 8, 6, '#e8d8c8'); R(28, -17, 4, 1, '#e8d8c8');
       R(10, -9, 3, 3, '#8fd8e8'); R(32, -9, 3, 3, '#8fd8e8'); R(38, -12, 5, 2, '#5aa860');
       break;
+    case 'rainbowcoral': {
+      const cols = ['#ff6a7a', '#ffa850', '#ffe070', '#8fe0a0', '#7ab0f0', '#b89cff'];
+      [[9, 13, 3], [3, 19, 2], [15, 21, 2], [6, 16, 2], [12, 18, 2], [18, 12, 2]].forEach(([x, h, w], i) => {
+        R(x, -h, w, h, cols[i]); R(x, -h - 1, w, 1, '#ffffff');
+      });
+      R(3, -9, 7, 2, cols[1]); R(11, -10, 7, 2, cols[4]);
+      break;
+    }
+    case 'crystal': {
+      const sh = [[2, 14, '#b89cff'], [6, 20, '#7ae0ff'], [10, 16, '#ffb0e0'], [13, 11, '#b89cff']];
+      for (const [x, h, col] of sh) { R(x, -h, 4, h, col); R(x + 1, -h - 1, 2, 1, col); R(x, -h, 1, h, '#ffffff'); }
+      R(0, -3, 18, 3, '#8a8098');
+      if (Math.sin(t * 2.5 + phase) > 0.6) R(7, -22, 1, 1, '#ffffff');
+      break;
+    }
+    case 'goldcastle': {
+      const gd = '#ffd23f', gs = '#e0a020';
+      R(4, -28, 22, 28, gd); R(0, -34, 8, 34, gs); R(22, -34, 8, 34, gs);
+      for (const x of [0, 4, 22, 26]) R(x, -37, 2, 3, gs);
+      R(11, -12, 8, 12, '#6a3a2e'); R(12, -13, 6, 1, '#6a3a2e');
+      R(2, -26, 3, 3, '#7ae0ff'); R(24, -26, 3, 3, '#ff6a7a'); R(13, -22, 4, 3, '#b89cff');
+      R(26, -44, 1, 10, '#6a3a2e'); R(27, -44, 5, 3, '#b89cff');
+      if (Math.sin(t * 3 + phase) > 0.7) R(8, -30, 1, 1, '#ffffff');
+      break;
+    }
+    case 'hoard': {
+      R(8, -9, 14, 9, '#a8603e'); R(8, -12, 14, 3, '#c07850'); R(8, -9, 14, 1, '#ffd23f');
+      R(0, -4, 8, 4, '#ffd23f'); R(1, -6, 6, 2, '#ffd23f'); R(22, -5, 8, 5, '#ffd23f'); R(23, -7, 5, 2, '#ffd23f');
+      R(9, -14, 12, 2, '#ffd23f'); R(11, -15, 8, 1, '#ffd23f');
+      R(3, -5, 2, 2, '#7ae0ff'); R(25, -6, 2, 2, '#ff6a7a'); R(14, -15, 2, 2, '#8fe0a0');
+      if (Math.sin(t * 4 + phase) > 0.5) R(17, -17, 1, 1, '#ffffff');
+      break;
+    }
+    case 'statue': {
+      R(2, -8, 16, 8, '#c8c0d0'); R(2, -8, 16, 1, '#e8e0f0'); R(4, -10, 12, 2, '#b0a8c0');
+      // a golden fish balancing on its tail
+      R(8, -14, 4, 4, '#e0a020'); R(6, -15, 8, 1, '#e0a020');
+      R(6, -28, 8, 13, '#ffd23f'); R(5, -26, 1, 9, '#ffd23f'); R(14, -26, 1, 9, '#ffd23f'); R(7, -30, 6, 2, '#ffd23f');
+      R(8, -26, 2, 2, OUTLINE); R(11, -21, 2, 1, '#e0a020'); R(7, -27, 1, 9, '#fff3a0');
+      if (Math.sin(t * 3 + phase) > 0.6) R(13, -31, 1, 1, '#ffffff');
+      break;
+    }
     case 'trophy':
       R(2, -20, 10, 8, '#ffd23f'); R(0, -19, 2, 4, '#ffd23f'); R(12, -19, 2, 4, '#ffd23f');
       R(6, -12, 2, 5, '#e0b020'); R(3, -7, 8, 2, '#e0b020'); R(2, -5, 10, 5, '#8a5a3a');

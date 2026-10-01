@@ -518,6 +518,24 @@ kbd {
 .social-bar .social-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .social-bar .btn { padding: 3px 10px; font-size: 14px; }
 .social-bar .social-where { color: var(--gold); margin-left: 4px; }
+.btn.lilac { background: var(--lilac); }
+/* chat, under the multiplayer bar */
+.chat-panel {
+  align-self: center; width: min(100%, calc((100dvh - 190px) * 16 / 9));
+  background: var(--cream); color: var(--ink); border: 3px solid var(--mint); border-top: 0;
+  display: flex; flex-direction: column;
+}
+.chat-panel[hidden] { display: none; }
+.chat-log { list-style: none; margin: 0; padding: 6px 10px; max-height: 128px; min-height: 56px; overflow-y: auto; font-size: 15px; overflow-wrap: anywhere; }
+.chat-log li { margin: 2px 0; }
+.chat-log li b { color: var(--plum-2); }
+.chat-log li.mine b { color: #2e7d4a; }
+.chat-log .chat-empty { opacity: .6; }
+.chat-form { display: flex; gap: 6px; padding: 6px; border-top: 2px dashed rgba(61, 36, 80, .3); }
+.chat-form input { flex: 1; min-width: 0; font-family: var(--font); font-size: 16px; padding: 5px 8px; border: 3px solid var(--ink); background: #fff; color: var(--ink); }
+.chat-form .btn { padding: 3px 12px; font-size: 15px; }
+.player-tag.talking { border-color: var(--gold); background: var(--cream); color: var(--ink); max-width: 40%; white-space: normal; text-align: center; z-index: 1; }
+
 .host-here { font-family: var(--font); font-size: 13px; background: var(--gold); border: 2px solid var(--ink); padding: 0 5px; margin-left: 6px; vertical-align: 2px; }
 #player-tags { position: absolute; inset: 0; pointer-events: none; }
 .player-tag {

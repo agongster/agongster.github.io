@@ -36,6 +36,13 @@
     </header>
 
     <div id="social-bar" class="social-bar" hidden></div>
+    <div id="chat-panel" class="chat-panel" hidden>
+      <ul id="chat-log" class="chat-log" aria-live="polite" aria-label="Chat messages"></ul>
+      <form id="chat-form" class="chat-form" autocomplete="off">
+        <input id="chat-input" maxlength="150" placeholder="Say something nice..." aria-label="Chat message" enterkeyhint="send" />
+        <button class="btn mint" type="submit">Send</button>
+      </form>
+    </div>
 
     <main id="stage" aria-label="Fishing spot. Tap the water to cast, tap when a fish bites, then steer the net with the arrow keys to chase the fish.">
       <canvas id="scene" width="320" height="180"></canvas>
