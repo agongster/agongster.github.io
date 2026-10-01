@@ -193,7 +193,7 @@ const Net = (() => {
         if (m.error === 'room_full') { toast("That world is full right now (4 anglers max)."); goHome(true); }
         else if (m.error === 'not_friends') { toast("You're not friends with them anymore."); goHome(true); }
         break;
-      case 'gift': case 'friend_request': case 'friend_accepted':
+      case 'gift': case 'fish_gift': case 'friend_request': case 'friend_accepted':
         Online.onNotify(m);
         break;
     }

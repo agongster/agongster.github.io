@@ -1025,6 +1025,15 @@ const TANKS = [
   { cap: 64, price: 30000, name: 'Ocean palace' },
 ];
 
+// Buckets hold the fish you're carrying (to sell, or move to the tank later).
+const BUCKETS = [
+  { cap: 6, price: 0, name: 'Tin pail' },
+  { cap: 12, price: 110, name: 'Big bucket' },
+  { cap: 24, price: 400, name: 'Cooler' },
+  { cap: 40, price: 4000, name: 'Treasure chest' },
+  { cap: 64, price: 20000, name: 'Golden barrel' },
+];
+
 // Enchantments: now and then one is tangled on the line with a catch
 // (ENCHANT_CHANCE per catch). You keep them until you choose to use one.
 // While it lasts, luck adds to your rod's luck and net to its net size.

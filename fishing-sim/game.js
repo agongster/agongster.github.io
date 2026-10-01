@@ -8,7 +8,7 @@ const SAVE_KEY = 'tiny-tides-save-v1';
 function freshSave() {
   return {
     started: false, name: '', look: { ...DEFAULT_LOOK }, boat: { ...DEFAULT_BOAT }, owned: [],
-    coins: 0, aquarium: [], dex: {}, rod: 'twig', rods: ['twig'], tankLvl: 0,
+    coins: 0, bucket: [], aquarium: [], dex: {}, rod: 'twig', rods: ['twig'], bucketLvl: 0, tankLvl: 0,
     decor: starterDecor(), nextDecor: STARTER_DECOR.length + 1,
     enchants: {}, boosts: [],  // enchantments you own ({ id: count }) and ones in use ([{ id, left }])
     location: 'dock', unlocked: ['dock'], newSpot: false,
@@ -63,14 +63,12 @@ function sanitizeSave(s) {
   if (!Array.isArray(s.aquarium)) s.aquarium = [];
   const validFish = c => c && FISH_BY_ID[c.id] && Number.isFinite(c.value);
   s.aquarium = s.aquarium.filter(validFish);
-  // There used to be a bucket as well. Its fish move into the tank, even past
-  // the tank's size (nothing is lost; you just can't add more until you sell),
-  // and bucket upgrades are refunded.
-  if (Array.isArray(s.bucket)) s.aquarium.push(...s.bucket.filter(validFish));
-  delete s.bucket;
-  if (Number.isInteger(s.bucketLvl)) s.coins = (Number(s.coins) || 0) + ([0, 110, 510][s.bucketLvl] || 0);
-  delete s.bucketLvl;
+  // (The bucket went away for a while and came back. Saves from that time
+  // simply have no bucket, so they start with an empty tin pail.)
+  if (!Array.isArray(s.bucket)) s.bucket = [];
+  s.bucket = s.bucket.filter(validFish);
   s.tankLvl = inRange(s.tankLvl, TANKS, 0);
+  s.bucketLvl = inRange(s.bucketLvl, BUCKETS, 0);
   if (!Array.isArray(s.decor)) { s.decor = starterDecor(); s.nextDecor = STARTER_DECOR.length + 1; }
   s.decor = s.decor.filter(d => d && DECOR_BY_ID[d.id] && Number.isInteger(d.uid)).slice(0, 200)
     .map(d => clampDecor({ uid: d.uid, id: d.id, x: d.x, y: d.y, flip: !!d.flip, placed: d.placed !== false }));
@@ -175,6 +173,8 @@ const worldLocationId = () => (G.visit ? G.visit.location : save.location);
 const currentLoc = () => LOCATIONS.find(l => l.id === worldLocationId()) || LOCATIONS[0];
 const worldBoat = () => (G.visit ? G.visit.boat : save.boat);
 const tankCap = () => TANKS[save.tankLvl].cap;
+const bucketCap = () => BUCKETS[save.bucketLvl].cap;
+const bucketHasRoom = () => save.bucket.length < bucketCap();
 // LeBron can't be sold, so he always fits, however full the tank is
 const tankHasRoom = c => save.aquarium.length < tankCap() || (!!c && isUnsellable(c));
 const findCosmetic = (cat, id) => COSMETICS[cat].find(i => i.id === id);
@@ -680,16 +680,21 @@ function checkUnlocks() {
   }
 }
 
-// Called by the catch card: 'tank', 'sell' or 'release'. 'auto' (leaving the
-// card some other way) keeps it in the tank if there's room, or else sells it.
+// Called by the catch card: 'bucket', 'tank', 'sell' or 'release'. 'auto'
+// (leaving the card some other way) keeps it in the bucket, or the tank if
+// the bucket is full, or else sells it.
 function finishCatch(action) {
   const c = G.pending;
   if (!c) return;
   G.pending = null;
   G.foundEnchant = null;
-  if (action === 'auto') action = tankHasRoom(c) ? 'tank' : 'sell';
-  if (action === 'sell' && isUnsellable(c)) action = 'tank';
-  if (action === 'tank' && tankHasRoom(c)) {
+  if (action === 'auto') action = bucketHasRoom() ? 'bucket' : tankHasRoom(c) ? 'tank' : 'sell';
+  if (action === 'sell' && isUnsellable(c)) action = bucketHasRoom() ? 'bucket' : 'tank';
+  if (action === 'bucket' && !bucketHasRoom()) action = isUnsellable(c) ? 'tank' : 'sell';
+  if (action === 'bucket') {
+    save.bucket.push(c);
+    toast(`${FISH_BY_ID[c.id].name} went in the bucket`);
+  } else if (action === 'tank' && tankHasRoom(c)) {
     save.aquarium.push(c);
     toast(`${FISH_BY_ID[c.id].name} moved into the ${TANKS[save.tankLvl].name.toLowerCase()}!`);
   } else if (action === 'sell') {
@@ -769,6 +774,39 @@ function earn(amount) {
 }
 
 const isUnsellable = c => !!FISH_BY_ID[c.id].unsellable;
+
+function sellFish(uid) {
+  const i = save.bucket.findIndex(c => c.uid === uid);
+  if (i < 0 || isUnsellable(save.bucket[i])) return;
+  const [c] = save.bucket.splice(i, 1);
+  save.stats.sold++;
+  earn(c.value);
+  Sound.sfx.coin();
+  persist();
+}
+
+// Bucket -> tank. (LeBron always fits in the tank.)
+function moveToTank(uid) {
+  const i = save.bucket.findIndex(c => c.uid === uid);
+  if (i < 0 || !tankHasRoom(save.bucket[i])) return false;
+  save.aquarium.push(save.bucket.splice(i, 1)[0]);
+  Sound.sfx.buy();
+  persist();
+  refreshHUD();
+  return true;
+}
+
+// Sells everything in the bucket except anything marked unsellable.
+function sellAllFromBucket() {
+  const selling = save.bucket.filter(c => !isUnsellable(c));
+  if (!selling.length) return;
+  const total = selling.reduce((sum, c) => sum + c.value, 0);
+  save.stats.sold += selling.length;
+  save.bucket = save.bucket.filter(isUnsellable);
+  earn(total);
+  Sound.sfx.coin();
+  persist();
+}
 
 function sellFromTank(uid) {
   const i = save.aquarium.findIndex(c => c.uid === uid);
@@ -1371,7 +1409,15 @@ function drawShadow(g, s) {
   const sc = 0.55 + depth * 0.75;
   const wiggle = s.mode === 'flee' ? 0 : Math.round(Math.sin(s.t * 5) * 0.5);
   const rx = Math.max(2, Math.round((3 + s.size * 2.5) * sc)), ry = Math.max(1, Math.round(rx * 0.35));
-  const col = `rgba(24,12,44,${(0.3 * clamp(s.alpha, 0, 1)).toFixed(2)})`;
+  const a = clamp(s.alpha, 0, 1);
+  // At night the water is nearly as dark as a shadow, so the shadow gets a
+  // pale moonlit rim (and a little more depth) to stand out against it.
+  const night = G.pal ? clamp(G.pal.night || 0, 0, 1) : 0;
+  if (night > 0.05) {
+    ellipse(g, s.x, s.y + wiggle, rx + 1, ry + 1, `rgba(200,220,255,${(0.55 * night * a).toFixed(2)})`);
+    if (Math.sin(s.t * 2.2 + s.x) > 0.85) rect(g, s.x - rx + 1, s.y - ry - 1 + wiggle, rx, 1, `rgba(230,240,255,${(0.65 * night * a).toFixed(2)})`);
+  }
+  const col = `rgba(24,12,44,${((0.3 + 0.18 * night) * a).toFixed(2)})`;
   ellipse(g, s.x, s.y + wiggle, rx, ry, col);
   const tx = Math.round(s.x - s.dir * (rx + 1));
   g.fillRect(tx - (s.dir > 0 ? 1 : 0), Math.round(s.y) - 1 + wiggle, 2, 3);
@@ -1426,6 +1472,7 @@ function drawPlatform(g, pal, loc) {
     const boat = worldBoat();
     drawBoatBack(g, bx, by, boat);
     drawLantern(g, bx + 5, by - 26, by - 1, pal);
+    drawBucketProp(g, 52, 124 + G.platY);
     if (typeof Net !== 'undefined') Net.drawPlayers(g, loc);
     drawAnglerInScene(g);
     drawRod(g);
@@ -1443,6 +1490,7 @@ function drawPlatform(g, pal, loc) {
     drawBoatExtras(g, mx, my, pal, boat, { lightsFrom: { x: mx + 6, y: my - 12 } });
     curve(g, mx + 78, my - 2, 100, 152, 94, 141, '#e8d0a0');
     drawLantern(g, 20, 92, 126, pal);
+    drawBucketProp(g, 44, 122);
     drawBuddy(g, 66);
     if (typeof Net !== 'undefined') Net.drawPlayers(g, loc);
     drawAnglerInScene(g);
@@ -1871,6 +1919,34 @@ function drawLampGlow(g, pal, loc) {
   disc(g, x, y, 18, rgba('#ffd27a', 0.06 * pal.lamp * flick));
   disc(g, x, y, 11, rgba('#ffd27a', 0.09 * pal.lamp * flick));
   disc(g, x, y, 6, rgba('#fff0b0', 0.12 * pal.lamp * flick));
+}
+
+// The bucket on the dock (or in the boat): it changes with each upgrade, and
+// tails poke out of the top as it fills.
+function drawBucketProp(g, x, y) {
+  const lvl = save.bucketLvl, n = save.bucket.length;
+  const tails = Math.min(3, Math.ceil((n / bucketCap()) * 3));
+  for (let i = 0; i < tails; i++) {
+    const sp = FISH_BY_ID[save.bucket[save.bucket.length - 1 - i].id];
+    const col = sp.fin || '#8a5a3a';
+    rect(g, x + 2 + i * 3, y - 3, 1, 3, col);
+    rect(g, x + 1 + i * 3, y - 4, 3, 1, col);
+  }
+  if (lvl >= 2) {
+    // a cooler (blue), a treasure chest (gold), a golden barrel
+    const body = ['#7fb8e6', '#c07850', '#ffd23f'][Math.min(2, lvl - 2)], lid = ['#fff4e0', '#ffd23f', '#fff3a0'][Math.min(2, lvl - 2)];
+    rect(g, x - 2, y - 1, 13, 10, OUTLINE);
+    rect(g, x - 1, y, 11, 8, body);
+    rect(g, x - 1, y, 11, 2, lid);
+    rect(g, x + 3, y + 4, 3, 1, shade(body, -0.3));
+  } else {
+    const body = lvl === 1 ? '#ff8a6b' : '#a8a0b8';
+    rect(g, x - 1, y - 1, 11, 10, OUTLINE);
+    rect(g, x, y, 9, 8, body);
+    rect(g, x, y, 9, 1, shade(body, 0.35));
+    rect(g, x + 1, y + 2, 1, 5, shade(body, 0.2));
+    rect(g, x + 1, y - 5, 7, 1, OUTLINE); rect(g, x, y - 4, 1, 3, OUTLINE); rect(g, x + 8, y - 4, 1, 3, OUTLINE);
+  }
 }
 
 function drawBuddy(g, cx, feet = FEET_Y + 2 + G.platY, shadow = true) {

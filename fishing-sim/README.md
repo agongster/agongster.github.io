@@ -1,6 +1,6 @@
 # Tiny Tides
 
-A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock (and later sail to six more islands) while the sky loops from sunrise to night, collect 172 kinds of fish (plus junk, and LeBron James), keep your favourites in an aquarium, sell the rest, and spend the coins on outfits, buddies, rods and bigger tanks.
+A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock (and later sail to six more islands) while the sky loops from sunrise to night, collect 172 kinds of fish (plus junk, and LeBron James), keep your favourites in an aquarium, sell the rest, and spend the coins on outfits, buddies, rods, bigger buckets and bigger tanks.
 
 **Play it:** https://agongster.github.io/fishing-sim/
 **Code:** this folder of [agongster.github.io](https://github.com/agongster/agongster.github.io)
@@ -10,17 +10,19 @@ A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock (a
 ## What it does
 
 > ✏️ TODO: 2–4 sentences, in your voice, on what the game is and why you made it.
+Tiny Tides is a fishing simulator! Players can explore the map, cast out their lines in anticipation of fish, and play with and gift to friends. I personally  enjoy fishing games and initially took a lot of inspiration from Stardew Valley fishing, which I built upon, making the mechanics significantly different and focusing more largely on cosmetics and fish types. I really just wanted to make something fun and interesting that I could play with my friends!
 
 ## How to play
 
 > ✏️ TODO: rewrite in your own words. The facts:
+To play, tap the water where you want to cast, ideally in front of or generally near a fish shadow. If you cast too close to the fish, they'll get spooked and leave. Once a fish hooks onto your tackle, 
 > - Tap the water where you want to cast (or press Space to cast at the drifting marker).
 > - The shadows under the water are the actual fish, and bigger shadows are rarer. Cast just ahead of one to lure it in; land right on top of it and it gets spooked.
 > - Small nibbles are fake-outs. When the bobber sinks and a **!** appears, tap quickly.
 > - Reeling is a chase: an underwater view opens with a mystery shadow (bigger = rarer) and you steer a net with the arrow keys / WASD (or drag, or the on-screen D-pad on phones). Keep the fish inside the net until the bar fills; if the bar empties, it gets away.
-> - Sell fish straight off the line or from your **Tank**, then spend coins in the **Shop** (Wardrobe for your angler, Boat for your boat's style (a rowboat, a swan, a duck parade, a bathtub, a banana...), colours, sail, flag and decorations, Tank for props, Tackle for rods and tanks). You can try things on before buying.
+> - Sell fish straight off the line, from your **Bucket** or from your **Tank**, then spend coins in the **Shop** (Wardrobe for your angler, Boat for your boat's style (a rowboat, a swan, a duck parade, a bathtub, a banana...), colours, sail, flag and decorations, Tank for props, Tackle for rods, buckets and tanks). You can try things on before buying.
 > - Catch more fish to unlock new spots on the **Map**: Lily Lagoon (12), Coral Cove (30), Aurora Bay (55), Blossom River (80), Ember Isle (110) and Cloud Lake (150). Each has its own scenery and fish, and you sail there by boat.
-> - Keep fish in the **Tank** (from the catch card) to watch them swim around. Tap one to see its name, and sell one fish or all of them whenever you like.
+> - Put each catch in your **Bucket** (to sell later, or move to the tank) or your **Tank** to watch it swim around. Tap a tank fish to see its name, and sell one fish or all of them whenever you like.
 > - Decorate the tank: buy props in the Shop (a castle, coral, a rubber duck, a shipwreck, a GOAT trophy...), then press **Decorate** in the Tank to drag them around, flip them or put them away. Friends see your layout when they visit.
 > - The day cycles sunrise → daytime → golden hour → sunset → dusk → night (about 65 seconds each), and the sun travels across the sky. Some fish only appear at certain times. The **Fishdex** shows silhouettes of what's left, where each one lives, and when it swims.
 > - Works with a mouse, touch or the keyboard. On phones it works in portrait but is roomier in landscape.
@@ -35,7 +37,7 @@ A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock (a
 > - Visible fish shadows you can aim for, and a 2D underwater chase for reeling (steering in two directions instead of Stardew Valley's one).
 > - The sea chart and the sailing trip between seven hand-coloured locations.
 > - Boat customization: nine silly boat styles (cardboard box, banana, watermelon, bathtub, teacup, giant sneaker, swan, duck parade with ducklings), sail designs, flags, string lights that glow at night, a solid gold hull. Your boat shows up tied at the dock, at every other spot, while sailing, and on the sea chart.
-> - Fishing together with friends: live casts, catches and emotes, visiting each other's worlds, and gifting coins.
+> - Fishing together with friends: live casts, catches and emotes, visiting each other's worlds, chat, and gifting coins and fish.
 > - The aquarium, where fish swim, crabs (and LeBron) walk along the sand, and tapping a fish shows its name.
 > - Game juice: the fish arcs out of the water onto the dock, the catch card has spinning rays, the lantern and lighthouse glow at night.
 
@@ -105,7 +107,7 @@ Tap **Log in** (top bar, or on the title screen) to sign up with an email, a uni
 | File | What's in it |
 | --- | --- |
 | `index.html` | Page structure: HUD, the canvas stage, and the modals (title, shop/creator, tank, Fishdex, catch card). |
-| `data.js` | **All game content**: the six sky palettes, the seven locations (unlock requirement, colour tint, scenery), every fish (price, rarity, location, time of day, difficulty, colours, flavour text), cosmetics, rods, tanks and tank props. The easiest file to edit. |
+| `data.js` | **All game content**: the six sky palettes, the seven locations (unlock requirement, colour tint, scenery), every fish (price, rarity, location, time of day, difficulty, colours, flavour text), cosmetics, rods, buckets, tanks and tank props. The easiest file to edit. |
 | `sprites.js` | Pixel-art generation: colour helpers, the angler renderer, buddy and junk pixel maps, the procedural fish generator, and the automatic outline pass. |
 | `audio.js` | Web Audio synthesised sound effects and a generative lullaby that changes chords with the time of day. |
 | `game.js` | Save/load, the scene renderer, the fishing state machine, economy, and the main loop. |

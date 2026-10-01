@@ -27,6 +27,7 @@ function toast(text, kind = '') {
 function refreshHUD() {
   $('#coins').textContent = save.coins;
   $$('.coins-mirror').forEach(e => { e.textContent = save.coins; });
+  $('#bucket-count').textContent = `${save.bucket.length}/${bucketCap()}`;
   $('#tank-pill-count').textContent = `${save.aquarium.length}/${tankCap()}`;
   const phase = PHASES.find(p => p.id === G.phaseId);
   $('#phase-pill').textContent = `${G.visit ? `@${G.visit.host} · ` : ''}${currentLoc().name} · ${phase ? phase.name : ''}`;
@@ -36,6 +37,7 @@ function refreshHUD() {
   if (openId === 'modal-map') renderMap();
   if (openId === 'modal-tank') renderTank();
   if (openId === 'modal-charms') renderCharms();
+  if (openId === 'modal-bucket') renderBucket();
   renderBoosts();
 }
 
@@ -57,7 +59,7 @@ function openModal(id) {
 function closeModal() {
   if (!openId) return;
   if (openId === 'modal-catch') {
-    // Escape puts the catch in the tank if there's room, or else sells it
+    // Escape keeps the catch (bucket, then tank) if there's room, or else sells it
     resolveCatch('auto');
     return;
   }
@@ -359,7 +361,7 @@ function renderTackle() {
       <span class="stats"><span>Net size ${r.net}</span><span>Reel speed ${Math.round(r.gain * 100)}</span><span>Net speed ${r.netSpeed}</span><span>Grip +${Math.round((1 - r.grip) * 100)}%</span><span>Luck +${Math.round(r.luck * 100)}</span></span>
       ${btn}</li>`;
   }).join('');
-  // tanks upgrade in order, one level at a time
+  // buckets and tanks upgrade in order, one level at a time
   const upgradeRows = (levels, current, attr, what) => levels.map((b, i) => {
     const btn = i <= current ? `<button class="btn plain" disabled>${i === current ? 'In use' : 'Outgrown'}</button>`
       : i === current + 1 ? buyButton(`${attr}="${i}"`, b.price)
@@ -368,6 +370,7 @@ function renderTackle() {
       <b>${b.name}</b><span class="desc">Holds ${b.cap} ${what}</span><span class="stats"></span>${btn}</li>`;
   }).join('');
   $('#shop-tackle').innerHTML = `<h3>Rods</h3><ul class="gear-list">${rodRows}</ul>
+    <h3>Buckets</h3><ul class="gear-list">${upgradeRows(BUCKETS, save.bucketLvl, 'data-bucket', 'fish')}</ul>
     <h3>Aquariums</h3><ul class="gear-list">${upgradeRows(TANKS, save.tankLvl, 'data-tank', 'fish on display')}</ul>`;
 }
 
@@ -383,6 +386,16 @@ $('#shop-tackle').addEventListener('click', e => {
     save.rod = r.id;
     persist();
     renderShop();
+    return;
+  }
+  const bb = e.target.closest('[data-bucket]');
+  if (bb) {
+    const i = Number(bb.dataset.bucket);
+    if (i !== save.bucketLvl + 1 || !spend(BUCKETS[i].price)) return;
+    save.bucketLvl = i;
+    persist();
+    toast(`Upgraded to the ${BUCKETS[i].name.toLowerCase()}!`);
+    refreshHUD();
     return;
   }
   const tb = e.target.closest('[data-tank]');
@@ -544,6 +557,129 @@ function drawPreview() {
     g.drawImage(b, 16 - Math.round(b.width / 2), 39 - b.height + (Math.floor(t * 1.6) % 2));
   }
 }
+
+// ============================================================= fish gifts ==
+// A Gift button on fish in your bucket and tank, once you're logged in.
+// (LeBron stays with you forever.)
+function giftFishButton(c) {
+  if (typeof Online === 'undefined' || !Online.loggedIn() || isUnsellable(c)) return '';
+  return `<button class="btn plain" data-giftfish="${c.uid}" aria-label="Gift your ${FISH_BY_ID[c.id].name} to a friend">Gift</button>`;
+}
+
+let giftFish = null;  // { uid, from: 'modal-bucket' | 'modal-tank' }
+
+async function openGiftFish(uid, from) {
+  const c = [...save.bucket, ...save.aquarium].find(x => x.uid === uid);
+  if (!c) return;
+  giftFish = { uid, from };
+  renderGiftFish(c, true);
+  openModal('modal-giftfish');
+  Sound.sfx.open();
+  await Online.loadFriends();
+  if (openId === 'modal-giftfish' && giftFish && giftFish.uid === uid) renderGiftFish(c, false);
+}
+
+function renderGiftFish(c, loading, error = '', busy = false) {
+  const sp = FISH_BY_ID[c.id];
+  const names = Online.friendNames();
+  const pick = loading ? '<p class="fine">Loading your friends...</p>'
+    : !names.length ? '<p>You need a friend to send it to. Add one from the Friends button!</p>'
+    : `<form id="giftfish-form" class="gift-form">
+        <label>Send to<select name="to">${names.map(n => `<option value="${escapeHTML(n)}">@${escapeHTML(n)}</option>`).join('')}</select></label>
+        <label>Note <span class="fine">(optional)</span><input name="note" maxlength="60" placeholder="Thought of you!" /></label>
+        <p class="auth-error" role="alert">${escapeHTML(error)}</p>
+        <div class="row-actions"><button class="btn gold" type="submit" ${busy ? 'disabled' : ''}>${busy ? 'Sending...' : 'Send gift'}</button>
+          <button class="btn plain" type="button" data-giftfish-cancel>Cancel</button></div>
+      </form>`;
+  $('#giftfish-body').innerHTML = `
+    <div class="giftfish-card"><img src="${fishDataUrl(sp)}" alt="" />
+      <div><div class="fname">${sp.name}</div>
+        <div class="fmeta">${c.size} cm · <span class="stars" aria-label="${c.stars} of 3 stars">${starText(c.stars)}</span> · ${RARITY[sp.rarity].label} · worth ${coinHTML(c.value)}</div></div></div>
+    ${pick}`;
+}
+
+function backFromGiftFish() {
+  const from = giftFish && giftFish.from;
+  giftFish = null;
+  forceClose();
+  if (from === 'modal-bucket') openBucket();
+  else if (from === 'modal-tank') openTank();
+}
+
+$('#giftfish-body').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!giftFish) return;
+  const c = [...save.bucket, ...save.aquarium].find(x => x.uid === giftFish.uid);
+  if (!c) return;
+  const f = Object.fromEntries(new FormData(e.target).entries());
+  renderGiftFish(c, false, '', true);
+  const r = await Online.sendFishGift(c.uid, f.to, (f.note || '').trim());
+  if (!r.ok) { renderGiftFish(c, false, r.message); return; }
+  toast(`Your ${FISH_BY_ID[c.id].name} is on its way to @${f.to}!`);
+  Sound.sfx.coin();
+  backFromGiftFish();
+});
+$('#giftfish-body').addEventListener('click', e => { if (e.target.closest('[data-giftfish-cancel]')) backFromGiftFish(); });
+
+// ================================================================= bucket ==
+function openBucket() {
+  renderBucket();
+  openModal('modal-bucket');
+  Sound.sfx.open();
+}
+
+function renderBucket() {
+  const sellable = save.bucket.filter(c => !isUnsellable(c));
+  const total = sellable.reduce((sum, c) => sum + c.value, 0);
+  $('#bucket-h').textContent = BUCKETS[save.bucketLvl].name;
+  $('#bucket-sub').innerHTML = `${save.bucket.length} / ${bucketCap()} fish · worth ${coinHTML(total)}`;
+  const sellAll = $('#btn-bucket-sell-all');
+  sellAll.disabled = !sellable.length;
+  sellAll.innerHTML = sellable.length ? `Sell all for ${coinHTML(total)}` : 'Sell all';
+  const list = $('#bucket-list');
+  if (!save.bucket.length) {
+    list.innerHTML = '<li class="empty" style="display:block">Your bucket is empty. Go catch something!</li>';
+    return;
+  }
+  list.innerHTML = save.bucket.slice().reverse().map(c => {
+    const sp = FISH_BY_ID[c.id];
+    return `<li>
+      <img src="${fishDataUrl(sp)}" alt="" />
+      <div><div class="fname">${sp.name}</div>
+        <div class="fmeta">${c.size} cm · <span class="stars" aria-label="${c.stars} of 3 stars">${starText(c.stars)}</span> · ${RARITY[sp.rarity].label}</div></div>
+      <div class="row-actions">
+        <button class="btn mint" data-totank="${c.uid}" ${tankHasRoom(c) ? '' : 'disabled'} aria-label="Move ${sp.name} to the tank">Tank</button>
+        ${giftFishButton(c)}
+        ${sp.unsellable ? '<span class="priceless">Priceless</span>'
+          : `<button class="btn gold" data-sell="${c.uid}" aria-label="Sell ${sp.name} for ${c.value} coins">${coinHTML(c.value)}</button>`}
+      </div>
+    </li>`;
+  }).join('');
+}
+
+$('#bucket-list').addEventListener('click', e => {
+  const gf = e.target.closest('[data-giftfish]');
+  if (gf) { openGiftFish(Number(gf.dataset.giftfish), 'modal-bucket'); return; }
+  const t = e.target.closest('[data-totank]');
+  if (t) {
+    if (moveToTank(Number(t.dataset.totank))) toast('Moved to the tank!');
+    renderBucket();
+    return;
+  }
+  const b = e.target.closest('[data-sell]');
+  if (!b) return;
+  sellFish(Number(b.dataset.sell));
+  renderBucket();
+  const next = $('#bucket-list [data-sell]');
+  (next || $('#modal-bucket .close-btn')).focus({ preventScroll: true });
+});
+
+$('#btn-bucket-sell-all').addEventListener('click', () => {
+  sellAllFromBucket();
+  renderBucket();
+  $('#modal-bucket .close-btn').focus({ preventScroll: true });
+});
+$('#btn-bucket').addEventListener('click', openBucket);
 
 // ================================================================= charms ==
 // Enchantments: a little bottle in each one's colour.
@@ -720,7 +856,7 @@ function renderTank() {
       <div><div class="fname">${sp.name}</div>
         <div class="fmeta">${c.size} cm · <span class="stars" aria-label="${c.stars} of 3 stars">${starText(c.stars)}</span> · ${RARITY[sp.rarity].label}</div></div>
       ${tankView ? '' : sp.unsellable ? '<span class="priceless">Here forever</span>'
-        : `<button class="btn gold" data-tanksell="${c.uid}" aria-label="Sell ${sp.name} for ${c.value} coins">Sell ${coinHTML(c.value)}</button>`}
+        : `<span class="row-actions">${giftFishButton(c)}<button class="btn gold" data-tanksell="${c.uid}" aria-label="Sell ${sp.name} for ${c.value} coins">Sell ${coinHTML(c.value)}</button></span>`}
     </li>`;
   }).join('') : `<li class="empty" style="display:block">${tankView ? 'Their tank is empty.' : 'Your tank is empty. Tap "Tank" on a catch to keep it here.'}</li>`;
 
@@ -738,6 +874,8 @@ function renderTank() {
 }
 
 $('#tank-list').addEventListener('click', e => {
+  const gf = e.target.closest('[data-giftfish]');
+  if (gf) { openGiftFish(Number(gf.dataset.giftfish), 'modal-tank'); return; }
   const b = e.target.closest('[data-tanksell]');
   if (!b) return;
   const uid = Number(b.dataset.tanksell);
@@ -1297,8 +1435,11 @@ function showCatchCard(c) {
   const sell = $('#catch-sell');
   sell.hidden = !!sp.unsellable;
   sell.innerHTML = `Sell ${coinHTML(c.value)}`;
-  const first = !tank.disabled ? tank : sell;
-  for (const b of [tank, sell, $('#catch-release')]) b.toggleAttribute('data-autofocus', b === first);
+  const bucket = $('#catch-bucket');
+  bucket.disabled = !bucketHasRoom();
+  bucket.textContent = bucket.disabled ? 'Bucket full' : 'Bucket';
+  const first = !bucket.disabled ? bucket : !tank.disabled ? tank : sell;
+  for (const b of [bucket, tank, sell, $('#catch-release')]) b.toggleAttribute('data-autofocus', b === first);
   openModal('modal-catch');
 }
 
@@ -1308,6 +1449,7 @@ function resolveCatch(action) {
   $('#action-btn').focus({ preventScroll: true });
 }
 
+$('#catch-bucket').addEventListener('click', () => resolveCatch('bucket'));
 $('#catch-sell').addEventListener('click', () => resolveCatch('sell'));
 $('#catch-tank').addEventListener('click', () => resolveCatch('tank'));
 $('#catch-release').addEventListener('click', () => resolveCatch('release'));

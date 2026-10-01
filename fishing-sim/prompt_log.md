@@ -10,6 +10,7 @@
 ## Which tool for which job
 
 > ✏️ TODO (required): a sentence or two on which model/tool you used for which part of the work, and why.
+Claude Code (Opus 5.5) was used for development, largely because from my own experience it has the best balance between code readability and development capabilities.
 
 ## One place AI got it wrong
 
@@ -40,6 +41,7 @@ here's my next project instructions, please create a new folder called fishing-s
 
 ### Changes I made myself
 
+My own edits largely consisted of the database/backend setup and debugging, as well as tweaking some of the cosmetic choices. For the most part, AI made very few mistakes (or at least caught its own errors) since things were correctly set up on my end.
 > ✏️ TODO: list your own edits here as you make them (for example, tweaking fish in `data.js`, new cosmetics, rebalanced prices, copy changes, layout fixes). The graders specifically look for these.
 
 ---
@@ -390,6 +392,10 @@ i do not see a chat button in the pushed version.
 ```
 (with a screenshot that did show the Chat button, between Profile and Map, plus a visiting friend drawn on top of the capybara buddy)
 
+```
+make the fish shadows easier to see at night, and enable users to gift fish to one another. ALSO bring back the bucket along with the tank, so users can either put fish in the bucket or the tank.
+```
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -454,6 +460,16 @@ i do not see a chat button in the pushed version.
   - **Tank:** rainbow coral, crystal cluster, golden castle, treasure hoard, and a golden fish statue (50,000). Two bigger aquariums: Royal (40 fish, 6,000) and Ocean palace (64 fish, 30,000).
 - **Chat you can actually find:** the server and game were both live and working; the AI checked by sending a test message to the live server. The problem was design: the Chat button only lived in the multiplayer bar, which only appears while visiting or being visited, so fishing alone there was no way to find it. **Where the AI got it wrong:** it never tested what a player sees when alone. Now a **Chat** button sits in the top bar whenever you're logged in (the one in the bar was removed so there aren't two), and the panel says who you're chatting with, or explains that chat reaches whoever is in the same world. Tested on the live server with two accounts.
 - **Easier to spot, and no more overlap:** the Chat button was there but looked just like Profile next to it. It's now teal, and pulses with a count when there are unread messages. The screenshot also showed a visiting friend drawn on top of the buddy: other players' spots (dock x 62, boat x 68) overlapped where the buddy sits (66 / 70). Visitors now stand at 118 / 42 / 18 on the dock and 112 / 50 in the boat. Only a full boat of four puts someone at the buddy's spot. Checked with two players on the live server, on the dock and in a boat.
+- **Shadows at night:** shadows were a fixed dark purple at 30% opacity, nearly invisible on night water. As the sky darkens they now get a pale moonlit rim, a little more depth, and an occasional glint. Checked with screenshots at night, dusk and day.
+- **The bucket is back, alongside the tank:**
+  - **Catch card:** Bucket / Tank / Sell / Release. Leaving the card any other way keeps the fish in the bucket, then the tank, then sells it.
+  - **The rest:** the Bucket button and window (sell one or all, move to the tank), both counts in the top bar, the bucket prop on the dock and in the boat, and bucket upgrades in Tackle. Two new big ones: Treasure chest (40 fish, 4,000) and Golden barrel (64, 20,000), each drawn differently on the dock.
+  - **Saves:** the removal had a migration that deleted any `bucket` on every load; it's gone. Saves from the bucketless days start with an empty tin pail.
+- **Gifting fish:** a **Gift** button on fish in your bucket and tank (not LeBron) opens a window to pick a friend and add a note.
+  - **Sending:** the game uploads first, then the server takes the fish out of your saved bucket or tank in the same step that records the gift, so a fish can't be sent twice.
+  - **Receiving:** it goes straight to the friend if they're online (otherwise the next time they are). The server puts it in their bucket if there's room, otherwise their tank, and tells the game exactly where.
+  - **Limits and history:** 20 fish a day. The Gifts tab now lists fish sent and received.
+  - **Tests:** a new server test (20 pass) covers strangers, missing fish, LeBron, and sending twice. A two-browser run against a local server checked the full flow with no rejected saves.
 
 ### Changes I made myself
 

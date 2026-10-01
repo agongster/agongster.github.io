@@ -213,11 +213,14 @@ const Online = (() => {
     already_requested: 'You already sent them a request.',
     not_enough_coins: "You don't have that many coins.",
     not_friends: 'You can only gift friends.',
+    no_such_fish: "Couldn't find that fish in your online save yet. Try again in a moment.",
+    cant_gift_that: 'That one stays with you forever.',
   };
 
   function errorMessage(r) {
     const d = r.data && r.data.detail;
     if (typeof d === 'string') return ERRORS[d] || 'Something went wrong. Please try again.';
+    if (d && d.error === 'fish_daily_limit') return `You can gift ${d.limit} fish a day. Try again tomorrow!`;
     if (d && d.error === 'daily_limit') return d.remaining ? `You can gift ${d.remaining} more coins today.` : "You've hit today's gifting limit. Try again tomorrow!";
     if (Array.isArray(d) && d[0]) {
       const field = d[0].loc && d[0].loc[d[0].loc.length - 1];
@@ -315,7 +318,7 @@ const Online = (() => {
   function onNotify(m) {
     if (m.t === 'friend_request') { toast(`@${m.from} wants to be friends!`); Sound.sfx.open(); loadFriends(); }
     if (m.t === 'friend_accepted') { toast(`@${m.from} accepted your friend request!`); Sound.sfx.buy(); loadFriends(); }
-    if (m.t === 'gift') claimGifts();
+    if (m.t === 'gift' || m.t === 'fish_gift') claimGifts();
   }
 
   // -------------------------------------------------------------- gifts --
@@ -323,13 +326,39 @@ const Online = (() => {
     if (!session) return;
     if (!(await pushNow())) return;
     const r = await api('/api/gifts/claim', { method: 'POST' });
-    if (!r.ok || !r.data.claimed.length) return;
+    const fish = (r.ok && Array.isArray(r.data.fish)) ? r.data.fish : [];
+    if (!r.ok || (!r.data.claimed.length && !fish.length)) return;
+    // The server already put the fish in our save (we'd just uploaded, so it
+    // matches what we have); copy them into the same place with the same uid.
+    for (const g of fish) {
+      const f = g.fish;
+      if (!f || !FISH_BY_ID[f.id]) continue;
+      const into = g.where === 'bucket' ? save.bucket : save.aquarium;
+      if (![...save.bucket, ...save.aquarium].some(c => c.uid === f.uid)) into.push({ uid: f.uid, id: f.id, size: f.size, stars: f.stars, value: f.value });
+      save.nextUid = Math.max(save.nextUid, f.uid + 1);
+      const sp = FISH_BY_ID[f.id];
+      toast(`@${g.username} sent you a ${sp.name}${g.note ? `: "${g.note}"` : '!'} It's in your ${g.where}.`);
+    }
     applyServerCoins(r.data.coins, r.data.version);
-    Sound.sfx.coin();
+    if (r.data.claimed.length) Sound.sfx.coin(); else Sound.sfx.buy();
     for (const g of r.data.claimed) {
       toast(`@${g.username} sent you ${g.amount} coins${g.note ? `: "${g.note}"` : '!'}`, 'coin');
     }
     gifts = null;
+  }
+
+  // Gives one of your fish (bucket or tank) to a friend. Uploads first so the
+  // server can find it, then removes it here once the server has.
+  async function sendFishGift(uid, to, note) {
+    if (!session) return { ok: false, message: 'Log in to send gifts.' };
+    if (!(await pushNow())) return { ok: false, message: "Couldn't save online just now. Try again in a moment." };
+    const r = await api('/api/gifts/fish', { method: 'POST', body: { to, uid, note } });
+    if (!r.ok) return { ok: false, message: errorMessage(r) };
+    save.bucket = save.bucket.filter(c => c.uid !== uid);
+    save.aquarium = save.aquarium.filter(c => c.uid !== uid);
+    applyServerCoins(save.coins, r.data.version);
+    gifts = null;
+    return { ok: true };
   }
 
   async function openGiftForm(username) {
@@ -489,9 +518,15 @@ const Online = (() => {
     const list = (items, dir) => items.length ? `<ul class="gift-list">${items.map(g => `
       <li><span><b>${g.amount}</b> coins ${dir} <b>@${escape(g.username)}</b>${g.note ? ` · "${escape(g.note)}"` : ''}</span>
         <span class="fine">${new Date(g.sent_at).toLocaleDateString()}</span></li>`).join('')}</ul>` : '<p class="fine">Nothing yet.</p>';
-    return `<p>You can gift <b>${gifts.remaining_today}</b> more coins today. Send gifts from the Friends tab.</p>
-      <h3>Received</h3>${list(gifts.received, 'from')}
-      <h3>Sent</h3>${list(gifts.sent, 'to')}`;
+    const fishName = f => (f && FISH_BY_ID[f.id] ? FISH_BY_ID[f.id].name : 'a fish');
+    const fishList = (items, dir) => items && items.length ? `<ul class="gift-list">${items.map(g => `
+      <li><span>a <b>${escape(fishName(g.fish))}</b> ${dir} <b>@${escape(g.username)}</b>${g.note ? ` · "${escape(g.note)}"` : ''}</span>
+        <span class="fine">${new Date(g.sent_at).toLocaleDateString()}</span></li>`).join('')}</ul>` : '<p class="fine">Nothing yet.</p>';
+    return `<p>You can gift <b>${gifts.remaining_today}</b> more coins${gifts.fish_remaining_today !== undefined ? ` and <b>${gifts.fish_remaining_today}</b> more fish` : ''} today. Send coins from the Friends tab, and fish from your Bucket or Tank.</p>
+      <h3>Coins received</h3>${list(gifts.received, 'from')}
+      <h3>Coins sent</h3>${list(gifts.sent, 'to')}
+      <h3>Fish received</h3>${fishList(gifts.fish_received, 'from')}
+      <h3>Fish sent</h3>${fishList(gifts.fish_sent, 'to')}`;
   }
 
   function profileHTML() {
@@ -630,6 +665,9 @@ const Online = (() => {
     api,
     localSaved,
     refreshFriends: () => { if (session) loadFriends(); },
+    friendNames: () => (session ? friends.friends.map(f => f.username) : []),
+    loadFriends: () => (session ? loadFriends() : Promise.resolve()),
+    sendFishGift,
     onNotify,
     open: openAccount,
     openGift: name => { view = 'friends'; openAccount(); loadFriends(); openGiftForm(name); },

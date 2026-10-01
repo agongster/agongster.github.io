@@ -16,6 +16,7 @@
     <header id="hud">
       <div class="hud-stats">
         <span class="pill" title="Coins"><span class="coin-icon" aria-hidden="true"></span><span id="coins">0</span><span class="sr-only"> coins</span></span>
+        <span class="pill" title="Fish in your bucket"><span class="pail-icon" aria-hidden="true"></span><span id="bucket-count">0/6</span></span>
         <span class="pill" title="Fish in your tank"><span class="tank-icon" aria-hidden="true"></span><span id="tank-pill-count">0/6</span></span>
         <button class="pill cloud-pill" id="cloud-pill" hidden title="Online save status"></button>
         <button class="pill boost-pill" id="boost-pill" hidden title="Enchantments working right now"></button>
@@ -26,6 +27,7 @@
         <button class="btn profile-btn" id="btn-profile" hidden>Profile</button>
         <button class="btn chat-btn" id="btn-chat" hidden aria-pressed="false">Chat</button>
         <button class="btn map-btn" id="btn-map">Map</button>
+        <button class="btn" id="btn-bucket">Bucket</button>
         <button class="btn tank-btn" id="btn-tank">Tank</button>
         <button class="btn charm-btn" id="btn-charms" hidden>Charms</button>
         <button class="btn" id="btn-shop">Shop</button>
@@ -209,6 +211,33 @@
     </div>
   </div>
 
+  <!-- Bucket -->
+  <div class="modal" id="modal-bucket" role="dialog" aria-modal="true" aria-labelledby="bucket-h" hidden>
+    <div class="panel">
+      <header class="panel-head">
+        <h2 id="bucket-h">Bucket</h2>
+        <span class="pill"><span class="coin-icon" aria-hidden="true"></span><span class="coins-mirror">0</span></span>
+        <button class="close-btn" data-close aria-label="Close">X</button>
+      </header>
+      <div class="tank-summary">
+        <span id="bucket-sub"></span>
+        <button class="btn" id="btn-bucket-sell-all">Sell all</button>
+      </div>
+      <ul id="bucket-list" class="fish-list"></ul>
+    </div>
+  </div>
+
+  <!-- Gift a fish -->
+  <div class="modal" id="modal-giftfish" role="dialog" aria-modal="true" aria-labelledby="giftfish-h" hidden>
+    <div class="panel">
+      <header class="panel-head">
+        <h2 id="giftfish-h">Gift a fish</h2>
+        <button class="close-btn" data-close aria-label="Close">X</button>
+      </header>
+      <div id="giftfish-body"></div>
+    </div>
+  </div>
+
   <!-- Charms (enchantments) -->
   <div class="modal" id="modal-charms" role="dialog" aria-modal="true" aria-labelledby="charms-h" hidden>
     <div class="panel">
@@ -247,6 +276,7 @@
       <p class="catch-blurb" id="catch-blurb"></p>
       <p class="catch-bonus" id="catch-bonus" hidden></p>
       <div class="catch-actions">
+        <button class="btn" id="catch-bucket">Bucket</button>
         <button class="btn mint" id="catch-tank">Tank</button>
         <button class="btn gold" id="catch-sell">Sell</button>
         <button class="btn plain" id="catch-release">Release</button>

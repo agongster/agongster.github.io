@@ -103,7 +103,7 @@ kbd {
 }
 .phase-pill { border-color: var(--coral); }
 
-.coin-icon, .tank-icon {
+.coin-icon, .tank-icon, .pail-icon {
   width: 14px; height: 14px; display: inline-block; flex: none;
   image-rendering: pixelated;
 }
@@ -114,6 +114,14 @@ kbd {
     linear-gradient(#fff3a0, #fff3a0) 6px 4px / 2px 6px no-repeat,
     linear-gradient(var(--gold-deep), var(--gold-deep)) 2px 0 / 10px 14px no-repeat,
     linear-gradient(var(--gold-deep), var(--gold-deep)) 0 2px / 14px 10px no-repeat;
+}
+.pail-icon {
+  background:
+    linear-gradient(#c8c0d8, #c8c0d8) 3px 5px / 8px 8px no-repeat,
+    linear-gradient(#8a8098, #8a8098) 2px 4px / 10px 10px no-repeat,
+    linear-gradient(#8a8098, #8a8098) 3px 1px / 8px 2px no-repeat,
+    linear-gradient(#8a8098, #8a8098) 2px 1px / 2px 4px no-repeat,
+    linear-gradient(#8a8098, #8a8098) 10px 1px / 2px 4px no-repeat;
 }
 /* a little glass tank with a fish in it */
 .tank-icon {
@@ -446,6 +454,9 @@ kbd {
 .online-btn { background: var(--gold); white-space: nowrap; }
 .profile-btn { background: var(--lilac); }
 .charm-btn { background: #c8f0a0; }
+.giftfish-card { display: flex; gap: 10px; align-items: center; background: #fff; border: 3px solid var(--ink); padding: 6px 10px; margin-bottom: 8px; }
+.giftfish-card img { width: 76px; height: 40px; object-fit: contain; image-rendering: pixelated; }
+#giftfish-form select { font-family: var(--font); font-size: 16px; padding: 4px 6px; border: 3px solid var(--ink); background: #fff; color: var(--ink); }
 /* a gentle shimmer while an enchantment is working */
 .boost-pill { font-family: var(--font); font-size: inherit; cursor: pointer; border-color: var(--lilac); color: #e8dcff; animation: shimmer 2s steps(4) infinite; }
 @keyframes shimmer { 50% { border-color: #ffd27a; } }
