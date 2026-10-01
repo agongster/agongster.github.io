@@ -396,6 +396,14 @@ i do not see a chat button in the pushed version.
 make the fish shadows easier to see at night, and enable users to gift fish to one another. ALSO bring back the bucket along with the tank, so users can either put fish in the bucket or the tank.
 ```
 
+```
+yes
+```
+
+```
+ok now i want to include a personal home feature, where players have a personal room they can also decorate and buy multiple tanks, which they can name differently. when you visit a player you can explore their home as well.
+```
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -470,6 +478,16 @@ make the fish shadows easier to see at night, and enable users to gift fish to o
   - **Receiving:** it goes straight to the friend if they're online (otherwise the next time they are). The server puts it in their bucket if there's room, otherwise their tank, and tells the game exactly where.
   - **Limits and history:** 20 fish a day. The Gifts tab now lists fish sent and received.
   - **Tests:** a new server test (20 pass) covers strangers, missing fish, LeBron, and sending twice. A two-browser run against a local server checked the full flow with no rejected saves.
+- **Home and several tanks:**
+  - **Tanks:** `save.tanks` is now a list, each with its own name, size level, fish and props. One is the **main tank**, where catches, bucket moves and gifts go. Old saves turn into one tank called "My tank" with everything they had. Each tank's window has **Rename**, **Make main tank** and **Upgrade** buttons (upgrades moved out of the Tackle tab), and buying props asks which tank they're for.
+  - **The room:** a new **Home** button opens a pixel room (new file `home.js`). It has wallpaper, a floor, and a window showing the real sky for the time of day. In the evening the room dims and lamps, the fireplace and the chandelier glow.
+  - **Furniture:** 20 pieces, from a 60-coin plant to a 60,000-coin golden throne, some animated (fireplace, fairy lights, arcade). Wall items hang on the wall and the rest stand on the floor.
+  - **Tanks in the room:** each tank stands there as a little aquarium with its fish swimming inside and its name above it. Tap one to open it, then "Back to home".
+  - **Decorate mode:** drag, flip, put away (tanks can be moved but not put away), and arrow keys.
+  - **Shop's Home tab:** your tanks, a "buy another tank" button (prices climb from 1,500 to 80,000, up to 7 tanks), furniture, 7 wallpapers and 6 floors.
+  - **Visiting:** the visiting bar's button is now **Their home**: look around a friend's room and peek into any of their tanks, read-only. Older one-tank saves are shown as a room with that one tank.
+  - **Server:** friends' worlds include `tanks`, `mainTank` and `home`. Fish gifts can come from any tank and land in the friend's main tank when their bucket is full. A new test covers this (21 pass).
+  - **Where the AI got it wrong:** the room was blank at first. The game loop's first frame runs before `home.js` loads, so it hit "drawHome is not defined", which stopped the whole loop (and with it, catches). The call is now guarded. Found by calling the function directly in the test browser.
 
 ### Changes I made myself
 

@@ -28,7 +28,7 @@ function refreshHUD() {
   $('#coins').textContent = save.coins;
   $$('.coins-mirror').forEach(e => { e.textContent = save.coins; });
   $('#bucket-count').textContent = `${save.bucket.length}/${bucketCap()}`;
-  $('#tank-pill-count').textContent = `${save.aquarium.length}/${tankCap()}`;
+  $('#tank-pill-count').textContent = `${mainTank().fish.length}/${tankCap()}`;
   const phase = PHASES.find(p => p.id === G.phaseId);
   $('#phase-pill').textContent = `${G.visit ? `@${G.visit.host} · ` : ''}${currentLoc().name} · ${phase ? phase.name : ''}`;
   if (typeof Net !== 'undefined') Net.renderBar();
@@ -38,6 +38,7 @@ function refreshHUD() {
   if (openId === 'modal-tank') renderTank();
   if (openId === 'modal-charms') renderCharms();
   if (openId === 'modal-bucket') renderBucket();
+  if (openId === 'modal-home') renderHome();
   renderBoosts();
 }
 
@@ -198,6 +199,7 @@ function renderShop() {
   $('#shop-tackle').hidden = shop.tab !== 'tackle';
   $('#shop-boat').hidden = shop.tab !== 'boat';
   $('#shop-decor').hidden = shop.tab !== 'decor';
+  $('#shop-home').hidden = shop.tab !== 'home';
   if (shop.tab === 'wardrobe') {
     renderCatTabs();
     renderItems();
@@ -206,6 +208,8 @@ function renderShop() {
     renderBoatShop();
   } else if (shop.tab === 'decor') {
     renderDecorShop();
+  } else if (shop.tab === 'home') {
+    renderHomeShop();
   } else {
     renderTackle();
   }
@@ -371,7 +375,7 @@ function renderTackle() {
   }).join('');
   $('#shop-tackle').innerHTML = `<h3>Rods</h3><ul class="gear-list">${rodRows}</ul>
     <h3>Buckets</h3><ul class="gear-list">${upgradeRows(BUCKETS, save.bucketLvl, 'data-bucket', 'fish')}</ul>
-    <h3>Aquariums</h3><ul class="gear-list">${upgradeRows(TANKS, save.tankLvl, 'data-tank', 'fish on display')}</ul>`;
+    <p class="tank-hint">Tanks are upgraded one at a time from each tank's window, and new tanks are in the Shop's Home tab.</p>`;
 }
 
 $('#shop-tackle').addEventListener('click', e => {
@@ -398,15 +402,7 @@ $('#shop-tackle').addEventListener('click', e => {
     refreshHUD();
     return;
   }
-  const tb = e.target.closest('[data-tank]');
-  if (tb) {
-    const i = Number(tb.dataset.tank);
-    if (i !== save.tankLvl + 1 || !spend(TANKS[i].price)) return;
-    save.tankLvl = i;
-    persist();
-    toast(`Upgraded to the ${TANKS[i].name.toLowerCase()}!`);
-    refreshHUD();
-  }
+
 });
 
 // ================================================================== boat ==
@@ -569,7 +565,7 @@ function giftFishButton(c) {
 let giftFish = null;  // { uid, from: 'modal-bucket' | 'modal-tank' }
 
 async function openGiftFish(uid, from) {
-  const c = [...save.bucket, ...save.aquarium].find(x => x.uid === uid);
+  const c = [...save.bucket, ...allTankFish()].find(x => x.uid === uid);
   if (!c) return;
   giftFish = { uid, from };
   renderGiftFish(c, true);
@@ -603,13 +599,13 @@ function backFromGiftFish() {
   giftFish = null;
   forceClose();
   if (from === 'modal-bucket') openBucket();
-  else if (from === 'modal-tank') openTank();
+  else if (from === 'modal-tank') openTank(null, shownTankUid, tankFromHome);
 }
 
 $('#giftfish-body').addEventListener('submit', async e => {
   e.preventDefault();
   if (!giftFish) return;
-  const c = [...save.bucket, ...save.aquarium].find(x => x.uid === giftFish.uid);
+  const c = [...save.bucket, ...allTankFish()].find(x => x.uid === giftFish.uid);
   if (!c) return;
   const f = Object.fromEntries(new FormData(e.target).entries());
   renderGiftFish(c, false, '', true);
@@ -813,13 +809,19 @@ $('#dex-tabs').addEventListener('click', e => {
 const tankSwimmers = new Map();
 let tankLabel = null;
 
-// view: null for your own tank, or { owner, fish } for a friend's (read-only)
-let tankView = null;
-const tankFish = () => (tankView ? tankView.fish.filter(c => c && FISH_BY_ID[c.id]) : save.aquarium);
+// view: null for one of your own tanks (shownTankUid says which), or
+// { owner, name, fish, decor } for a friend's (read-only)
+let tankView = null, shownTankUid = null, tankFromHome = false;
+const shownTank = () => findTank(shownTankUid) || mainTank();
+const tankFish = () => (tankView ? tankView.fish.filter(c => c && FISH_BY_ID[c.id]) : shownTank().fish);
 
-function openTank(view = null) {
-  if ((view && view.owner) !== (tankView && tankView.owner)) tankSwimmers.clear();
+function openTank(view = null, uid = null, fromHome = false) {
+  const key = view ? `${view.owner}:${view.uid}` : `me:${uid || save.mainTank}`;
+  if (key !== openTank.lastKey) tankSwimmers.clear();
+  openTank.lastKey = key;
   tankView = view;
+  if (!view) shownTankUid = uid || save.mainTank;
+  tankFromHome = fromHome;
   decorEdit.on = false;
   decorEdit.sel = null;
   renderTank();
@@ -828,11 +830,29 @@ function openTank(view = null) {
 }
 
 function renderTank() {
-  const fish = tankFish();
-  $('#tank-h').textContent = tankView ? `@${tankView.owner}'s tank` : TANKS[save.tankLvl].name;
-  $('#tank-count').textContent = tankView ? `${fish.length} fish` : `${fish.length}/${tankCap()} fish`;
+  const fish = tankFish(), t = tankView ? null : shownTank();
+  const cap = t ? tankCapOf(t) : 0;
+  $('#tank-h').textContent = tankView ? `${tankView.name || 'Tank'} · @${tankView.owner}` : t.name;
+  $('#tank-count').textContent = tankView ? `${fish.length} fish` : `${fish.length}/${cap} fish`;
+  // tools: rename, main tank, upgrade (your own tanks only)
+  $('#tank-tools').hidden = !!tankView && !tankFromHome;
+  for (const id of ['#btn-tank-rename', '#btn-tank-main', '#btn-tank-upgrade']) $(id).hidden = !!tankView;
+  $('#btn-tank-home').hidden = !tankFromHome;
+  if (t) {
+    const isMain = t.uid === save.mainTank;
+    $('#tank-main-tag').hidden = !isMain || save.tanks.length < 2;
+    $('#btn-tank-main').hidden = isMain;
+    const next = TANKS[t.lvl + 1];
+    const up = $('#btn-tank-upgrade');
+    up.hidden = !next;
+    if (next) {
+      up.innerHTML = `Upgrade to ${next.cap} fish · ${coinHTML(next.price)}`;
+      up.disabled = save.coins < next.price;
+    }
+  } else $('#tank-main-tag').hidden = true;
   $('#modal-tank .tank-hint').textContent = tankView ? 'Tap a fish to say hi. Just looking: these belong to your friend!'
-    : fish.length > tankCap() ? `Over capacity! Sell ${fish.length - tankCap()} to make room for new catches.`
+    : fish.length > cap ? `Over capacity! Sell ${fish.length - cap} to make room for new fish.`
+    : save.tanks.length > 1 && t.uid === save.mainTank ? 'Tap a fish to say hi. New catches go in this tank.'
     : 'Tap a fish to say hi.';
   const sellable = tankView ? [] : fish.filter(c => !isUnsellable(c));
   const total = sellable.reduce((sum, c) => sum + c.value, 0);
@@ -858,7 +878,7 @@ function renderTank() {
       ${tankView ? '' : sp.unsellable ? '<span class="priceless">Here forever</span>'
         : `<span class="row-actions">${giftFishButton(c)}<button class="btn gold" data-tanksell="${c.uid}" aria-label="Sell ${sp.name} for ${c.value} coins">Sell ${coinHTML(c.value)}</button></span>`}
     </li>`;
-  }).join('') : `<li class="empty" style="display:block">${tankView ? 'Their tank is empty.' : 'Your tank is empty. Tap "Tank" on a catch to keep it here.'}</li>`;
+  }).join('') : `<li class="empty" style="display:block">${tankView ? 'This tank is empty.' : t.uid === save.mainTank ? 'This tank is empty. Tap "Tank" on a catch to keep it here.' : 'This tank is empty. Make it your main tank to fill it with new catches.'}</li>`;
 
   // keep the swimmers in sync with what's in the tank
   const uids = new Set(fish.map(c => c.uid));
@@ -879,21 +899,51 @@ $('#tank-list').addEventListener('click', e => {
   const b = e.target.closest('[data-tanksell]');
   if (!b) return;
   const uid = Number(b.dataset.tanksell);
-  const c = save.aquarium.find(x => x.uid === uid);
+  const c = shownTank().fish.find(x => x.uid === uid);
   if (c && ['rare', 'legendary', 'goat'].includes(FISH_BY_ID[c.id].rarity) &&
     !confirm(`Sell your ${FISH_BY_ID[c.id].name}? It's a ${RARITY[FISH_BY_ID[c.id].rarity].label.toLowerCase()} one!`)) return;
-  sellFromTank(uid);
+  sellFromTank(uid, shownTank());
   renderTank();
 });
 
 $('#btn-sell-all').addEventListener('click', () => {
-  const sellable = save.aquarium.filter(c => !isUnsellable(c));
+  const t = shownTank();
+  const sellable = t.fish.filter(c => !isUnsellable(c));
   const total = sellable.reduce((sum, c) => sum + c.value, 0);
-  if (!confirm(`Sell all ${sellable.length} fish in your tank for ${total} coins?`)) return;
-  sellAllFromTank();
+  if (!confirm(`Sell all ${sellable.length} fish in ${t.name} for ${total} coins?`)) return;
+  sellAllFromTank(t);
   renderTank();
   $('#modal-tank .close-btn').focus({ preventScroll: true });
 });
+
+$('#btn-tank-rename').addEventListener('click', () => {
+  const t = shownTank();
+  const name = prompt('Name this tank:', t.name);
+  if (name === null) return;
+  const clean = name.replace(/\s+/g, ' ').trim().slice(0, 20);
+  if (!clean) return;
+  t.name = clean;
+  persist();
+  renderTank();
+});
+$('#btn-tank-main').addEventListener('click', () => {
+  save.mainTank = shownTank().uid;
+  persist();
+  toast(`New catches and gifts now go to ${shownTank().name}`);
+  refreshHUD();
+  renderTank();
+});
+$('#btn-tank-upgrade').addEventListener('click', () => {
+  const t = shownTank(), next = TANKS[t.lvl + 1];
+  if (!next || !spend(next.price)) return;
+  t.lvl += 1;
+  save.home.items.forEach(it => clampRoomItem(it, save.tanks));
+  persist();
+  toast(`${t.name} now holds ${next.cap} fish!`);
+  refreshHUD();
+  renderTank();
+});
+$('#btn-tank-home').addEventListener('click', () => { forceClose(); openHome(homeView); });
 
 const tankPoint = e => {
   const r = $('#tank-canvas').getBoundingClientRect();
@@ -1001,8 +1051,8 @@ function drawTank() {
 // Props are bought in the Shop (Tank tab) and arranged in the Tank's
 // decorate mode: drag to move, tap to select, then flip or put away.
 const decorEdit = { on: false, sel: null, drag: null };
-const tankDecor = () => (tankView ? (tankView.decor || starterDecor()).filter(d => d && DECOR_BY_ID[d.id]).map(d => clampDecor({ ...d, placed: d.placed !== false })) : save.decor);
-const placedCount = () => save.decor.filter(d => d.placed).length;
+const tankDecor = () => (tankView ? (tankView.decor || starterDecor()).filter(d => d && DECOR_BY_ID[d.id]).map(d => clampDecor({ ...d, placed: d.placed !== false })) : shownTank().decor);
+const placedCount = (t = shownTank()) => t.decor.filter(d => d.placed).length;
 
 // Draws one prop with its bottom-centre at (d.x, d.y).
 function drawDecor(g, d, t) {
@@ -1171,7 +1221,7 @@ function drawDecorOutlines(g, props) {
 
 function decorPointerDown(e, x, y) {
   // topmost first: floaters, then floor props nearest the glass
-  const props = save.decor.filter(d => d.placed)
+  const props = shownTank().decor.filter(d => d.placed)
     .sort((a, b) => (DECOR_BY_ID[b.id].float ? 1 : 0) - (DECOR_BY_ID[a.id].float ? 1 : 0) || b.y - a.y);
   const hit = props.find(d => { const b = decorBox(d); return x >= b.x - 3 && x <= b.x + b.w + 3 && y >= b.y - 3 && y <= b.y + b.h + 3; });
   decorEdit.sel = hit ? hit.uid : null;
@@ -1184,7 +1234,7 @@ function decorPointerDown(e, x, y) {
 }
 
 function decorDragTo({ x, y }) {
-  const d = save.decor.find(p => p.uid === decorEdit.drag.uid);
+  const d = shownTank().decor.find(p => p.uid === decorEdit.drag.uid);
   if (!d) return;
   d.x = x - decorEdit.drag.dx;
   d.y = y - decorEdit.drag.dy;
@@ -1202,7 +1252,7 @@ function renderDecorPanel() {
   const panel = $('#decor-panel');
   panel.hidden = !decorEdit.on || !!tankView;
   if (panel.hidden) return;
-  const sel = save.decor.find(d => d.uid === decorEdit.sel && d.placed);
+  const sel = shownTank().decor.find(d => d.uid === decorEdit.sel && d.placed);
   $('#decor-selected').innerHTML = sel
     ? `<b>${DECOR_BY_ID[sel.id].name}</b>
        <span class="row-actions">
@@ -1212,7 +1262,7 @@ function renderDecorPanel() {
        <span class="fine kbd-only">Arrow keys nudge it too.</span>`
     : `<span class="fine">${placedCount()}/${MAX_DECOR} props in the tank.</span>
        <button class="btn gold" data-decor="shop">Get more props</button>`;
-  const stored = save.decor.filter(d => !d.placed);
+  const stored = shownTank().decor.filter(d => !d.placed);
   const full = placedCount() >= MAX_DECOR;
   $('#decor-tray').innerHTML = stored.length
     ? `<h3>Put away</h3><div class="tray-items">${stored.map(d => `
@@ -1233,7 +1283,7 @@ $('#btn-decorate').addEventListener('click', () => {
 $('#decor-panel').addEventListener('click', e => {
   const act = e.target.closest('[data-decor]');
   if (act) {
-    const sel = save.decor.find(d => d.uid === decorEdit.sel);
+    const sel = shownTank().decor.find(d => d.uid === decorEdit.sel);
     if (act.dataset.decor === 'shop') { forceClose(); openShop(false, 'decor'); return; }
     if (sel && act.dataset.decor === 'flip') sel.flip = !sel.flip;
     if (sel && act.dataset.decor === 'store') { sel.placed = false; decorEdit.sel = null; }
@@ -1244,7 +1294,7 @@ $('#decor-panel').addEventListener('click', e => {
   }
   const place = e.target.closest('[data-place]');
   if (place && placedCount() < MAX_DECOR) {
-    const d = save.decor.find(p => p.uid === Number(place.dataset.place));
+    const d = shownTank().decor.find(p => p.uid === Number(place.dataset.place));
     if (!d) return;
     d.placed = true;
     d.x = TANK_W / 2;
@@ -1259,7 +1309,7 @@ $('#decor-panel').addEventListener('click', e => {
 
 document.addEventListener('keydown', e => {
   if (openId !== 'modal-tank' || !decorEdit.on || isTyping(e.target)) return;
-  const d = save.decor.find(p => p.uid === decorEdit.sel && p.placed);
+  const d = shownTank().decor.find(p => p.uid === decorEdit.sel && p.placed);
   if (!d) return;
   const step = e.shiftKey ? 8 : 2;
   const move = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
@@ -1278,32 +1328,40 @@ document.addEventListener('keydown', e => {
 });
 
 // ---- the Shop's Tank tab
+function decorShopTank() { return findTank(shop.decorTank) || mainTank(); }
+
 function renderDecorShop() {
-  const count = id => save.decor.filter(d => d.id === id).length;
+  const t = decorShopTank();
+  $('#decor-tank-pick').hidden = save.tanks.length < 2;
+  $('#decor-tank-pick select').innerHTML = save.tanks.map(x => `<option value="${x.uid}" ${x.uid === t.uid ? 'selected' : ''}>${escapeHTML(x.name)}</option>`).join('');
+  const count = id => t.decor.filter(d => d.id === id).length;
   $('#decor-grid').innerHTML = DECOR.map(def => {
     const n = count(def.id);
     return `<div class="item decor-item">
       <img src="${decorSprite(def.id)}" alt="" />
       <span class="name">${def.name}</span>
       <span class="tag">${def.blurb}</span>
-      ${n ? `<span class="tag">${n} in your tank</span>` : ''}
+      ${n ? `<span class="tag">${n} in ${escapeHTML(t.name)}</span>` : ''}
       ${def.price === 0 ? `<button class="btn mint" data-decorbuy="${def.id}">Get free</button>` : buyButton(`data-decorbuy="${def.id}"`, def.price)}
     </div>`;
   }).join('');
 }
 
+$('#decor-tank-pick select').addEventListener('change', e => { shop.decorTank = Number(e.target.value); renderDecorShop(); });
+
 $('#decor-grid').addEventListener('click', e => {
   const b = e.target.closest('[data-decorbuy]');
   if (!b) return;
   const def = DECOR_BY_ID[b.dataset.decorbuy];
-  if (save.decor.length >= 200) { toast('That\'s a lot of props! Put some away first.'); return; }
+  const t = decorShopTank();
+  if (t.decor.length >= 200) { toast('That\'s a lot of props! Put some away first.'); return; }
   if (def.price > 0 && !spend(def.price)) return;
   if (def.price === 0) Sound.sfx.buy();
-  const placed = placedCount() < MAX_DECOR;
-  const d = clampDecor({ uid: save.nextDecor++, id: def.id, x: rand(def.w, TANK_W - def.w), y: def.float ? rand(20, TANK_SAND - 10) : rand(TANK_SAND, TANK_H - 3), flip: Math.random() < 0.5, placed });
-  save.decor.push(d);
+  const placed = placedCount(t) < MAX_DECOR;
+  const d = clampDecor({ uid: t.nextDecor++, id: def.id, x: rand(def.w, TANK_W - def.w), y: def.float ? rand(20, TANK_SAND - 10) : rand(TANK_SAND, TANK_H - 3), flip: Math.random() < 0.5, placed });
+  t.decor.push(d);
   persist();
-  toast(placed ? `${def.name} added to your tank!` : `${def.name} is waiting in your tank's tray`);
+  toast(placed ? `${def.name} added to ${t.name}!` : `${def.name} is waiting in ${t.name}'s tray`);
   renderDecorShop();
   refreshHUD();
 });
@@ -1477,6 +1535,8 @@ function uiTick() {
   drawBoatPreview();
   drawMap();
   drawTank();
+  // home.js loads after this file, and the first frame runs before it does
+  if (typeof drawHome === 'function') drawHome();
 }
 
 // Converts a pointer position into the 320x180 canvas's own pixels.

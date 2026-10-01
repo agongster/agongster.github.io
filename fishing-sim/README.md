@@ -23,6 +23,7 @@ To play, tap the water where you want to cast, ideally in front of or generally 
 > - Sell fish straight off the line, from your **Bucket** or from your **Tank**, then spend coins in the **Shop** (Wardrobe for your angler, Boat for your boat's style (a rowboat, a swan, a duck parade, a bathtub, a banana...), colours, sail, flag and decorations, Tank for props, Tackle for rods, buckets and tanks). You can try things on before buying.
 > - Catch more fish to unlock new spots on the **Map**: Lily Lagoon (12), Coral Cove (30), Aurora Bay (55), Blossom River (80), Ember Isle (110) and Cloud Lake (150). Each has its own scenery and fish, and you sail there by boat.
 > - Put each catch in your **Bucket** (to sell later, or move to the tank) or your **Tank** to watch it swim around. Tap a tank fish to see its name, and sell one fish or all of them whenever you like.
+> - Your **Home**: a room you decorate with furniture (a sofa, a fireplace, a piano, a golden throne...), wallpaper and floors, with all your tanks in it. Buy more tanks (up to 7), name them, upgrade each one, and pick a main tank for new catches. Friends can walk around your home and peek into your tanks when they visit.
 > - Decorate the tank: buy props in the Shop (a castle, coral, a rubber duck, a shipwreck, a GOAT trophy...), then press **Decorate** in the Tank to drag them around, flip them or put them away. Friends see your layout when they visit.
 > - The day cycles sunrise → daytime → golden hour → sunset → dusk → night (about 65 seconds each), and the sun travels across the sky. Some fish only appear at certain times. The **Fishdex** shows silhouettes of what's left, where each one lives, and when it swims.
 > - Works with a mouse, touch or the keyboard. On phones it works in portrait but is roomier in landscape.
@@ -114,6 +115,7 @@ Tap **Log in** (top bar, or on the title screen) to sign up with an email, a uni
 | `online.js` | Accounts, cloud saves, friends and gifts: the API calls, sync and conflict handling, and the Friends/Gifts/Account menu. |
 | `net.js` | Fishing together: the live connection to a world, visiting and going home, and drawing other players. |
 | `dev.js` | The dev-mode panel (fish picker and testing shortcuts). |
+| `home.js` | The home room: drawing it (wallpaper, floor, window, furniture, tanks), decorating it, and the Shop's Home tab. |
 | `ui.js` | DOM side: HUD, modals, shop/tank/Fishdex rendering, and mouse/touch/keyboard input. |
 | `style.css` | Warm sunset palette, pixel-bordered panels, responsive rules for phones. |
 

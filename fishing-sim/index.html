@@ -28,6 +28,7 @@
         <button class="btn chat-btn" id="btn-chat" hidden aria-pressed="false">Chat</button>
         <button class="btn map-btn" id="btn-map">Map</button>
         <button class="btn" id="btn-bucket">Bucket</button>
+        <button class="btn home-btn" id="btn-home">Home</button>
         <button class="btn tank-btn" id="btn-tank">Tank</button>
         <button class="btn charm-btn" id="btn-charms" hidden>Charms</button>
         <button class="btn" id="btn-shop">Shop</button>
@@ -117,6 +118,7 @@
       <div class="tabs" id="shop-tabs" role="tablist">
         <button role="tab" data-shoptab="wardrobe" aria-selected="true">Wardrobe</button>
         <button role="tab" data-shoptab="boat" aria-selected="false">Boat</button>
+        <button role="tab" data-shoptab="home" aria-selected="false">Home</button>
         <button role="tab" data-shoptab="decor" aria-selected="false">Tank</button>
         <button role="tab" data-shoptab="tackle" aria-selected="false">Tackle</button>
       </div>
@@ -147,8 +149,20 @@
         </div>
       </section>
 
+      <section id="shop-home" hidden>
+        <h3>Tanks</h3>
+        <div id="home-tanks"></div>
+        <h3>Furniture</h3>
+        <div id="furn-grid" class="item-grid decor-grid"></div>
+        <h3>Wallpaper</h3>
+        <div id="wall-grid" class="item-grid decor-grid"></div>
+        <h3>Floors</h3>
+        <div id="floor-grid" class="item-grid decor-grid"></div>
+      </section>
+
       <section id="shop-decor" hidden>
         <p class="tank-hint">Props go straight into your tank. Open the Tank and press Decorate to move them around.</p>
+        <label class="decor-tank-pick" id="decor-tank-pick" hidden>Put props in <select aria-label="Which tank"></select></label>
         <div id="decor-grid" class="item-grid decor-grid"></div>
       </section>
 
@@ -192,6 +206,13 @@
         <span class="pill" id="tank-count"></span>
         <button class="close-btn" data-close aria-label="Close">X</button>
       </header>
+      <div class="tank-tools" id="tank-tools">
+        <span id="tank-main-tag" class="host-here" hidden>Main tank</span>
+        <button class="btn plain" id="btn-tank-rename">Rename</button>
+        <button class="btn plain" id="btn-tank-main">Make main tank</button>
+        <button class="btn gold" id="btn-tank-upgrade"></button>
+        <button class="btn plain" id="btn-tank-home">Back to home</button>
+      </div>
       <div class="tank-wrap">
         <canvas id="tank-canvas" width="240" height="135" aria-label="Your aquarium, with your fish swimming around"></canvas>
         <span id="tank-label" class="tank-label" hidden></span>
@@ -208,6 +229,32 @@
         <div id="decor-tray" class="decor-tray"></div>
       </div>
       <ul id="tank-list" class="fish-list"></ul>
+    </div>
+  </div>
+
+  <!-- Home -->
+  <div class="modal" id="modal-home" role="dialog" aria-modal="true" aria-labelledby="home-h" hidden>
+    <div class="panel wide">
+      <header class="panel-head">
+        <h2 id="home-h">Home</h2>
+        <span class="pill" id="home-count"></span>
+        <button class="close-btn" data-close aria-label="Close">X</button>
+      </header>
+      <div class="home-wrap">
+        <canvas id="home-canvas" width="320" height="180" aria-label="Your home, with your tanks and furniture"></canvas>
+        <div id="home-tags" aria-hidden="true"></div>
+      </div>
+      <div class="tank-summary">
+        <p class="tank-hint" id="home-hint"></p>
+        <span class="row-actions">
+          <button class="btn mint" id="btn-home-decorate" aria-pressed="false">Decorate</button>
+          <button class="btn gold" id="btn-home-shop">Shop for home</button>
+        </span>
+      </div>
+      <div id="home-panel" class="decor-panel" hidden>
+        <div id="home-selected" class="decor-selected"></div>
+        <div id="home-tray" class="decor-tray"></div>
+      </div>
     </div>
   </div>
 
@@ -289,6 +336,7 @@
   <script src="audio.js"></script>
   <script src="game.js"></script>
   <script src="ui.js"></script>
+  <script src="home.js"></script>
   <script src="online.js"></script>
   <script src="net.js"></script>
   <script src="dev.js"></script>

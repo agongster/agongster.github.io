@@ -333,11 +333,12 @@ const Online = (() => {
     for (const g of fish) {
       const f = g.fish;
       if (!f || !FISH_BY_ID[f.id]) continue;
-      const into = g.where === 'bucket' ? save.bucket : save.aquarium;
-      if (![...save.bucket, ...save.aquarium].some(c => c.uid === f.uid)) into.push({ uid: f.uid, id: f.id, size: f.size, stars: f.stars, value: f.value });
+      const tank = (g.tank && findTank(g.tank)) || mainTank();
+      const into = g.where === 'bucket' ? save.bucket : tank.fish;
+      if (![...save.bucket, ...allTankFish()].some(c => c.uid === f.uid)) into.push({ uid: f.uid, id: f.id, size: f.size, stars: f.stars, value: f.value });
       save.nextUid = Math.max(save.nextUid, f.uid + 1);
       const sp = FISH_BY_ID[f.id];
-      toast(`@${g.username} sent you a ${sp.name}${g.note ? `: "${g.note}"` : '!'} It's in your ${g.where}.`);
+      toast(`@${g.username} sent you a ${sp.name}${g.note ? `: "${g.note}"` : '!'} It's in ${g.where === 'bucket' ? 'your bucket' : tank.name}.`);
     }
     applyServerCoins(r.data.coins, r.data.version);
     if (r.data.claimed.length) Sound.sfx.coin(); else Sound.sfx.buy();
@@ -355,7 +356,7 @@ const Online = (() => {
     const r = await api('/api/gifts/fish', { method: 'POST', body: { to, uid, note } });
     if (!r.ok) return { ok: false, message: errorMessage(r) };
     save.bucket = save.bucket.filter(c => c.uid !== uid);
-    save.aquarium = save.aquarium.filter(c => c.uid !== uid);
+    for (const t of save.tanks) t.fish = t.fish.filter(c => c.uid !== uid);
     applyServerCoins(save.coins, r.data.version);
     gifts = null;
     return { ok: true };

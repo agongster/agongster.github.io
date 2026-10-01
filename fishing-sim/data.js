@@ -1025,6 +1025,61 @@ const TANKS = [
   { cap: 64, price: 30000, name: 'Ocean palace' },
 ];
 
+// ---------------------------------------------------------------- home --
+// Your room: a wall and a floor you can restyle, furniture you drag into
+// place, and all your tanks. The room canvas is HOME_W x HOME_H pixels; the
+// wall runs down to HOME_FLOOR, where the floor starts.
+const HOME_W = 320, HOME_H = 180, HOME_FLOOR = 112;
+const MAX_TANKS = 7;
+// What each extra tank costs (the first one is yours from the start).
+const TANK_PRICES = [0, 1500, 4000, 9000, 20000, 40000, 80000];
+const MAX_FURNITURE = 40;
+
+// wall: hangs on the wall (otherwise it stands on the floor). w/h in room pixels.
+const FURNITURE = [
+  { id: 'plant', name: 'Potted plant', price: 60, w: 12, h: 20, blurb: 'Leafy and low-maintenance.' },
+  { id: 'rug', name: 'Round rug', price: 80, w: 44, h: 8, blurb: 'Ties the room together.' },
+  { id: 'lamp', name: 'Floor lamp', price: 120, w: 10, h: 34, blurb: 'Warm light for reading fish books.' },
+  { id: 'painting', name: 'Sunset painting', price: 150, w: 26, h: 18, wall: true, blurb: 'A painting of a dock at sunset. Familiar.' },
+  { id: 'chair', name: 'Cosy chair', price: 150, w: 18, h: 22, blurb: 'Perfect for watching the tank.' },
+  { id: 'table', name: 'Little table', price: 200, w: 24, h: 16, blurb: 'Holds a teapot and a very small vase.' },
+  { id: 'clock', name: 'Wall clock', price: 250, w: 14, h: 14, wall: true, blurb: 'Tick, tock, fish o\'clock.' },
+  { id: 'beanbag', name: 'Beanbag', price: 300, w: 22, h: 14, blurb: 'Impossible to get out of.' },
+  { id: 'bookshelf', name: 'Bookshelf', price: 350, w: 24, h: 38, blurb: 'Mostly fishing guides. One romance novel.' },
+  { id: 'lights', name: 'Fairy lights', price: 400, w: 60, h: 8, wall: true, blurb: 'Twinkle twinkle.' },
+  { id: 'bed', name: 'Bed', price: 500, w: 44, h: 22, blurb: 'Sheets with little fish on them.' },
+  { id: 'mirror', name: 'Round mirror', price: 700, w: 16, h: 20, wall: true, blurb: 'Looking good, angler.' },
+  { id: 'sofa', name: 'Sofa', price: 800, w: 46, h: 22, blurb: 'Seats three. Or one buddy, sprawled.' },
+  { id: 'poster', name: 'GOAT poster', price: 2323, w: 18, h: 24, wall: true, blurb: 'A signed poster. Guess who.' },
+  { id: 'fireplace', name: 'Fireplace', price: 2500, w: 34, h: 32, blurb: 'Crackles. Keeps the tanks toasty.' },
+  { id: 'piano', name: 'Piano', price: 6000, w: 38, h: 30, blurb: 'Plays one song. It is a sea shanty.' },
+  { id: 'arcade', name: 'Arcade cabinet', price: 9000, w: 20, h: 40, blurb: 'A fishing game inside a fishing game.' },
+  { id: 'trophyfish', name: 'Golden fish plaque', price: 12000, w: 30, h: 16, wall: true, blurb: 'For the one that did not get away.' },
+  { id: 'chandelier', name: 'Chandelier', price: 25000, w: 30, h: 22, wall: true, blurb: 'Fancy. Very fancy.' },
+  { id: 'throne', name: 'Golden throne', price: 60000, w: 26, h: 40, blurb: 'Fit for the ruler of the pond.' },
+];
+const FURNITURE_BY_ID = Object.fromEntries(FURNITURE.map(f => [f.id, f]));
+// how big a tank looks in the room, by its size level
+const TANK_ROOM_W = [26, 32, 40, 48, 58];
+
+const WALLPAPERS = [
+  { id: 'cream', name: 'Cream', price: 0, a: '#f4e6d0', b: '#ecdcc2' },
+  { id: 'peach', name: 'Peach stripes', price: 200, a: '#ffd6c0', b: '#ffc4a8', stripes: true },
+  { id: 'sky', name: 'Sky blue', price: 400, a: '#cfe6f6', b: '#bcd8ee' },
+  { id: 'mint', name: 'Mint dots', price: 800, a: '#d4f0dc', b: '#a8dcb8', dots: true },
+  { id: 'lilac', name: 'Lilac stripes', price: 1500, a: '#e4d4f6', b: '#d4c0f0', stripes: true },
+  { id: 'night', name: 'Starry night', price: 5000, a: '#2a2a5a', b: '#fff3a0', stars: true },
+  { id: 'gold', name: 'Gold damask', price: 20000, a: '#f0d080', b: '#e0b040', dots: true },
+];
+const FLOORS = [
+  { id: 'wood', name: 'Wood', price: 0, a: '#c08a5a', b: '#a8744a' },
+  { id: 'checker', name: 'Checkerboard', price: 300, a: '#f4efe6', b: '#e0566e', checker: true },
+  { id: 'carpet', name: 'Pink carpet', price: 600, a: '#f0a8c0', b: '#e898b4' },
+  { id: 'tile', name: 'Sea tiles', price: 1500, a: '#a8d8e0', b: '#88c0d0', checker: true },
+  { id: 'marble', name: 'Marble', price: 8000, a: '#f4f4f8', b: '#d8d8e4' },
+  { id: 'goldtile', name: 'Gold tiles', price: 25000, a: '#ffd23f', b: '#e0a020', checker: true },
+];
+
 // Buckets hold the fish you're carrying (to sell, or move to the tank later).
 const BUCKETS = [
   { cap: 6, price: 0, name: 'Tin pail' },

@@ -8,8 +8,9 @@ const SAVE_KEY = 'tiny-tides-save-v1';
 function freshSave() {
   return {
     started: false, name: '', look: { ...DEFAULT_LOOK }, boat: { ...DEFAULT_BOAT }, owned: [],
-    coins: 0, bucket: [], aquarium: [], dex: {}, rod: 'twig', rods: ['twig'], bucketLvl: 0, tankLvl: 0,
-    decor: starterDecor(), nextDecor: STARTER_DECOR.length + 1,
+    coins: 0, bucket: [], dex: {}, rod: 'twig', rods: ['twig'], bucketLvl: 0,
+    // tanks (each with its own name, size, fish and props) and the home room
+    // are filled in by sanitizeSave, which also upgrades older one-tank saves
     enchants: {}, boosts: [],  // enchantments you own ({ id: count }) and ones in use ([{ id, left }])
     location: 'dock', unlocked: ['dock'], newSpot: false,
     clock: 0, muted: false, nextUid: 1,
@@ -20,6 +21,28 @@ function freshSave() {
 // Tank props: { uid, id, x (centre), y (bottom), flip, placed }
 function starterDecor() {
   return STARTER_DECOR.map((d, i) => ({ uid: i + 1, id: d.id, x: d.x, y: d.y, flip: false, placed: true }));
+}
+
+function newTank(uid, name) {
+  return { uid, name, lvl: 0, fish: [], decor: starterDecor(), nextDecor: STARTER_DECOR.length + 1 };
+}
+
+// Size of something in the room: a piece of furniture, or one of your tanks.
+function roomItemDef(item, tanks) {
+  if (item.id === 'tank') {
+    const t = tanks.find(x => x.uid === item.tank);
+    return { w: TANK_ROOM_W[t ? t.lvl : 0], h: 36, wall: false };
+  }
+  return FURNITURE_BY_ID[item.id];
+}
+
+// Keeps something inside the room: wall things on the wall, the rest on the floor.
+function clampRoomItem(item, tanks) {
+  const def = roomItemDef(item, tanks);
+  item.x = Math.round(Math.min(HOME_W - def.w / 2, Math.max(def.w / 2, Number(item.x) || HOME_W / 2)));
+  const [lo, hi] = def.wall ? [def.h + 6, HOME_FLOOR - 6] : [HOME_FLOOR + 8, HOME_H - 3];
+  item.y = Math.round(Math.min(hi, Math.max(lo, Number(item.y) || hi)));
+  return item;
 }
 
 // Keeps a prop inside the tank: floor props on the sand, floaters in the water.
@@ -60,21 +83,58 @@ function sanitizeSave(s) {
   s.look.hairColor = inRange(s.look.hairColor, HAIR_COLORS, DEFAULT_LOOK.hairColor);
   s.look.topColor = inRange(s.look.topColor, TOP_COLORS, DEFAULT_LOOK.topColor);
   if (!Array.isArray(s.owned)) s.owned = [];
-  if (!Array.isArray(s.aquarium)) s.aquarium = [];
   const validFish = c => c && FISH_BY_ID[c.id] && Number.isFinite(c.value);
-  s.aquarium = s.aquarium.filter(validFish);
   // (The bucket went away for a while and came back. Saves from that time
   // simply have no bucket, so they start with an empty tin pail.)
   if (!Array.isArray(s.bucket)) s.bucket = [];
   s.bucket = s.bucket.filter(validFish);
-  s.tankLvl = inRange(s.tankLvl, TANKS, 0);
   s.bucketLvl = inRange(s.bucketLvl, BUCKETS, 0);
-  if (!Array.isArray(s.decor)) { s.decor = starterDecor(); s.nextDecor = STARTER_DECOR.length + 1; }
-  s.decor = s.decor.filter(d => d && DECOR_BY_ID[d.id] && Number.isInteger(d.uid)).slice(0, 200)
-    .map(d => clampDecor({ uid: d.uid, id: d.id, x: d.x, y: d.y, flip: !!d.flip, placed: d.placed !== false }));
-  let placedCount = 0;
-  for (const d of s.decor) if (d.placed && ++placedCount > MAX_DECOR) d.placed = false;
-  s.nextDecor = Math.max(Number(s.nextDecor) || 1, ...s.decor.map(d => d.uid + 1));
+  // Tanks. Saves from before there could be several had one aquarium (with
+  // its props and size) at the top level; that becomes "My tank".
+  if (!Array.isArray(s.tanks) || !s.tanks.length) {
+    s.tanks = [{ uid: 1, name: 'My tank', lvl: s.tankLvl, fish: s.aquarium, decor: s.decor, nextDecor: s.nextDecor }];
+  }
+  delete s.aquarium; delete s.decor; delete s.nextDecor; delete s.tankLvl;
+  s.tanks = s.tanks.filter(t => t && Number.isInteger(t.uid)).slice(0, MAX_TANKS).map(t => {
+    const decor = (Array.isArray(t.decor) ? t.decor : starterDecor())
+      .filter(d => d && DECOR_BY_ID[d.id] && Number.isInteger(d.uid)).slice(0, 200)
+      .map(d => clampDecor({ uid: d.uid, id: d.id, x: d.x, y: d.y, flip: !!d.flip, placed: d.placed !== false }));
+    let placed = 0;
+    for (const d of decor) if (d.placed && ++placed > MAX_DECOR) d.placed = false;
+    return {
+      uid: t.uid,
+      name: String(t.name || 'Tank').replace(/\s+/g, ' ').trim().slice(0, 20) || 'Tank',
+      lvl: inRange(t.lvl, TANKS, 0),
+      fish: (Array.isArray(t.fish) ? t.fish : []).filter(validFish),
+      decor,
+      nextDecor: Math.max(Number(t.nextDecor) || 1, ...decor.map(d => d.uid + 1)),
+    };
+  });
+  if (!s.tanks.length) s.tanks = [newTank(1, 'My tank')];
+  if (!s.tanks.some(t => t.uid === s.mainTank)) s.mainTank = s.tanks[0].uid;
+  s.nextTank = Math.max(Number(s.nextTank) || 1, ...s.tanks.map(t => t.uid + 1));
+  // The home room: wallpaper, floor, and everything in it. Every tank always
+  // has a spot in the room (it can be moved, not put away).
+  const home = s.home && typeof s.home === 'object' ? s.home : {};
+  s.home = {
+    wall: WALLPAPERS.some(w => w.id === home.wall) ? home.wall : 'cream',
+    floor: FLOORS.some(f => f.id === home.floor) ? home.floor : 'wood',
+    items: (Array.isArray(home.items) ? home.items : [])
+      .filter(it => it && Number.isInteger(it.uid) && (it.id === 'tank' ? s.tanks.some(t => t.uid === it.tank) : FURNITURE_BY_ID[it.id]))
+      .filter((it, i, all) => it.id !== 'tank' || all.findIndex(o => o.id === 'tank' && o.tank === it.tank) === i)
+      .slice(0, 200)
+      .map(it => ({ uid: it.uid, id: it.id, tank: it.id === 'tank' ? it.tank : undefined, x: it.x, y: it.y, flip: !!it.flip, placed: it.id === 'tank' || it.placed !== false })),
+    nextItem: Number(home.nextItem) || 1,
+  };
+  s.home.nextItem = Math.max(s.home.nextItem, ...s.home.items.map(it => it.uid + 1));
+  s.tanks.forEach((t, i) => {
+    if (!s.home.items.some(it => it.id === 'tank' && it.tank === t.uid)) {
+      s.home.items.push({ uid: s.home.nextItem++, id: 'tank', tank: t.uid, x: 230 - i * 52, y: 158, flip: false, placed: true });
+    }
+  });
+  s.home.items.forEach(it => clampRoomItem(it, s.tanks));
+  let furniturePlaced = 0;
+  for (const it of s.home.items) if (it.id !== 'tank' && it.placed && ++furniturePlaced > MAX_FURNITURE) it.placed = false;
   const owned = s.enchants && typeof s.enchants === 'object' ? s.enchants : {};
   s.enchants = {};
   for (const e of ENCHANTS) { const n = Math.floor(Number(owned[e.id]) || 0); if (n > 0) s.enchants[e.id] = Math.min(99, n); }
@@ -107,7 +167,8 @@ function writeSave() {
 }
 function resetSave() {
   try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ }
-  Object.assign(save, freshSave());
+  for (const k of Object.keys(save)) delete save[k];
+  Object.assign(save, sanitizeSave(freshSave()));
   initShadows();
 }
 
@@ -172,11 +233,16 @@ function tickBoosts(dt) {
 const worldLocationId = () => (G.visit ? G.visit.location : save.location);
 const currentLoc = () => LOCATIONS.find(l => l.id === worldLocationId()) || LOCATIONS[0];
 const worldBoat = () => (G.visit ? G.visit.boat : save.boat);
-const tankCap = () => TANKS[save.tankLvl].cap;
+// ---- tanks: you can have several; catches and gifts go to your main one
+const findTank = uid => save.tanks.find(t => t.uid === uid);
+const mainTank = () => findTank(save.mainTank) || save.tanks[0];
+const tankCapOf = t => TANKS[t.lvl].cap;
+const tankCap = () => tankCapOf(mainTank());
+const allTankFish = () => save.tanks.flatMap(t => t.fish);
 const bucketCap = () => BUCKETS[save.bucketLvl].cap;
 const bucketHasRoom = () => save.bucket.length < bucketCap();
 // LeBron can't be sold, so he always fits, however full the tank is
-const tankHasRoom = c => save.aquarium.length < tankCap() || (!!c && isUnsellable(c));
+const tankHasRoom = (c, t = mainTank()) => t.fish.length < tankCapOf(t) || (!!c && isUnsellable(c));
 const findCosmetic = (cat, id) => COSMETICS[cat].find(i => i.id === id);
 const ownsCosmetic = (cat, id) => {
   const item = findCosmetic(cat, id);
@@ -695,8 +761,8 @@ function finishCatch(action) {
     save.bucket.push(c);
     toast(`${FISH_BY_ID[c.id].name} went in the bucket`);
   } else if (action === 'tank' && tankHasRoom(c)) {
-    save.aquarium.push(c);
-    toast(`${FISH_BY_ID[c.id].name} moved into the ${TANKS[save.tankLvl].name.toLowerCase()}!`);
+    mainTank().fish.push(c);
+    toast(`${FISH_BY_ID[c.id].name} moved into ${mainTank().name}!`);
   } else if (action === 'sell') {
     save.stats.sold++;
     earn(c.value);
@@ -789,7 +855,7 @@ function sellFish(uid) {
 function moveToTank(uid) {
   const i = save.bucket.findIndex(c => c.uid === uid);
   if (i < 0 || !tankHasRoom(save.bucket[i])) return false;
-  save.aquarium.push(save.bucket.splice(i, 1)[0]);
+  mainTank().fish.push(save.bucket.splice(i, 1)[0]);
   Sound.sfx.buy();
   persist();
   refreshHUD();
@@ -808,23 +874,23 @@ function sellAllFromBucket() {
   persist();
 }
 
-function sellFromTank(uid) {
-  const i = save.aquarium.findIndex(c => c.uid === uid);
-  if (i < 0 || isUnsellable(save.aquarium[i])) return;
-  const [c] = save.aquarium.splice(i, 1);
+function sellFromTank(uid, t = mainTank()) {
+  const i = t.fish.findIndex(c => c.uid === uid);
+  if (i < 0 || isUnsellable(t.fish[i])) return;
+  const [c] = t.fish.splice(i, 1);
   save.stats.sold++;
   earn(c.value);
   Sound.sfx.coin();
   persist();
 }
 
-// Sells everything in the tank except anything marked unsellable.
-function sellAllFromTank() {
-  const selling = save.aquarium.filter(c => !isUnsellable(c));
+// Sells everything in a tank except anything marked unsellable.
+function sellAllFromTank(t = mainTank()) {
+  const selling = t.fish.filter(c => !isUnsellable(c));
   if (!selling.length) return;
   const total = selling.reduce((sum, c) => sum + c.value, 0);
   save.stats.sold += selling.length;
-  save.aquarium = save.aquarium.filter(isUnsellable);
+  t.fish = t.fish.filter(isUnsellable);
   earn(total);
   Sound.sfx.coin();
   persist();

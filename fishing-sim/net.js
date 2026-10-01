@@ -300,6 +300,7 @@ const Net = (() => {
           clock: Number(w.clock) || 0,
           aquarium: Array.isArray(w.aquarium) ? w.aquarium : [],
           decor: Array.isArray(w.decor) ? w.decor : null,  // null: an older server, show the starter tank
+          tanks: w.tanks, home: w.home, mainTank: w.mainTank, tankLvl: w.tankLvl,
           caught: w.caught || 0,
         };
         connect(w.username);
@@ -558,7 +559,7 @@ const Net = (() => {
         <button class="btn" data-social="wave">Wave</button>
         <button class="btn" data-social="heart">Heart</button>
         ${apart ? '<button class="btn mint" data-social="join">Join them</button>' : ''}
-        ${G.visit ? `<button class="btn mint" data-social="tank">Their tank</button>
+        ${G.visit ? `<button class="btn mint" data-social="theirhome">Their home</button>
         <button class="btn gold" data-social="gift">Gift</button>
         <button class="btn plain" data-social="home">Go home</button>` : ''}
       </span>`;
@@ -575,7 +576,7 @@ const Net = (() => {
       const host = others.get(G.visit.host) || { name: G.visit.host };
       if (!sailTo(spotOf(host))) toast('Finish reeling first!');
     }
-    if (act === 'tank' && G.visit) openTank({ owner: G.visit.host, fish: G.visit.aquarium, decor: G.visit.decor });
+    if (act === 'theirhome' && G.visit) openHome(friendHomeView({ ...G.visit, host: G.visit.host }));
     if (act === 'gift' && G.visit) Online.openGift(G.visit.host);
     b.blur();
   });
