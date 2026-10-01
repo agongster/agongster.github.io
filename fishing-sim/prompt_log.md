@@ -385,6 +385,11 @@ yes, push everything.
 i don't see the chat rooms?
 ```
 
+```
+i do not see a chat button in the pushed version.
+```
+(with a screenshot that did show the Chat button, between Profile and Map, plus a visiting friend drawn on top of the capybara buddy)
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -448,6 +453,7 @@ i don't see the chat rooms?
   - **Boats:** two new styles, a Yacht in your colours (12,000) and a gold Royal barge with a crown figurehead (40,000). Also obsidian, rose gold and diamond hulls (to 25,000); platinum, ruby and emerald stripes; rainbow and golden sails and a royal crest; crown, rainbow and GOAT flags; animated fireworks and a treasure hoard on deck.
   - **Tank:** rainbow coral, crystal cluster, golden castle, treasure hoard, and a golden fish statue (50,000). Two bigger aquariums: Royal (40 fish, 6,000) and Ocean palace (64 fish, 30,000).
 - **Chat you can actually find:** the server and game were both live and working; the AI checked by sending a test message to the live server. The problem was design: the Chat button only lived in the multiplayer bar, which only appears while visiting or being visited, so fishing alone there was no way to find it. **Where the AI got it wrong:** it never tested what a player sees when alone. Now a **Chat** button sits in the top bar whenever you're logged in (the one in the bar was removed so there aren't two), and the panel says who you're chatting with, or explains that chat reaches whoever is in the same world. Tested on the live server with two accounts.
+- **Easier to spot, and no more overlap:** the Chat button was there but looked just like Profile next to it. It's now teal, and pulses with a count when there are unread messages. The screenshot also showed a visiting friend drawn on top of the buddy: other players' spots (dock x 62, boat x 68) overlapped where the buddy sits (66 / 70). Visitors now stand at 118 / 42 / 18 on the dock and 112 / 50 in the boat. Only a full boat of four puts someone at the buddy's spot. Checked with two players on the live server, on the dock and in a boat.
 
 ### Changes I made myself
 

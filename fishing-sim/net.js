@@ -13,7 +13,8 @@ const Net = (() => {
   // chat for the room we're in: [{ from, text }], plus what's unread while the panel is shut
   let chatLog = [], chatOpen = false, unread = 0, chatSentAt = 0;
 
-  const SLOTS = { dock: [62, 118, 36], boat: [68, 112, 54] };
+  // where other anglers stand, clear of you (x 92) and your buddy (dock x 66, boat x 70)
+  const SLOTS = { dock: [118, 42, 18], boat: [112, 50, 70] };
   const isHome = () => !G.visit;
   const isLoc = id => typeof id === 'string' && LOCATIONS.some(l => l.id === id);
 
@@ -498,6 +499,7 @@ const Net = (() => {
     if (!btn) return;
     btn.hidden = !Online.loggedIn();
     btn.textContent = chatOpen ? 'Hide chat' : unread ? `Chat (${unread})` : 'Chat';
+    btn.classList.toggle('unread', !chatOpen && unread > 0);
     btn.setAttribute('aria-pressed', String(chatOpen));
     const panel = $('#chat-panel');
     panel.hidden = !chatOpen || !Online.loggedIn();

@@ -520,6 +520,11 @@ kbd {
 .social-bar .social-where { color: var(--gold); margin-left: 4px; }
 .btn.lilac { background: var(--lilac); }
 #btn-chat { white-space: nowrap; }
+/* its own colour so it doesn't blend in with Profile, and a pulse for unread messages */
+.chat-btn { background: #7fd8e0; }
+.chat-btn[aria-pressed="true"] { background: #b8eef2; }
+.chat-btn.unread { animation: nudge 1.4s steps(2) infinite; }
+@media (prefers-reduced-motion: reduce) { .chat-btn.unread { animation: none; box-shadow: 0 3px 0 var(--ink), 0 0 0 3px var(--coral); } }
 /* chat, under the multiplayer bar */
 .chat-panel {
   align-self: center; width: min(100%, calc((100dvh - 190px) * 16 / 9));
