@@ -30,7 +30,8 @@ function refreshHUD() {
   $('#bucket-count').textContent = `${save.bucket.length}/${bucketCap()}`;
   $('#tank-pill-count').textContent = `${mainTank().fish.length}/${tankCap()}`;
   const phase = PHASES.find(p => p.id === G.phaseId);
-  $('#phase-pill').textContent = `${G.visit ? `@${G.visit.host} · ` : ''}${currentLoc().name} · ${phase ? phase.name : ''}`;
+  const place = worldLocationId() === 'home' ? (G.visit ? 'Home' : 'Your home') : currentLoc().name;
+  $('#phase-pill').textContent = `${G.visit ? `@${G.visit.host} · ` : ''}${place} · ${phase ? phase.name : ''}`;
   if (typeof Net !== 'undefined') Net.renderBar();
   $('#btn-map').classList.toggle('glow', !!save.newSpot);
   if (openId === 'modal-shop') renderShop();
@@ -554,6 +555,51 @@ function drawPreview() {
   }
 }
 
+// ============================================================ tank picker ==
+// A little menu of your tanks under the button that asked for it. Resolves
+// with the chosen tank, or null if the player clicked away. Full tanks (or
+// the one the fish is already in) can't be picked.
+let closePicker = null;
+function pickTank(anchor, { fish = null, exclude = null } = {}) {
+  if (closePicker) closePicker(null);
+  return new Promise(resolve => {
+    const menu = document.createElement('div');
+    menu.className = 'tank-picker';
+    menu.setAttribute('role', 'menu');
+    menu.innerHTML = `<p class="tank-picker-h">Which tank?</p>` + save.tanks.map(t => {
+      const ok = t.uid !== exclude && tankHasRoom(fish, t);
+      return `<button role="menuitem" data-pick="${t.uid}" ${ok ? '' : 'disabled'}>
+        <b>${escapeHTML(t.name)}</b><span>${t.uid === exclude ? 'here now' : `${t.fish.length}/${tankCapOf(t)}${t.uid === save.mainTank ? ' · main' : ''}`}</span></button>`;
+    }).join('');
+    document.body.appendChild(menu);
+    const r = anchor.getBoundingClientRect();
+    const top = Math.min(window.innerHeight - menu.offsetHeight - 8, r.bottom + 4);
+    menu.style.left = `${Math.max(8, Math.min(window.innerWidth - menu.offsetWidth - 8, r.left))}px`;
+    menu.style.top = `${Math.max(8, top)}px`;
+    const first = menu.querySelector('[data-pick]:not(:disabled)');
+    if (first) first.focus({ preventScroll: true });
+    const done = val => {
+      closePicker = null;
+      menu.remove();
+      document.removeEventListener('pointerdown', away, true);
+      document.removeEventListener('keydown', key, true);
+      resolve(val);
+    };
+    const away = e => { if (!menu.contains(e.target)) done(null); };
+    const key = e => { if (e.key === 'Escape') { e.stopPropagation(); e.preventDefault(); done(null); } };
+    menu.addEventListener('click', e => {
+      const b = e.target.closest('[data-pick]');
+      if (b && !b.disabled) { Sound.sfx.click(); done(findTank(Number(b.dataset.pick))); }
+    });
+    document.addEventListener('pointerdown', away, true);
+    document.addEventListener('keydown', key, true);
+    closePicker = done;
+  });
+}
+
+// With one tank there's nothing to pick.
+const chooseTank = async (anchor, opts) => (save.tanks.length > 1 ? pickTank(anchor, opts) : mainTank());
+
 // ============================================================= fish gifts ==
 // A Gift button on fish in your bucket and tank, once you're logged in.
 // (LeBron stays with you forever.)
@@ -644,7 +690,7 @@ function renderBucket() {
       <div><div class="fname">${sp.name}</div>
         <div class="fmeta">${c.size} cm · <span class="stars" aria-label="${c.stars} of 3 stars">${starText(c.stars)}</span> · ${RARITY[sp.rarity].label}</div></div>
       <div class="row-actions">
-        <button class="btn mint" data-totank="${c.uid}" ${tankHasRoom(c) ? '' : 'disabled'} aria-label="Move ${sp.name} to the tank">Tank</button>
+        <button class="btn mint" data-totank="${c.uid}" ${save.tanks.some(t => tankHasRoom(c, t)) ? '' : 'disabled'} aria-label="Move ${sp.name} to a tank">${save.tanks.length > 1 ? 'Tank...' : 'Tank'}</button>
         ${giftFishButton(c)}
         ${sp.unsellable ? '<span class="priceless">Priceless</span>'
           : `<button class="btn gold" data-sell="${c.uid}" aria-label="Sell ${sp.name} for ${c.value} coins">${coinHTML(c.value)}</button>`}
@@ -658,8 +704,12 @@ $('#bucket-list').addEventListener('click', e => {
   if (gf) { openGiftFish(Number(gf.dataset.giftfish), 'modal-bucket'); return; }
   const t = e.target.closest('[data-totank]');
   if (t) {
-    if (moveToTank(Number(t.dataset.totank))) toast('Moved to the tank!');
-    renderBucket();
+    const uid = Number(t.dataset.totank);
+    const fish = save.bucket.find(c => c.uid === uid);
+    chooseTank(t, { fish }).then(tank => {
+      if (tank && moveToTank(uid, tank)) toast(`Moved to ${tank.name}!`);
+      renderBucket();
+    });
     return;
   }
   const b = e.target.closest('[data-sell]');
@@ -876,7 +926,7 @@ function renderTank() {
       <div><div class="fname">${sp.name}</div>
         <div class="fmeta">${c.size} cm · <span class="stars" aria-label="${c.stars} of 3 stars">${starText(c.stars)}</span> · ${RARITY[sp.rarity].label}</div></div>
       ${tankView ? '' : sp.unsellable ? '<span class="priceless">Here forever</span>'
-        : `<span class="row-actions">${giftFishButton(c)}<button class="btn gold" data-tanksell="${c.uid}" aria-label="Sell ${sp.name} for ${c.value} coins">Sell ${coinHTML(c.value)}</button></span>`}
+        : `<span class="row-actions">${save.tanks.length > 1 ? `<button class="btn mint" data-movefish="${c.uid}" aria-label="Move ${sp.name} to another tank">Move...</button>` : ''}${giftFishButton(c)}<button class="btn gold" data-tanksell="${c.uid}" aria-label="Sell ${sp.name} for ${c.value} coins">Sell ${coinHTML(c.value)}</button></span>`}
     </li>`;
   }).join('') : `<li class="empty" style="display:block">${tankView ? 'This tank is empty.' : t.uid === save.mainTank ? 'This tank is empty. Tap "Tank" on a catch to keep it here.' : 'This tank is empty. Make it your main tank to fill it with new catches.'}</li>`;
 
@@ -896,6 +946,15 @@ function renderTank() {
 $('#tank-list').addEventListener('click', e => {
   const gf = e.target.closest('[data-giftfish]');
   if (gf) { openGiftFish(Number(gf.dataset.giftfish), 'modal-tank'); return; }
+  const mv = e.target.closest('[data-movefish]');
+  if (mv) {
+    const from = shownTank(), uid = Number(mv.dataset.movefish);
+    pickTank(mv, { fish: from.fish.find(c => c.uid === uid), exclude: from.uid }).then(to => {
+      if (to && moveBetweenTanks(uid, from, to)) toast(`Moved to ${to.name}!`);
+      renderTank();
+    });
+    return;
+  }
   const b = e.target.closest('[data-tanksell]');
   if (!b) return;
   const uid = Number(b.dataset.tanksell);
@@ -1380,7 +1439,14 @@ function renderMap() {
   const count = fishCaughtCount();
   $('#map-count').textContent = G.visit ? `@${G.visit.host}'s sea` : `${count} fish caught`;
   const unlocked = worldUnlocked();
-  $('#map-list').innerHTML = LOCATIONS.map(loc => {
+  const atHomeNow = worldLocationId() === 'home';
+  const hostHome = G.visit && G.visit.hostLocation === 'home';
+  const homeRow = `<li class="${atHomeNow ? 'here' : ''}">
+      <b>${G.visit ? `@${escapeHTML(G.visit.host)}'s home` : 'Your home'}${hostHome ? ` <span class="host-here">@${escapeHTML(G.visit.host)} is here</span>` : ''}</b>
+      <span class="desc">${G.visit ? 'Walk around their room and peek into their tanks.' : 'Your room and all your tanks. Walk around, decorate, and show your friends.'}</span>
+      ${atHomeNow ? '<button class="btn plain" disabled>You are here</button>'
+        : `<button class="btn mint" data-sail="home" ${canTravel() ? '' : 'disabled'}>${canTravel() ? 'Go home' : 'Finish reeling first'}</button>`}</li>`;
+  $('#map-list').innerHTML = homeRow + LOCATIONS.map(loc => {
     const here = loc.id === worldLocationId();
     const open = unlocked.includes(loc.id);
     const hostHere = G.visit && G.visit.hostLocation === loc.id;
@@ -1488,8 +1554,8 @@ function showCatchCard(c) {
   $('#catch-bonus').hidden = !bonus;
   if (bonus) $('#catch-bonus').innerHTML = `<img src="${charmSprite(bonus.id)}" alt="" /><span>Something sparkly was tangled on the line: a <b>${bonus.name}</b>! Use it from Charms.</span>`;
   const tank = $('#catch-tank');
-  tank.disabled = !tankHasRoom(c);
-  tank.textContent = tank.disabled ? 'Tank full' : 'Tank';
+  tank.disabled = !save.tanks.some(t => tankHasRoom(c, t));
+  tank.textContent = tank.disabled ? (save.tanks.length > 1 ? 'Tanks full' : 'Tank full') : save.tanks.length > 1 ? 'Tank...' : 'Tank';
   const sell = $('#catch-sell');
   sell.hidden = !!sp.unsellable;
   sell.innerHTML = `Sell ${coinHTML(c.value)}`;
@@ -1501,15 +1567,18 @@ function showCatchCard(c) {
   openModal('modal-catch');
 }
 
-function resolveCatch(action) {
+function resolveCatch(action, tank) {
   forceClose();
-  finishCatch(action);
+  finishCatch(action, tank);
   $('#action-btn').focus({ preventScroll: true });
 }
 
 $('#catch-bucket').addEventListener('click', () => resolveCatch('bucket'));
 $('#catch-sell').addEventListener('click', () => resolveCatch('sell'));
-$('#catch-tank').addEventListener('click', () => resolveCatch('tank'));
+$('#catch-tank').addEventListener('click', async e => {
+  const t = await chooseTank(e.currentTarget, { fish: G.pending });
+  if (t) resolveCatch('tank', t);
+});
 $('#catch-release').addEventListener('click', () => resolveCatch('release'));
 
 // ================================================================== input ==
@@ -1521,15 +1590,19 @@ const ACTION_LABELS = {
 let lastActionState = null;
 
 function uiTick() {
-  if (G.state !== lastActionState) {
-    lastActionState = G.state;
+  // at home the big button looks in the tank you're by, or decorates (or waves, at a friend's)
+  const walking = atHome() && G.state === 'idle';
+  const near = walking && G.home && G.home.near;
+  const key = walking ? `home:${near ? near.uid : ''}` : G.state;
+  if (key !== lastActionState) {
+    lastActionState = key;
     const btn = $('#action-btn');
-    btn.textContent = ACTION_LABELS[G.state] || 'Cast!';
+    btn.textContent = walking ? (near ? `Look in ${homeTankName(near)}` : G.visit ? 'Wave' : 'Decorate') : ACTION_LABELS[G.state] || 'Cast!';
     btn.classList.toggle('gold', G.state === 'bite');
     const chasing = G.state === 'reeling';
     btn.hidden = chasing;
-    $('#dpad').hidden = !chasing;
-    if (!chasing) $$('#dpad button').forEach(b => b.classList.remove('pressed'));
+    $('#dpad').hidden = !(chasing || walking);
+    if (!chasing && !walking) $$('#dpad button').forEach(b => b.classList.remove('pressed'));
   }
   drawPreview();
   drawBoatPreview();
@@ -1552,6 +1625,7 @@ function bindHold(el, aimed) {
     Sound.init();
     try { el.setPointerCapture(e.pointerId); } catch (err) { /* not supported */ }
     el.classList.add('pressed');
+    if (aimed && atHome()) { if (G.state === 'idle') homeTap(canvasPoint(e)); return; }
     if (aimed && G.state === 'idle') { setAim(canvasPoint(e)); press(G.aim); }
     else if (aimed && G.state === 'reeling') G.steer = canvasPoint(e);
     else press();
@@ -1597,7 +1671,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeModal(); return; }
   if (openId || isTyping(e.target)) return;
   const dir = ARROW_KEYS[e.code];
-  if (dir && (G.state === 'reeling' || G.state === 'bite')) {
+  if (dir && (G.state === 'reeling' || G.state === 'bite' || (atHome() && G.state === 'idle'))) {
     e.preventDefault();
     if (G.state === 'bite') { Sound.init(); press(); release(); }
     G.keys.add(dir);

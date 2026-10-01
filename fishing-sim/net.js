@@ -16,7 +16,7 @@ const Net = (() => {
   // where other anglers stand, clear of you (x 92) and your buddy (dock x 66, boat x 70)
   const SLOTS = { dock: [118, 42, 18], boat: [112, 50, 70] };
   const isHome = () => !G.visit;
-  const isLoc = id => typeof id === 'string' && LOCATIONS.some(l => l.id === id);
+  const isLoc = id => typeof id === 'string' && (id === 'home' || LOCATIONS.some(l => l.id === id));
 
   // ---------------------------------------------------------- connection --
   function wsUrl(host) {
@@ -148,6 +148,8 @@ const Net = (() => {
         o.a = Number(m.a) || 0.55;
         if (isLoc(m.l) && o.loc !== m.l) { o.loc = m.l; renderBar(); }
         if (Number.isFinite(m.x) && Number.isFinite(m.y)) o.tbob = { x: clamp(m.x, 0, W), y: clamp(m.y, 0, H) };
+        o.face = m.f === -1 ? -1 : 1;
+        o.moving = !!m.m;
         o.seen = G.time;
         break;
       }
@@ -246,12 +248,13 @@ const Net = (() => {
   function tick(dt) {
     // follow the host when they sail somewhere, once we're free to go
     if (G.visit && G.visit.pendingLocation && canTravel()) {
-      const to = LOCATIONS.find(l => l.id === G.visit.pendingLocation);
+      const id = G.visit.pendingLocation;
+      const to = id === 'home' ? { id, name: `@${G.visit.host}'s home` } : LOCATIONS.find(l => l.id === id);
       G.visit.pendingLocation = null;
       startTravel({
         label: `Following @${G.visit.host} to ${to.name}...`,
         arrive: `Welcome to ${to.name}!`,
-        onSwitch: () => { G.visit.location = to.id; },
+        onSwitch: () => { G.visit.location = to.id; if (to.id === 'home') enterHome(); },
       });
     }
     for (const o of others.values()) {
@@ -261,9 +264,12 @@ const Net = (() => {
     }
     if (!ws || ws.readyState !== 1) return;
     stateTimer -= dt; helloTimer -= dt; worldTimer -= dt;
-    const state = JSON.stringify([G.state, Math.round(G.bob.x), Math.round(G.bob.y), worldLocationId()]);
+    // at home, x/y are where you're standing in the room (and f/m your facing and walking)
+    const home = atHome() && G.home;
+    const px = Math.round(home ? G.home.x : G.bob.x), py = Math.round(home ? G.home.y : G.bob.y);
+    const state = JSON.stringify([G.state, px, py, worldLocationId(), home && G.home.face, home && G.home.moving]);
     if (stateTimer <= 0 && (state !== lastState || stateTimer < -1.3)) {
-      send({ t: 'state', s: G.state, x: Math.round(G.bob.x), y: Math.round(G.bob.y), a: +G.rodA.toFixed(2), l: worldLocationId() });
+      send({ t: 'state', s: G.state, x: px, y: py, a: +G.rodA.toFixed(2), l: worldLocationId(), ...(home ? { f: G.home.face, m: G.home.moving ? 1 : 0 } : {}) });
       lastState = state;
       stateTimer = 0.15;
     }
@@ -303,6 +309,7 @@ const Net = (() => {
           tanks: w.tanks, home: w.home, mainTank: w.mainTank, tankLvl: w.tankLvl,
           caught: w.caught || 0,
         };
+        G.home = null;  // walk in through the door, if they're at home
         connect(w.username);
         refreshHUD();
       },
@@ -312,7 +319,7 @@ const Net = (() => {
 
   function goHome(quiet = false) {
     if (!G.visit) return;
-    const back = () => { G.visit = null; connect(Online.username()); refreshHUD(); };
+    const back = () => { G.visit = null; G.home = null; connect(Online.username()); refreshHUD(); };
     if (quiet || !startTravel({ label: 'Sailing home...', arrive: 'Home sweet home!', onSwitch: back })) back();
   }
 
@@ -346,6 +353,13 @@ const Net = (() => {
       for (const o of list) if (!o.asleep && o.slot === 0) o.slotShift = true;
     }
     return list;
+  }
+
+  // Everyone at this home with us, for drawing them walking about.
+  function homePlayers() {
+    return players().map(o => o.asleep
+      ? { look: o.look, x: HOME_W / 2 + 40, y: HOME_FLOOR + 40, face: -1, moving: false, asleep: true }
+      : { look: o.look, x: o.bob.x, y: o.bob.y, face: o.face || 1, moving: !!o.moving, asleep: false, emote: o.emote });
   }
 
   function slotX(o, loc) {
@@ -414,6 +428,21 @@ const Net = (() => {
     updateTags();
   }
 
+  // At home: hearts and napping z's over people where they're standing, and their name tags.
+  function drawHomeOverlay(g) {
+    for (const o of homePlayers()) {
+      const headY = o.y - 30;
+      if (o.asleep) {
+        const k = (G.time * 0.6) % 1;
+        drawZ(g, o.x + 6 + k * 6, headY - k * 10, 1 - k);
+        continue;
+      }
+      if (o.emote && o.emote.until > G.time && o.emote.e === 'heart') drawHeart(g, o.x, headY - 4 - Math.sin(G.time * 5) * 2);
+    }
+    if (G.home && G.myEmote && G.myEmote.until > G.time && G.myEmote.e === 'heart') drawHeart(g, G.home.x, G.home.y - 34 - Math.sin(G.time * 5) * 2);
+    updateTags();
+  }
+
   let heartSprite = null;
   function drawHeart(g, x, y) {
     heartSprite = heartSprite || addOutline(mapCanvas(['xx.xx', 'xxxxx', 'xxxxx', '.xxx.', '..x..'], { x: '#ff5c8a' }));
@@ -435,14 +464,18 @@ const Net = (() => {
     const loc = currentLoc();
     const list = players();
     const wanted = new Map();
+    // at home everyone walks around, so tags follow them instead of standing at slots
+    const home = atHome() && G.home;
+    const tagX = o => (home ? o.bob.x : slotX(o, loc)), tagY = o => (home ? o.bob.y - 34 : FEET_Y - 32 + G.platY);
     for (const o of list) {
       const waving = o.emote && o.emote.until > G.time && o.emote.e === 'wave';
       const said = o.say && o.say.until > G.time ? o.say.text : null;
       const text = o.asleep ? `@${o.name} (napping)` : said ? (roomForBubbles() ? `@${o.name}: ${bubble(said)}` : `@${o.name} ...`) : waving ? `@${o.name}: hi!` : `@${o.name}`;
-      wanted.set(o.name, { x: slotX(o, loc), text, host: G.visit && o.name === G.visit.host, asleep: o.asleep, talking: !!said });
+      wanted.set(o.name, { x: tagX(o), y: tagY(o), text, host: G.visit && o.name === G.visit.host, asleep: o.asleep, talking: !!said });
     }
-    if (G.mySay && G.mySay.until > G.time && roomForBubbles()) wanted.set('\u0000me', { x: CHAR_X, text: bubble(G.mySay.text), me: true, talking: true });
-    else if (list.length && G.myEmote && G.myEmote.until > G.time && G.myEmote.e === 'wave') wanted.set('\u0000me', { x: CHAR_X, text: 'hi!', me: true });
+    const meX = home ? G.home.x : CHAR_X, meY = home ? G.home.y - 34 : FEET_Y - 32 + G.platY;
+    if (G.mySay && G.mySay.until > G.time && roomForBubbles()) wanted.set('\u0000me', { x: meX, y: meY, text: bubble(G.mySay.text), me: true, talking: true });
+    else if (list.length && G.myEmote && G.myEmote.until > G.time && G.myEmote.e === 'wave') wanted.set('\u0000me', { x: meX, y: meY, text: 'hi!', me: true });
     for (const el of [...box.children]) if (!wanted.has(el.dataset.name)) el.remove();
     for (const [name, t] of wanted) {
       let el = box.querySelector(`[data-name="${CSS.escape(name)}"]`);
@@ -452,7 +485,7 @@ const Net = (() => {
       el.classList.toggle('asleep', !!t.asleep);
       el.classList.toggle('talking', !!t.talking);
       el.style.left = `${(t.x / W) * 100}%`;
-      el.style.top = `${((FEET_Y - 32 + G.platY) / H) * 100}%`;
+      el.style.top = `${(t.y / H) * 100}%`;
     }
   }
 
@@ -583,7 +616,7 @@ const Net = (() => {
 
   return {
     connect, disconnect, reset, send, tick, visit, goHome, emote,
-    drawPlayers, drawLines, renderBar,
+    drawPlayers, drawLines, renderBar, homePlayers, drawHomeOverlay,
     home: () => connect(Online.username()),
     room: () => room,
     count: () => others.size,

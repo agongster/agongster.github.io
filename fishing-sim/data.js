@@ -1029,7 +1029,7 @@ const TANKS = [
 // Your room: a wall and a floor you can restyle, furniture you drag into
 // place, and all your tanks. The room canvas is HOME_W x HOME_H pixels; the
 // wall runs down to HOME_FLOOR, where the floor starts.
-const HOME_W = 320, HOME_H = 180, HOME_FLOOR = 112;
+const HOME_W = 320, HOME_H = 180, HOME_FLOOR = 64;
 const MAX_TANKS = 7;
 // What each extra tank costs (the first one is yours from the start).
 const TANK_PRICES = [0, 1500, 4000, 9000, 20000, 40000, 80000];
@@ -1038,7 +1038,7 @@ const MAX_FURNITURE = 40;
 // wall: hangs on the wall (otherwise it stands on the floor). w/h in room pixels.
 const FURNITURE = [
   { id: 'plant', name: 'Potted plant', price: 60, w: 12, h: 20, blurb: 'Leafy and low-maintenance.' },
-  { id: 'rug', name: 'Round rug', price: 80, w: 44, h: 8, blurb: 'Ties the room together.' },
+  { id: 'rug', name: 'Round rug', price: 80, w: 48, h: 22, blurb: 'Ties the room together.' },
   { id: 'lamp', name: 'Floor lamp', price: 120, w: 10, h: 34, blurb: 'Warm light for reading fish books.' },
   { id: 'painting', name: 'Sunset painting', price: 150, w: 26, h: 18, wall: true, blurb: 'A painting of a dock at sunset. Familiar.' },
   { id: 'chair', name: 'Cosy chair', price: 150, w: 18, h: 22, blurb: 'Perfect for watching the tank.' },

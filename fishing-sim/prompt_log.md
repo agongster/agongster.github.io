@@ -404,6 +404,14 @@ yes
 ok now i want to include a personal home feature, where players have a personal room they can also decorate and buy multiple tanks, which they can name differently. when you visit a player you can explore their home as well.
 ```
 
+```
+yes
+```
+
+```
+i want to change the way we can add fish to the different tanks to make it easier for people to move ifsh around. when the user selects "tank" there should be a dropdown of which tank they want to place the fish in. also for the home, it should be slightly more top down view, and the user should be able to move around the home. like this should take up the screen and be almost like a different location on the map. and when someone visits the home, they can also move around with them.
+```
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -488,6 +496,17 @@ ok now i want to include a personal home feature, where players have a personal 
   - **Visiting:** the visiting bar's button is now **Their home**: look around a friend's room and peek into any of their tanks, read-only. Older one-tank saves are shown as a room with that one tank.
   - **Server:** friends' worlds include `tanks`, `mainTank` and `home`. Fish gifts can come from any tank and land in the friend's main tank when their bucket is full. A new test covers this (21 pass).
   - **Where the AI got it wrong:** the room was blank at first. The game loop's first frame runs before `home.js` loads, so it hit "drawHome is not defined", which stopped the whole loop (and with it, catches). The call is now guarded. Found by calling the function directly in the test browser.
+- **"Which tank?" menu:** with more than one tank, choosing Tank on a catch card, moving a fish out of the bucket, or the new **Move...** button on tank fish opens a small menu of your tanks with how full each one is. Full tanks (and the one the fish is already in) are greyed out. Escape or clicking away cancels. Leaving a catch card some other way now tries every tank with room before selling.
+- **Home is a place:** it's now its own location, like a map spot: the **Home** button (or "Your home" at the top of the Map) travels there, and the Map takes you back out to fish.
+  - **The view:** the whole main view becomes your room, in a more top-down style (a short back wall, lots of floor).
+  - **Walking:** arrow keys or WASD, the on-screen D-pad, or tap where to go. Your buddy trots after you, and you and the furniture are drawn back to front so you can walk behind things. Walk up to a tank and a little arrow appears: the big button becomes "Look in [tank]" and Space opens it. Away from tanks it's "Decorate", which opens the editor.
+  - **Evenings:** the room still dims in the evening and the window shows the real sky.
+- **Walking around together:** at home, players send their position and facing instead of a bobber, so everyone at the same home is drawn walking around with name tags, chat bubbles, hearts and waves. Visitors land in a friend's home if that's where the friend is, follow them in and out, and can use "Join them" to go there. Visiting needed no server change.
+- **Other changes:** the rug is now an oval seen from above. Existing furniture on the wall moves down to fit the shorter wall.
+- **Where the AI got it wrong:**
+  - Going home froze on "Sailing...": arriving reset the fish shadows, and home has no fish, so the game crashed every frame. Shadows now skip home.
+  - Visitors' name tags didn't show at home, because they were only updated by the fishing view's drawing code. A home version now handles tags, hearts and napping Z's.
+  - Both were found by the browser tests (two players against a local server).
 
 ### Changes I made myself
 

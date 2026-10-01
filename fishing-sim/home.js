@@ -53,7 +53,31 @@ function drawHome() {
   updateHomeTags();
 }
 
+// The room for the editor: back, then everything on the floor, then the evening light.
 function drawRoom(g, home, tanks, t) {
+  drawRoomBack(g, home, tanks, t);
+  for (const it of roomFloorItems(home)) drawRoomItem(g, it, tanks, t);
+  drawRoomLight(g, home, t);
+  if (homeEdit.on && !homeView) {
+    for (const it of home.items.filter(i => i.placed)) {
+      const b = roomItemBox(it, tanks), sel = it.uid === homeEdit.sel;
+      g.strokeStyle = sel ? '#ffd27a' : 'rgba(255,255,255,0.45)';
+      g.setLineDash(sel ? [2, 1] : [1, 2]);
+      g.strokeRect(Math.round(b.x) - 1.5, Math.round(b.y) - 1.5, b.w + 3, b.h + 3);
+    }
+    g.setLineDash([]);
+  }
+}
+
+const isWallItem = it => it.id !== 'tank' && FURNITURE_BY_ID[it.id].wall;
+// rugs lie flat, so they go first; the rest back to front
+const roomFloorItems = home => {
+  const placed = home.items.filter(it => it.placed && !isWallItem(it));
+  return [...placed.filter(it => it.id === 'rug'), ...placed.filter(it => it.id !== 'rug').sort((a, b) => a.y - b.y)];
+};
+
+// The wall (with its window and anything hung on it) and the floor.
+function drawRoomBack(g, home, tanks, t) {
   const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), w, h); };
   const wall = WALLPAPERS.find(w => w.id === home.wall) || WALLPAPERS[0];
   const floor = FLOORS.find(f => f.id === home.floor) || FLOORS[0];
@@ -64,10 +88,10 @@ function drawRoom(g, home, tanks, t) {
   if (wall.stars) for (let i = 0; i < 40; i++) { const x = (i * 71) % HOME_W, y = (i * 37) % (HOME_FLOOR - 4); if (Math.sin(t * 2 + i) > -0.3) R(x, y, 1, 1, wall.b); }
   // a window showing the real sky right now
   const pal = G.pal || PHASES[0];
-  R(138, 16, 44, 40, '#8a5a3a');
-  pal.sky.forEach((col, i) => R(141, 19 + i * 5, 38, 5, col));
-  if ((pal.stars || 0) > 0.2) for (let i = 0; i < 7; i++) R(143 + (i * 13) % 34, 21 + (i * 7) % 18, 1, 1, '#fff8e0');
-  R(159, 19, 2, 34, '#8a5a3a'); R(141, 35, 38, 2, '#8a5a3a'); R(136, 56, 48, 3, '#a8703e');
+  R(138, 8, 44, 40, '#8a5a3a');
+  pal.sky.forEach((col, i) => R(141, 11 + i * 5, 38, 5, col));
+  if ((pal.stars || 0) > 0.2) for (let i = 0; i < 7; i++) R(143 + (i * 13) % 34, 13 + (i * 7) % 18, 1, 1, '#fff8e0');
+  R(159, 11, 2, 34, '#8a5a3a'); R(141, 27, 38, 2, '#8a5a3a'); R(136, 48, 48, 3, '#a8703e');
   // baseboard and floor
   R(0, HOME_FLOOR - 3, HOME_W, 3, '#8a5a3a');
   R(0, HOME_FLOOR, HOME_W, HOME_H - HOME_FLOOR, floor.a);
@@ -78,16 +102,13 @@ function drawRoom(g, home, tanks, t) {
   } else {
     for (let i = 0; i < 60; i++) R((i * 53) % HOME_W, HOME_FLOOR + (i * 29) % (HOME_H - HOME_FLOOR), 2, 1, floor.b);
   }
-  // furniture and tanks: wall things, then rugs, then the floor back to front
+  for (const it of home.items.filter(i => i.placed && isWallItem(i)).sort((a, b) => a.y - b.y)) drawRoomItem(g, it, tanks, t);
+}
+
+// Evenings get cosy: the room dims and the lamps glow.
+function drawRoomLight(g, home, t) {
+  const pal = G.pal || PHASES[0];
   const placed = home.items.filter(it => it.placed);
-  const isWall = it => it.id !== 'tank' && FURNITURE_BY_ID[it.id].wall;
-  const order = [
-    ...placed.filter(isWall).sort((a, b) => a.y - b.y),
-    ...placed.filter(it => it.id === 'rug'),
-    ...placed.filter(it => !isWall(it) && it.id !== 'rug').sort((a, b) => a.y - b.y),
-  ];
-  for (const it of order) drawRoomItem(g, it, tanks, t);
-  // evenings get cosy: the room dims and the lamps glow
   const night = clamp(pal.night || 0, 0, 1);
   if (night > 0.05) {
     g.fillStyle = `rgba(30,16,50,${(0.22 * night).toFixed(2)})`;
@@ -98,15 +119,6 @@ function drawRoom(g, home, tanks, t) {
       const def = FURNITURE_BY_ID[it.id];
       disc(g, it.x - def.w / 2 + glowAt[0], it.y + glowAt[1], 16, `rgba(255,210,122,${(0.14 * night).toFixed(2)})`);
     }
-  }
-  if (homeEdit.on && !homeView) {
-    for (const it of placed) {
-      const b = roomItemBox(it, tanks), sel = it.uid === homeEdit.sel;
-      g.strokeStyle = sel ? '#ffd27a' : 'rgba(255,255,255,0.45)';
-      g.setLineDash(sel ? [2, 1] : [1, 2]);
-      g.strokeRect(Math.round(b.x) - 1.5, Math.round(b.y) - 1.5, b.w + 3, b.h + 3);
-    }
-    g.setLineDash([]);
   }
 }
 
@@ -152,9 +164,16 @@ function drawFurniture(R, it, t) {
       R(3, -7, 6, 7, '#c07850'); R(2, -8, 8, 2, '#e09a68');
       R(5, -18, 2, 10, '#5aa860'); R(1, -15, 4, 3, '#6fbf73'); R(7, -16, 4, 3, '#6fbf73'); R(2, -12, 3, 2, '#5aa860'); R(7, -12, 3, 2, '#5aa860');
       break;
-    case 'rug':
-      R(4, -8, 36, 8, '#e0566e'); R(0, -6, 44, 4, '#e0566e'); R(8, -7, 28, 6, '#ffd27a'); R(4, -5, 36, 2, '#ffd27a'); R(14, -5, 16, 2, '#e0566e');
+    case 'rug': {
+      // an oval rug seen from above, in rings
+      for (let y = 0; y < 22; y++) {
+        const k = 1 - ((y - 10.5) / 11) ** 2, half = Math.round(24 * Math.sqrt(Math.max(0, k)));
+        const ring = Math.abs(y - 10.5) > 7.5 ? '#e0566e' : Math.abs(y - 10.5) > 4.5 ? '#ffd27a' : '#ff9ec4';
+        R(24 - half, -22 + y, half * 2, 1, ring);
+        if (half > 6) { R(24 - half, -22 + y, 2, 1, '#e0566e'); R(24 + half - 2, -22 + y, 2, 1, '#e0566e'); }
+      }
       break;
+    }
     case 'lamp':
       R(2, -2, 6, 2, '#4a3a4a'); R(4, -26, 2, 24, '#6a5a6a'); R(0, -34, 10, 8, '#ffd27a'); R(1, -35, 8, 1, '#ffd27a'); R(0, -27, 10, 1, '#e0a050');
       break;
@@ -371,7 +390,7 @@ $('#home-panel').addEventListener('click', e => {
     if (!it) return;
     it.placed = true;
     it.x = HOME_W / 2;
-    it.y = FURNITURE_BY_ID[it.id].wall ? 70 : HOME_H - 10;
+    it.y = FURNITURE_BY_ID[it.id].wall ? HOME_FLOOR - 10 : HOME_H - 10;
     clampRoomItem(it, save.tanks);
     homeEdit.sel = it.uid;
     Sound.sfx.buy();
@@ -388,7 +407,11 @@ $('#btn-home-decorate').addEventListener('click', () => {
   renderHome();
 });
 $('#btn-home-shop').addEventListener('click', () => { forceClose(); openShop(false, 'home'); });
-$('#btn-home').addEventListener('click', () => openHome());
+$('#btn-home').addEventListener('click', () => {
+  if (!atHome()) { if (!travelHome()) toast('Finish reeling first!'); return; }
+  if (G.visit) openHome(homeScene().view);
+  else openHome();
+});
 
 document.addEventListener('keydown', e => {
   if (openId !== 'modal-home' || !homeEdit.on || homeView || isTyping(e.target)) return;
@@ -500,3 +523,151 @@ $('#shop-home').addEventListener('click', e => {
     return;
   }
 });
+
+// ============================================================== at home ==
+// Home is a place you go, like a spot on the map: the main view becomes your
+// room and you walk around it. When visiting a friend, it's their home, and
+// everyone there walks around together.
+const HOME_WALK = { minY: HOME_FLOOR + 16, maxY: HOME_H - 3, speed: 64 };
+
+// The home you're standing in: yours, or the friend's you're visiting.
+function homeScene() {
+  if (G.visit) {
+    if (!G.visit.homeView) G.visit.homeView = friendHomeView({ ...G.visit, host: G.visit.host });
+    return { home: G.visit.homeView.home, tanks: G.visit.homeView.tanks, view: G.visit.homeView, owner: G.visit.host };
+  }
+  return { home: save.home, tanks: save.tanks, view: null, owner: null };
+}
+
+// Arriving home: in through the door at the bottom, buddy right behind.
+function enterHome() {
+  const x = HOME_W / 2 + rand(-20, 20);
+  G.home = { x, y: HOME_H - 6, face: 1, moving: false, target: null, bx: x - 14, by: HOME_H - 4, near: null };
+}
+
+function travelHome() {
+  if (atHome()) return true;
+  const visiting = G.visit;
+  return startTravel({
+    label: visiting ? `Heading to @${visiting.host}'s home...` : 'Heading home...',
+    arrive: visiting ? `Welcome to @${visiting.host}'s home!` : 'Home sweet home!',
+    onSwitch: () => {
+      if (visiting) { if (G.visit === visiting) G.visit.location = 'home'; }
+      else { save.location = 'home'; persist(); }
+      enterHome();
+    },
+  });
+}
+
+function updateHomeWalk(dt) {
+  if (!G.home) enterHome();
+  const h = G.home;
+  let dx = 0, dy = 0;
+  for (const key of G.keys) { const v = KEY_DIRS[key]; if (v) { dx += v[0]; dy += v[1]; } }
+  if (dx || dy) h.target = null;
+  else if (h.target) {
+    const tx = h.target.x - h.x, ty = h.target.y - h.y, d = Math.hypot(tx, ty);
+    if (d < 2) h.target = null; else { dx = tx / d; dy = ty / d; }
+  }
+  const len = Math.hypot(dx, dy);
+  h.moving = len > 0 && !openId;
+  if (h.moving) {
+    h.x = clamp(h.x + (dx / len) * HOME_WALK.speed * dt, 10, HOME_W - 10);
+    h.y = clamp(h.y + (dy / len) * HOME_WALK.speed * 0.8 * dt, HOME_WALK.minY, HOME_WALK.maxY);
+    if (Math.abs(dx) > 0.1) h.face = Math.sign(dx);
+  }
+  // the buddy trots along behind
+  h.bx += (h.x - h.face * 16 - h.bx) * Math.min(1, dt * 4);
+  h.by += (h.y + 2 - h.by) * Math.min(1, dt * 4);
+  // the tank you're standing by, if any
+  const { home } = homeScene();
+  let near = null, best = 30;
+  for (const it of home.items) {
+    if (it.id !== 'tank' || !it.placed) continue;
+    const d = Math.hypot(it.x - h.x, (it.y - h.y) * 1.4);
+    if (d < best) { best = d; near = it; }
+  }
+  const was = h.near && h.near.uid;
+  h.near = near;
+  if ((near && near.uid) !== was && G.state === 'idle') setPrompt(idlePrompt());
+}
+
+function homeTankName(it) {
+  const t = it && homeScene().tanks.find(x => x.uid === it.tank);
+  return t ? t.name : 'the tank';
+}
+
+// The big button (and Space) at home: look in the tank you're by, or
+// decorate (your home) / wave (a friend's).
+function homeAction() {
+  const h = G.home;
+  if (h && h.near) { openHomeTank(h.near.tank); return; }
+  if (!G.visit) openHome();
+  else if (typeof Net !== 'undefined') Net.emote('wave');
+}
+
+function openHomeTank(uid) {
+  const { view } = homeScene();
+  if (view) {
+    const tank = view.tanks.find(t => t.uid === uid);
+    if (tank) openTank({ owner: view.owner, uid: tank.uid, name: tank.name, fish: tank.fish, decor: tank.decor });
+  } else openTank(null, uid);
+}
+
+// Tapping the room: tap a tank you're next to to look in, anywhere else to walk there.
+function homeTap(p) {
+  if (!G.home) enterHome();
+  const { home, tanks } = homeScene();
+  const tank = home.items.find(it => {
+    if (it.id !== 'tank' || !it.placed) return false;
+    const b = roomItemBox(it, tanks);
+    return p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
+  });
+  if (tank && Math.hypot(tank.x - G.home.x, (tank.y - G.home.y) * 1.4) < 40) { openHomeTank(tank.tank); return; }
+  G.home.target = { x: clamp(p.x, 10, HOME_W - 10), y: clamp(tank ? tank.y + 8 : p.y, HOME_WALK.minY, HOME_WALK.maxY) };
+}
+
+// The main view at home: the room, with you, your buddy, and anyone visiting,
+// all sorted by how far back they stand.
+function drawHomeScene(g) {
+  if (!G.home) enterHome();
+  const t = G.time, h = G.home, { home, tanks } = homeScene();
+  drawRoomBack(g, home, tanks, t);
+  const floor = roomFloorItems(home);
+  for (const it of floor.filter(i => i.id === 'rug')) drawRoomItem(g, it, tanks, t);
+  const things = floor.filter(it => it.id !== 'rug').map(it => ({ y: it.y, draw: () => drawRoomItem(g, it, tanks, t) }));
+  const walker = (look, x, y, face, moving, blink) => ({
+    y, draw: () => {
+      const spr = anglerSprite(look, { bob: moving && Math.floor(t * 8) % 2 === 1, blink });
+      ellipse(g, x, y + 1, 7, 2, 'rgba(42,26,46,0.25)');
+      g.save();
+      g.translate(Math.round(x), Math.round(y));
+      if (face < 0) g.scale(-1, 1);
+      g.drawImage(spr, -ANGLER_W / 2, -ANGLER_FEET);
+      g.restore();
+    },
+  });
+  things.push(walker(save.look, h.x, h.y, h.face, h.moving, G.blinking > 0));
+  if (save.look.buddy !== 'none') {
+    const spr = buddySprite(save.look.buddy, G.buddyBlinking > 0);
+    if (spr) things.push({ y: h.by, draw: () => {
+      const hop = h.moving ? Math.floor(t * 6) % 2 : 0;
+      ellipse(g, h.bx, h.by + 1, Math.round(spr.width / 2), 1, 'rgba(42,26,46,0.22)');
+      g.drawImage(spr, Math.round(h.bx - spr.width / 2), Math.round(h.by - spr.height + hop));
+    } });
+  }
+  if (typeof Net !== 'undefined') {
+    for (const o of Net.homePlayers()) things.push(walker(o.look, o.x, o.y, o.face, o.moving, o.asleep));
+  }
+  things.sort((a, b) => a.y - b.y).forEach(th => th.draw());
+  // a little bouncing arrow over the tank you're next to
+  if (h.near) {
+    const b = roomItemBox(h.near, tanks), bob = Math.round(Math.sin(t * 5) * 1.5);
+    g.fillStyle = '#fff4e0';
+    g.fillRect(Math.round(h.near.x) - 2, Math.round(b.y) - 9 + bob, 5, 2);
+    g.fillRect(Math.round(h.near.x) - 1, Math.round(b.y) - 7 + bob, 3, 2);
+    g.fillRect(Math.round(h.near.x), Math.round(b.y) - 5 + bob, 1, 1);
+  }
+  drawRoomLight(g, home, t);
+  if (typeof Net !== 'undefined') Net.drawHomeOverlay(g);
+}

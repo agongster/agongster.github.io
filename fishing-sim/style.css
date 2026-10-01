@@ -829,3 +829,19 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .catch-rays, .new-badge { animation: none; }
 }
+
+/* the "which tank?" menu */
+.tank-picker {
+  position: fixed; z-index: 60; min-width: 190px; max-width: 280px;
+  background: var(--cream); border: 3px solid var(--ink); box-shadow: 0 0 0 3px var(--gold), 0 6px 0 3px rgba(0, 0, 0, .3);
+  padding: 6px; display: flex; flex-direction: column; gap: 4px;
+}
+.tank-picker-h { margin: 0 2px 2px; font-size: 13px; color: var(--plum-2); }
+.tank-picker button {
+  font-family: var(--font); font-size: 15px; color: var(--ink); text-align: left; cursor: pointer;
+  display: flex; justify-content: space-between; gap: 10px;
+  background: #fff; border: 2px solid var(--ink); padding: 4px 8px;
+}
+.tank-picker button:hover:not(:disabled), .tank-picker button:focus-visible { background: #fff3c4; }
+.tank-picker button:disabled { opacity: .5; cursor: not-allowed; }
+.tank-picker button span { color: var(--plum-2); font-size: 13px; }

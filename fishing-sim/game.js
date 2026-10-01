@@ -152,7 +152,7 @@ function sanitizeSave(s) {
   // unlocked spots are always recomputed from how many fish you've caught
   const count = fishCaughtCount(s);
   s.unlocked = LOCATIONS.filter(l => s.devUnlocked || l.need <= count).map(l => l.id);
-  if (!s.unlocked.includes(s.location)) s.location = 'dock';
+  if (!s.unlocked.includes(s.location) && s.location !== 'home') s.location = 'dock';
   return s;
 }
 
@@ -231,6 +231,8 @@ function tickBoosts(dt) {
 }
 // While visiting a friend, the world (place, time of day, boat) is theirs.
 const worldLocationId = () => (G.visit ? G.visit.location : save.location);
+// Home is a place too (yours, or your friend's while visiting), but not a fishing spot.
+const atHome = () => worldLocationId() === 'home' && typeof drawHomeScene === 'function';
 const currentLoc = () => LOCATIONS.find(l => l.id === worldLocationId()) || LOCATIONS[0];
 const worldBoat = () => (G.visit ? G.visit.boat : save.boat);
 // ---- tanks: you can have several; catches and gifts go to your main one
@@ -371,6 +373,12 @@ function showMessage(text, seconds = 1.8) {
 }
 
 function idlePrompt() {
+  if (atHome()) {
+    const near = G.home && G.home.near;
+    if (near) return `Press Space (or tap it) to look in ${homeTankName(near)}.`;
+    return G.visit ? `Walk around @${G.visit.host}'s home with the arrow keys or WASD, or tap where to go.`
+      : 'Walk around with the arrow keys or WASD, or tap where to go. Open the Map to go fishing.';
+  }
   return 'Tap the water to cast. Aim just ahead of a fish shadow!';
 }
 
@@ -379,6 +387,7 @@ function idlePrompt() {
 function press(pos = null) {
   if (G.down) return;
   G.down = true;
+  if (atHome()) { if (G.state === 'idle') homeAction(); return; }
   switch (G.state) {
     case 'idle':
       castTo(pos || G.aim);
@@ -413,6 +422,8 @@ const SHADOW_SIZE = { junk: 0.65, common: 0.8, uncommon: 1.15, rare: 1.5, legend
 const SHADOWS = Array.from({ length: 5 }, () => ({ mode: 'gone', respawn: 0 }));
 
 function spawnShadow(s, fadeIn = true) {
+  // no fish at home; they'll appear when you're back at a fishing spot
+  if (worldLocationId() === 'home') { s.mode = 'gone'; s.respawn = 1; return; }
   s.sp = rollFish();
   s.size = SHADOW_SIZE[s.sp.rarity] * rand(0.9, 1.1);
   s.x = rand(WATER.x0 + 8, WATER.x1 - 4);
@@ -749,20 +760,25 @@ function checkUnlocks() {
 // Called by the catch card: 'bucket', 'tank', 'sell' or 'release'. 'auto'
 // (leaving the card some other way) keeps it in the bucket, or the tank if
 // the bucket is full, or else sells it.
-function finishCatch(action) {
+function finishCatch(action, tank = mainTank()) {
   const c = G.pending;
   if (!c) return;
   G.pending = null;
   G.foundEnchant = null;
-  if (action === 'auto') action = bucketHasRoom() ? 'bucket' : tankHasRoom(c) ? 'tank' : 'sell';
+  if (action === 'auto') {
+    // bucket first, then the main tank, then any tank with room
+    const roomy = tankHasRoom(c, tank) ? tank : save.tanks.find(t => tankHasRoom(c, t));
+    if (roomy) tank = roomy;
+    action = bucketHasRoom() ? 'bucket' : roomy ? 'tank' : 'sell';
+  }
   if (action === 'sell' && isUnsellable(c)) action = bucketHasRoom() ? 'bucket' : 'tank';
   if (action === 'bucket' && !bucketHasRoom()) action = isUnsellable(c) ? 'tank' : 'sell';
   if (action === 'bucket') {
     save.bucket.push(c);
     toast(`${FISH_BY_ID[c.id].name} went in the bucket`);
-  } else if (action === 'tank' && tankHasRoom(c)) {
-    mainTank().fish.push(c);
-    toast(`${FISH_BY_ID[c.id].name} moved into ${mainTank().name}!`);
+  } else if (action === 'tank' && tankHasRoom(c, tank)) {
+    tank.fish.push(c);
+    toast(`${FISH_BY_ID[c.id].name} moved into ${tank.name}!`);
   } else if (action === 'sell') {
     save.stats.sold++;
     earn(c.value);
@@ -785,6 +801,7 @@ const canTravel = () => ['idle', 'waiting', 'retract'].includes(G.state);
 const worldUnlocked = () => (G.visit ? G.visit.unlocked : save.unlocked);
 
 function sailTo(id) {
+  if (id === 'home') return travelHome();
   const loc = LOCATIONS.find(l => l.id === id);
   if (!loc || !worldUnlocked().includes(id) || id === worldLocationId() || !canTravel()) return false;
   const visiting = G.visit;
@@ -851,11 +868,11 @@ function sellFish(uid) {
   persist();
 }
 
-// Bucket -> tank. (LeBron always fits in the tank.)
-function moveToTank(uid) {
+// Bucket -> a tank. (LeBron always fits in a tank.)
+function moveToTank(uid, tank = mainTank()) {
   const i = save.bucket.findIndex(c => c.uid === uid);
-  if (i < 0 || !tankHasRoom(save.bucket[i])) return false;
-  mainTank().fish.push(save.bucket.splice(i, 1)[0]);
+  if (i < 0 || !tankHasRoom(save.bucket[i], tank)) return false;
+  tank.fish.push(save.bucket.splice(i, 1)[0]);
   Sound.sfx.buy();
   persist();
   refreshHUD();
@@ -872,6 +889,17 @@ function sellAllFromBucket() {
   earn(total);
   Sound.sfx.coin();
   persist();
+}
+
+// One tank -> another.
+function moveBetweenTanks(uid, from, to) {
+  const i = from.fish.findIndex(c => c.uid === uid);
+  if (i < 0 || from === to || !tankHasRoom(from.fish[i], to)) return false;
+  to.fish.push(from.fish.splice(i, 1)[0]);
+  Sound.sfx.buy();
+  persist();
+  refreshHUD();
+  return true;
 }
 
 function sellFromTank(uid, t = mainTank()) {
@@ -924,7 +952,7 @@ function update(dt) {
     refreshHUD();
     if (!first && save.started) toast(PHASES.find(p => p.id === G.phaseId).arrive);
   }
-  G.platY = currentLoc().platform === 'boat' ? Math.round(Math.sin(G.time * 1.8) * 0.8) : 0;
+  G.platY = !atHome() && currentLoc().platform === 'boat' ? Math.round(Math.sin(G.time * 1.8) * 0.8) : 0;
 
   // idle aim marker drifts on its own unless the mouse is steering it
   if (G.time - G.aimPointerAt > 2.5) {
@@ -937,7 +965,10 @@ function update(dt) {
 
   // a menu opened mid-cast pauses the fishing (but not the scenery)
   const paused = openId && openId !== 'modal-catch' && FISHING_STATES.includes(G.state);
-  if (!paused) {
+  if (atHome() && G.state !== 'sailing') {
+    G.t += dt;
+    updateHomeWalk(dt);  // no fishing at home: just walking about
+  } else if (!paused) {
     G.t += dt;
     updateState(dt);
     updateShadows(dt);
@@ -1143,6 +1174,11 @@ function curve(g, x0, y0, cx, cy, x1, y1, col, thickUntil = 0) {
 function draw() {
   const pal = G.pal;
   const g = ctx;
+  if (atHome()) {
+    drawHomeScene(g);
+    if (G.state === 'sailing') drawSailing(g, pal);
+    return;
+  }
   const loc = currentLoc();
 
   // --- sky and water gradients (recomputed a few times a second)
