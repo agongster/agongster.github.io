@@ -377,6 +377,14 @@ do not slow the fish when upgrading the tackle
 i think improve grip and speed that you can move the net range at. also, please make it so the buddies are visible in the boats. and add a lot of new buddy options with higher prices. generally, make much more expensive options for everything available.
 ```
 
+```
+yes, push everything.
+```
+
+```
+i don't see the chat rooms?
+```
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -439,6 +447,7 @@ i think improve grip and speed that you can move the net range at. also, please 
   - **Hair:** big curls, mohawk, side ponytail. **Faces:** moustache, monocle, star shades, diamond shades (15,000).
   - **Boats:** two new styles, a Yacht in your colours (12,000) and a gold Royal barge with a crown figurehead (40,000). Also obsidian, rose gold and diamond hulls (to 25,000); platinum, ruby and emerald stripes; rainbow and golden sails and a royal crest; crown, rainbow and GOAT flags; animated fireworks and a treasure hoard on deck.
   - **Tank:** rainbow coral, crystal cluster, golden castle, treasure hoard, and a golden fish statue (50,000). Two bigger aquariums: Royal (40 fish, 6,000) and Ocean palace (64 fish, 30,000).
+- **Chat you can actually find:** the server and game were both live and working; the AI checked by sending a test message to the live server. The problem was design: the Chat button only lived in the multiplayer bar, which only appears while visiting or being visited, so fishing alone there was no way to find it. **Where the AI got it wrong:** it never tested what a player sees when alone. Now a **Chat** button sits in the top bar whenever you're logged in (the one in the bar was removed so there aren't two), and the panel says who you're chatting with, or explains that chat reaches whoever is in the same world. Tested on the live server with two accounts.
 
 ### Changes I made myself
 

@@ -519,6 +519,7 @@ kbd {
 .social-bar .btn { padding: 3px 10px; font-size: 14px; }
 .social-bar .social-where { color: var(--gold); margin-left: 4px; }
 .btn.lilac { background: var(--lilac); }
+#btn-chat { white-space: nowrap; }
 /* chat, under the multiplayer bar */
 .chat-panel {
   align-self: center; width: min(100%, calc((100dvh - 190px) * 16 / 9));
@@ -526,6 +527,8 @@ kbd {
   display: flex; flex-direction: column;
 }
 .chat-panel[hidden] { display: none; }
+.chat-panel.alone { border-top: 3px solid var(--mint); margin-top: 4px; }
+.chat-who { margin: 0; padding: 4px 10px 0; font-size: 13px; color: var(--plum-2); }
 .chat-log { list-style: none; margin: 0; padding: 6px 10px; max-height: 128px; min-height: 56px; overflow-y: auto; font-size: 15px; overflow-wrap: anywhere; }
 .chat-log li { margin: 2px 0; }
 .chat-log li b { color: var(--plum-2); }

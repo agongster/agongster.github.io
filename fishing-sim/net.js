@@ -482,10 +482,32 @@ const Net = (() => {
     log.scrollTop = log.scrollHeight;
   }
 
+  // Who's in the room with us, at any spot. Chat reaches all of them.
+  const chatWho = () => {
+    const names = [...others.keys()];
+    if (!ws || ws.readyState !== 1) return 'Connecting...';
+    if (!names.length) return G.visit
+      ? `Just you in @${G.visit.host}'s world right now. Anyone who drops by will see your messages.`
+      : "Just you here. Visit a friend, or invite one over, and chat with whoever's in the same world.";
+    return `Chatting with ${names.map(n => '@' + n).join(', ')}`;
+  };
+
+  // The Chat button in the top bar, for anyone logged in.
+  function renderChatButton() {
+    const btn = $('#btn-chat');
+    if (!btn) return;
+    btn.hidden = !Online.loggedIn();
+    btn.textContent = chatOpen ? 'Hide chat' : unread ? `Chat (${unread})` : 'Chat';
+    btn.setAttribute('aria-pressed', String(chatOpen));
+    const panel = $('#chat-panel');
+    panel.hidden = !chatOpen || !Online.loggedIn();
+    panel.classList.toggle('alone', $('#social-bar').hidden);
+    $('#chat-who').textContent = chatWho();
+  }
+
   function setChatOpen(open) {
     chatOpen = open;
     if (open) unread = 0;
-    $('#chat-panel').hidden = !open || $('#social-bar').hidden;
     renderBar();
     if (open) { renderChat(); $('#chat-input').focus({ preventScroll: true }); }
   }
@@ -503,6 +525,7 @@ const Net = (() => {
     chatSentAt = sentAt;
     setTimeout(() => { if (chatSentAt === sentAt) toast("Chat didn't go through. The server may need updating."); }, 4000);
   });
+  $('#btn-chat').addEventListener('click', () => setChatOpen(!chatOpen));
   // Escape in the chat box just leaves the box
   $('#chat-input').addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); e.target.blur(); } });
 
@@ -513,9 +536,9 @@ const Net = (() => {
     const bar = $('#social-bar');
     if (!bar) return;
     const guests = [...others.keys()];
-    if (!G.visit && !guests.length) { bar.hidden = true; $('#chat-panel').hidden = true; return; }
+    if (!G.visit && !guests.length) { bar.hidden = true; renderChatButton(); return; }
     bar.hidden = false;
-    $('#chat-panel').hidden = !chatOpen;
+    renderChatButton();
     const hostOn = G.visit && others.has(G.visit.host);
     // the host just arrived or left: refresh the "N on" count on the Friends button
     if (G.visit && hostOn !== lastHostOn) Online.refreshFriends();
@@ -532,7 +555,6 @@ const Net = (() => {
       <span class="social-actions">
         <button class="btn" data-social="wave">Wave</button>
         <button class="btn" data-social="heart">Heart</button>
-        <button class="btn lilac" data-social="chat" aria-pressed="${chatOpen}">${chatOpen ? 'Hide chat' : unread ? `Chat (${unread})` : 'Chat'}</button>
         ${apart ? '<button class="btn mint" data-social="join">Join them</button>' : ''}
         ${G.visit ? `<button class="btn mint" data-social="tank">Their tank</button>
         <button class="btn gold" data-social="gift">Gift</button>
