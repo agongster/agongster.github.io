@@ -412,6 +412,14 @@ yes
 i want to change the way we can add fish to the different tanks to make it easier for people to move ifsh around. when the user selects "tank" there should be a dropdown of which tank they want to place the fish in. also for the home, it should be slightly more top down view, and the user should be able to move around the home. like this should take up the screen and be almost like a different location on the map. and when someone visits the home, they can also move around with them.
 ```
 
+```
+yes
+```
+
+```
+can you make things slightly less expensive? make the aurora rod 10000 and the one after that 30000. generally, make the legendary fish worth more as well.
+```
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -507,6 +515,11 @@ i want to change the way we can add fish to the different tanks to make it easie
   - Going home froze on "Sailing...": arriving reset the fish shadows, and home has no fish, so the game crashed every frame. Shadows now skip home.
   - Visitors' name tags didn't show at home, because they were only updated by the fishing view's drawing code. A home version now handles tags, hearts and napping Z's.
   - Both were found by the browser tests (two players against a local server).
+- **Cheaper shop, richer legendaries:**
+  - **Rods:** Aurora Rod 10,000 and GOAT Rod 30,000, as asked. The Star Rod (10,000) would have cost the same as the Aurora, so it dropped to 3,500 to keep each rod pricier than the last.
+  - **Everything else costing 1,000+** (outfits, buddies, boat styles and parts, tank props, furniture, wallpapers, floors, extra tanks, buckets, aquariums) is about 40% cheaper, rounded to tidy numbers. Items under 1,000 didn't change, and the GOAT poster kept its 2,323.
+  - **Legendary fish** sell for 75% more (now about 735 to 2,275). No other fish changed.
+  - **Order check:** the AI checked that prices still go up within each list. The Bunny would have been cheaper than the Capybara before it, so it's 850, and the GOAT poster moved after the now-cheaper Fireplace.
 
 ### Changes I made myself
 
