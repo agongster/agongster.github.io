@@ -420,6 +420,10 @@ yes
 can you make things slightly less expensive? make the aurora rod 10000 and the one after that 30000. generally, make the legendary fish worth more as well.
 ```
 
+```
+when player is home they should be able to sail back to where they just were directly instead of just clicking on the map, like some kind of "go back" button. also, please make the legendary fish slightly easier to catch with the better rods, like the bar should go down slightly slower the better the rod is for more rare fish
+```
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -520,6 +524,8 @@ can you make things slightly less expensive? make the aurora rod 10000 and the o
   - **Everything else costing 1,000+** (outfits, buddies, boat styles and parts, tank props, furniture, wallpapers, floors, extra tanks, buckets, aquariums) is about 40% cheaper, rounded to tidy numbers. Items under 1,000 didn't change, and the GOAT poster kept its 2,323.
   - **Legendary fish** sell for 75% more (now about 735 to 2,275). No other fish changed.
   - **Order check:** the AI checked that prices still go up within each list. The Bunny would have been cheaper than the Capybara before it, so it's 850, and the GOAT poster moved after the now-cheaper Fireplace.
+- **Sail back:** going home remembers the fishing spot you left. At home, a **Sail back to [spot]** button under the big button takes you straight there. At a friend's home it goes back to where you were, or to where they're fishing, and older saves default to Sunset Dock.
+- **Big-fish grip:** each rod has a new stat that slows how fast the bar drains when a big fish slips out of the net. It's 0 on the Twig, rising to 34% on the GOAT Rod. It applies fully to legendaries, half to rares, and 60% to LeBron (so he stays special). The Shop lists it as "Big-fish grip". In the simulation, Star on legendaries went from 90% to 100%, Bamboo on rares from 22% to 27%, and Star on LeBron from 20% to 47% (the full effect would have given 73%, which felt like too much).
 
 ### Changes I made myself
 

@@ -153,6 +153,8 @@ function sanitizeSave(s) {
   const count = fishCaughtCount(s);
   s.unlocked = LOCATIONS.filter(l => s.devUnlocked || l.need <= count).map(l => l.id);
   if (!s.unlocked.includes(s.location) && s.location !== 'home') s.location = 'dock';
+  // the fishing spot you left to go home (for the "Sail back" button)
+  if (!s.unlocked.includes(s.backTo)) s.backTo = 'dock';
   return s;
 }
 
@@ -377,7 +379,7 @@ function idlePrompt() {
     const near = G.home && G.home.near;
     if (near) return `Press Space (or tap it) to look in ${homeTankName(near)}.`;
     return G.visit ? `Walk around @${G.visit.host}'s home with the arrow keys or WASD, or tap where to go.`
-      : 'Walk around with the arrow keys or WASD, or tap where to go. Open the Map to go fishing.';
+      : 'Walk around with the arrow keys or WASD, or tap where to go. Sail back below, or open the Map to fish somewhere new.';
   }
   return 'Tap the water to cast. Aim just ahead of a fish shadow!';
 }
@@ -684,8 +686,10 @@ function updateReel(dt) {
   } else if (r.grace > 0) {
     r.grace -= dt;
   } else {
-    // (a touch gentler than it used to be, since the fish now moves around more)
-    r.progress -= (0.1 + d * 0.03) * tier.drain * rod.grip * 0.85 * dt;
+    // (a touch gentler than it used to be, since the fish now moves around
+    // more; and better rods hold big fish better: rares a little, legends more)
+    const bigFish = { rare: 0.5, legendary: 1, goat: 0.6 }[r.sp.rarity] || 0;  // LeBron stays special
+    r.progress -= (0.1 + d * 0.03) * tier.drain * rod.grip * 0.85 * (1 - bigFish * rod.calm) * dt;
   }
   if (Math.random() < dt * 3) r.bubbles.push({ x: rand(0, RP.w), y: RP.h - 8, v: rand(8, 18) });
   r.bubbles = r.bubbles.filter(b => (b.y -= b.v * dt) > 0);

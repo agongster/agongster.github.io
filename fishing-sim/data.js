@@ -1000,20 +1000,21 @@ const DEFAULT_BOAT = { base: 'rowboat', hull: 'coral', trim: 'cream', sail: 'pla
 // wait: multiplier on how long fish take to notice your bobber
 // net: radius of the chase net. gain: how fast the bar fills. grip: how much
 // of the drain you feel when it slips out. netSpeed: how fast you can move the
-// net (pixels a second). sparkle: a twinkle at the rod tip. Rods never slow
-// the fish down.
+// net (pixels a second). calm: how much slower the bar drains on big fish
+// (fully on legendaries, half on rares, a bit more than that on LeBron). sparkle: a twinkle at
+// the rod tip. Rods never slow the fish down.
 const RODS = [
-  { id: 'twig', name: 'Twig Rod', color: '#7a4a2a', price: 0, net: 16, gain: 0.34, grip: 0.88, netSpeed: 150, luck: 0, wait: 1,
+  { id: 'twig', name: 'Twig Rod', color: '#7a4a2a', price: 0, net: 16, gain: 0.34, grip: 0.88, netSpeed: 150, calm: 0, luck: 0, wait: 1,
     blurb: 'A stick, some string, and a lot of hope. Rare fish laugh at it.' },
-  { id: 'bamboo', name: 'Bamboo Rod', color: '#c8a050', price: 90, net: 18, gain: 0.38, grip: 0.64, netSpeed: 175, luck: 0.05, wait: 0.9,
+  { id: 'bamboo', name: 'Bamboo Rod', color: '#c8a050', price: 90, net: 18, gain: 0.38, grip: 0.64, netSpeed: 175, calm: 0.08, luck: 0.05, wait: 0.9,
     blurb: 'Bendy and dependable. A bigger net for chasing.' },
-  { id: 'sunset', name: 'Sunset Rod', color: '#ff7a5c', price: 350, net: 20, gain: 0.42, grip: 0.57, netSpeed: 185, luck: 0.12, wait: 0.8,
+  { id: 'sunset', name: 'Sunset Rod', color: '#ff7a5c', price: 350, net: 20, gain: 0.42, grip: 0.57, netSpeed: 185, calm: 0.16, luck: 0.12, wait: 0.8,
     blurb: 'Painted the colour of the sky. Reels in fast and holds on tight.' },
-  { id: 'star', name: 'Star Rod', color: '#b89cff', price: 3500, net: 23, gain: 0.5, grip: 0.44, netSpeed: 210, luck: 0.25, wait: 0.7, sparkle: '#fff3c4',
+  { id: 'star', name: 'Star Rod', color: '#b89cff', price: 3500, net: 23, gain: 0.5, grip: 0.44, netSpeed: 210, calm: 0.22, luck: 0.25, wait: 0.7, sparkle: '#fff3c4',
     blurb: 'Hums quietly at night. A big net that goes where you point it.' },
-  { id: 'aurora', name: 'Aurora Rod', color: '#7ae0c0', price: 10000, net: 25, gain: 0.54, grip: 0.36, netSpeed: 235, luck: 0.3, wait: 0.65, sparkle: '#b89cff',
+  { id: 'aurora', name: 'Aurora Rod', color: '#7ae0c0', price: 10000, net: 25, gain: 0.54, grip: 0.36, netSpeed: 235, calm: 0.28, luck: 0.3, wait: 0.65, sparkle: '#b89cff',
     blurb: 'Spun from the northern lights. The net practically flies.' },
-  { id: 'goat', name: 'GOAT Rod', color: '#ffd23f', price: 30000, net: 28, gain: 0.6, grip: 0.28, netSpeed: 265, luck: 0.35, wait: 0.6, sparkle: '#ffffff',
+  { id: 'goat', name: 'GOAT Rod', color: '#ffd23f', price: 30000, net: 28, gain: 0.6, grip: 0.28, netSpeed: 265, calm: 0.34, luck: 0.35, wait: 0.6, sparkle: '#ffffff',
     blurb: 'Solid gold. Signed by a certain basketball player. The best there is.' },
 ];
 

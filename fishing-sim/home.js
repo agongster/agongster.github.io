@@ -547,8 +547,8 @@ function enterHome() {
 
 function travelHome() {
   if (atHome()) return true;
-  const visiting = G.visit;
-  return startTravel({
+  const visiting = G.visit, from = worldLocationId();
+  const going = startTravel({
     label: visiting ? `Heading to @${visiting.host}'s home...` : 'Heading home...',
     arrive: visiting ? `Welcome to @${visiting.host}'s home!` : 'Home sweet home!',
     onSwitch: () => {
@@ -557,7 +557,23 @@ function travelHome() {
       enterHome();
     },
   });
+  // remember where you were, so you can sail straight back
+  if (going) { if (visiting) visiting.backTo = from; else { save.backTo = from; persist(); } }
+  return going;
 }
+
+// Where "Sail back" goes: the spot you left (or, at a friend's, wherever they're fishing).
+function backSpot() {
+  if (G.visit) {
+    const spot = G.visit.backTo || G.visit.hostLocation;
+    return spot && spot !== 'home' && worldUnlocked().includes(spot) ? spot : 'dock';
+  }
+  return save.unlocked.includes(save.backTo) ? save.backTo : 'dock';
+}
+
+$('#back-btn').addEventListener('click', () => {
+  if (!sailTo(backSpot())) toast('Finish reeling first!');
+});
 
 function updateHomeWalk(dt) {
   if (!G.home) enterHome();

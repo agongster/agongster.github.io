@@ -191,6 +191,7 @@ kbd {
 }
 
 #action-row { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.back-btn { font-size: 15px; padding: 4px 14px; }
 .key-hint { margin: 0; font-size: 14px; opacity: .75; text-align: center; }
 .dpad {
   display: grid;

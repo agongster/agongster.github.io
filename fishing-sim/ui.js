@@ -363,7 +363,7 @@ function renderTackle() {
     return `<li class="gear ${equipped ? 'equipped' : ''}">
       <b><span class="rod-swatch" style="background:${r.color}"></span>${r.name}</b>
       <span class="desc">${r.blurb}</span>
-      <span class="stats"><span>Net size ${r.net}</span><span>Reel speed ${Math.round(r.gain * 100)}</span><span>Net speed ${r.netSpeed}</span><span>Grip +${Math.round((1 - r.grip) * 100)}%</span><span>Luck +${Math.round(r.luck * 100)}</span></span>
+      <span class="stats"><span>Net size ${r.net}</span><span>Reel speed ${Math.round(r.gain * 100)}</span><span>Net speed ${r.netSpeed}</span><span>Grip +${Math.round((1 - r.grip) * 100)}%</span>${r.calm ? `<span>Big-fish grip +${Math.round(r.calm * 100)}%</span>` : ''}<span>Luck +${Math.round(r.luck * 100)}</span></span>
       ${btn}</li>`;
   }).join('');
   // buckets and tanks upgrade in order, one level at a time
@@ -1602,6 +1602,10 @@ function uiTick() {
     const chasing = G.state === 'reeling';
     btn.hidden = chasing;
     $('#dpad').hidden = !(chasing || walking);
+    // at home: a shortcut back to the spot you came from
+    const back = $('#back-btn');
+    back.hidden = !walking;
+    if (walking) back.textContent = `Sail back to ${LOCATIONS.find(l => l.id === backSpot()).name}`;
     if (!chasing && !walking) $$('#dpad button').forEach(b => b.classList.remove('pressed'));
   }
   drawPreview();
