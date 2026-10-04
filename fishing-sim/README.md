@@ -5,42 +5,23 @@ A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock (a
 **Play it:** https://agongster.github.io/fishing-sim/
 **Code:** this folder of [agongster.github.io](https://github.com/agongster/agongster.github.io)
 
-> ✏️ **TODO (April):** The assignment requires this README to be written in your own words. The sections marked TODO are prompts for you. Everything under "AI-generated technical notes" at the bottom is labelled as AI-written, which the assignment allows.
-
 ## What it does
 
-> ✏️ TODO: 2–4 sentences, in your voice, on what the game is and why you made it.
 Tiny Tides is a fishing simulator! Players can explore the map, cast out their lines in anticipation of fish, and play with and gift to friends. I personally  enjoy fishing games and initially took a lot of inspiration from Stardew Valley fishing, which I built upon, making the mechanics significantly different and focusing more largely on cosmetics and fish types. I really just wanted to make something fun and interesting that I could play with my friends!
 
 ## How to play
 
-> ✏️ TODO: rewrite in your own words. The facts:
-To play, tap the water where you want to cast, ideally in front of or generally near a fish shadow. If you cast too close to the fish, they'll get spooked and leave. Once a fish hooks onto your tackle, 
-> - Tap the water where you want to cast (or press Space to cast at the drifting marker).
-> - The shadows under the water are the actual fish, and bigger shadows are rarer. Cast just ahead of one to lure it in; land right on top of it and it gets spooked.
-> - Small nibbles are fake-outs. When the bobber sinks and a **!** appears, tap quickly.
-> - Reeling is a chase: an underwater view opens with a mystery shadow (bigger = rarer) and you steer a net with the arrow keys / WASD (or drag, or the on-screen D-pad on phones). Keep the fish inside the net until the bar fills; if the bar empties, it gets away.
-> - Sell fish straight off the line, from your **Bucket** or from your **Tank**, then spend coins in the **Shop** (Wardrobe for your angler, Boat for your boat's style (a rowboat, a swan, a duck parade, a bathtub, a banana...), colours, sail, flag and decorations, Tank for props, Tackle for rods, buckets and tanks). You can try things on before buying.
-> - Catch more fish to unlock new spots on the **Map**: Lily Lagoon (12), Coral Cove (30), Aurora Bay (55), Blossom River (80), Ember Isle (110) and Cloud Lake (150). Each has its own scenery and fish, and you sail there by boat.
-> - Put each catch in your **Bucket** (to sell later, or move to the tank) or your **Tank** to watch it swim around. Tap a tank fish to see its name, and sell one fish or all of them whenever you like.
-> - Your **Home**: a place you go (Home button, or the top of the Map) and walk around with the arrow keys, WASD or a tap, buddy in tow. Decorate it with furniture (a sofa, a fireplace, a piano, a golden throne...), wallpaper and floors. All your tanks stand in it: walk up to one to look inside. Buy more tanks (up to 7), name them, upgrade each one, and choose which tank each fish goes in from a little "Which tank?" menu. Friends who visit can walk around your home with you.
-> - Decorate the tank: buy props in the Shop (a castle, coral, a rubber duck, a shipwreck, a GOAT trophy...), then press **Decorate** in the Tank to drag them around, flip them or put them away. Friends see your layout when they visit.
-> - The day cycles sunrise → daytime → golden hour → sunset → dusk → night (about 65 seconds each), and the sun travels across the sky. Some fish only appear at certain times. The **Fishdex** shows silhouettes of what's left, where each one lives, and when it swims.
-> - Works with a mouse, touch or the keyboard. On phones it works in portrait but is roomier in landscape.
+To play, tap the water where you want to cast, ideally in front of or generally near a fish shadow. If you cast too close to the fish, they'll get spooked and leave. Generally, the larger the shadow is, the more rare a fish will be, and the harder it is to catch it. Once a fish hooks onto your tackle, wait until the screen indicates to TAP, and then press the arrow keys or drag on the screen to follow the fish and reel it in.
+
+Once successfully reeled, you can sell the fish directly off the line, place in your Bucket or Tank, and spend coins in the Shop. In the Shop, buy different clothes and customizations, home and tank decor, and upgrade bucket/tank storage or the tackle.
+
+As you catch more fish, you unlock new locations on the Map. Each has its own scenery and fish, and you sail there by boat. 
+
+In your Home, you can decorate the space, view tanks, and invite friends. Multiplayer features allow users to visit friends, chat with them, and gift them coins or fish. 
 
 ## Features I'm most proud of
 
-> ✏️ TODO: pick 2–3 and say *why* in your own words. Candidates:
-> - Every sprite (angler, 17 fish, 4 buddies, the whole scene) is drawn from code, with no image files, plus an automatic outline pass.
-> - The "try before you buy" wardrobe, whose item thumbnails show *your* angler wearing each item.
-> - The dithered sunset sky that blends smoothly between four palettes.
-> - Fish that depend on the time of day and the location, which gives a reason to keep playing through the whole loop.
-> - Visible fish shadows you can aim for, and a 2D underwater chase for reeling (steering in two directions instead of Stardew Valley's one).
-> - The sea chart and the sailing trip between seven hand-coloured locations.
-> - Boat customization: nine silly boat styles (cardboard box, banana, watermelon, bathtub, teacup, giant sneaker, swan, duck parade with ducklings), sail designs, flags, string lights that glow at night, a solid gold hull. Your boat shows up tied at the dock, at every other spot, while sailing, and on the sea chart.
-> - Fishing together with friends: live casts, catches and emotes, visiting each other's worlds, chat, and gifting coins and fish.
-> - The aquarium, where fish swim, crabs (and LeBron) walk along the sand, and tapping a fish shows its name.
-> - Game juice: the fish arcs out of the water onto the dock, the catch card has spinning rays, the lantern and lighthouse glow at night.
+I'm most proud of the multiplayer features and the ability to host multiple players on a backend server at the same time. From my experience playing with others, I think being able to save account information, gift and interact with others really brings the game together. I'm also proud of the fishing mechanics--Claude had originally designed the mechanics to be very similar to the Stardew Valley fishing mechanics, so I decided to adjust them to make it more original, and have the user essentially "chase" the fish in all four dimensions. I was surprised by how well and how quickly Claude was able to create the sound and art components for the game as well.
 
 ## Running it locally
 
@@ -89,7 +70,9 @@ Tap **Log in** (top bar, or on the title screen) to sign up with an email, a uni
 
 ## How I used AI
 
-> ✏️ TODO (required, and weighted heavily): summarise how you used AI, in your own words. Suggested points: which tool(s) (Claude Code with Claude Opus 5.5 built the first version), what you directed versus what it wrote, what you changed yourself, and where it went wrong. Full details are in [prompt_log.md](prompt_log.md).
+I used AI to develop all the different features in the game, specifying the mechanics I wanted, giving it a general direction to go in, and adjusting if there were areas that weren't as envisioned. The code is all fully written by Claude Opus 5.5. 
+
+I directed the individual features of the game, while Claude came up with general sprite designs, descriptions, instructions, etc. along with the sound components. If there were features that were not working, I would prompt Claude with a description of the error for it to fix. Many of the feature changes and additions were also based on active user feedback from friends who were playing the game. Full details of my prompts are in prompt_log.md. There would be small errors at times, like the overlay of usernames in the multiplayer setting, or UX details that I would use AI to improve, like being able to return to fishing directly from the user's home, or receiving notifications for gifts from other users.
 
 ## Credits
 

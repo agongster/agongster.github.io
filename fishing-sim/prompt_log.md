@@ -1,6 +1,5 @@
 # Tiny Tides: prompt log
 
-> ✏️ **TODO (April):** Keep adding to this file as you work. Paste important prompts **verbatim** rather than summarising them, and note which changes you made yourself. The assignment wants roughly 15–40 meaningful prompts across ~8 hours, plus the two required sections below.
 
 ## Tools used
 
@@ -9,14 +8,11 @@
 
 ## Which tool for which job
 
-> ✏️ TODO (required): a sentence or two on which model/tool you used for which part of the work, and why.
 Claude Code (Opus 5.5) was used for development, largely because from my own experience it has the best balance between code readability and development capabilities.
 
 ## One place AI got it wrong
 
-> ✏️ TODO (required): one short paragraph, in your own words, about a time a tool was confidently wrong, proposed something that couldn't work, or introduced a bug it couldn't find, and what you did about it.
->
-> A real one from session 1 that you could use or replace: the first version's time-of-day toast read "Golden hour **has fallen**", because the AI templated "X has fallen" for every phase without checking that it made sense for golden hour or sunset. It only caught this after taking screenshots, then moved the messages into `data.js` as per-phase text. Separately, its own automated "corrupt save" test gave a misleading pass: the game's save-on-exit handler overwrote the corrupted data before the reload read it, so the test wasn't testing anything. It had to rewrite the test to call the sanitizer directly.
+When implementing multiplayer, its first version put the login token in the WebSocket URL (`?token=...`). The server log from the test run showed full tokens printed on every connection, which on Render would let anyone who reads the logs act as that player. The token now goes in the first message after connecting, and a test checks that missing or forged tokens are rejected.
 
 ---
 
@@ -42,7 +38,6 @@ here's my next project instructions, please create a new folder called fishing-s
 ### Changes I made myself
 
 My own edits largely consisted of the database/backend setup and debugging, as well as tweaking some of the cosmetic choices. For the most part, AI made very few mistakes (or at least caught its own errors) since things were correctly set up on my end.
-> ✏️ TODO: list your own edits here as you make them (for example, tweaking fish in `data.js`, new cosmetics, rebalanced prices, copy changes, layout fixes). The graders specifically look for these.
 
 ---
 
@@ -67,10 +62,6 @@ a few things:
   - The moving-zone reel became a line-tension reel (hold to reel, let go when it thrashes or the line snaps). Rods now have line strength and reel speed.
 - **Testing:** a Playwright bot played real rounds, and edge cases were checked (snap, escape, pausing when a menu opens mid-reel, locked travel, old saves migrating, unlocking on catch).
 
-### Changes I made myself
-
-> ✏️ TODO
-
 ---
 
 ## Session 3: back to the chase, now in 2D (2026-09-28, Claude Code / Claude Opus 5.5)
@@ -87,10 +78,6 @@ ok the new mechanics are not as fun.. switch it back to the original one where w
 - Kept tap-to-aim casting and the fish shadows from session 2, since the prompt was about the reeling.
 - Rods went back to upgrading net size and reel speed.
 - **Tuning:** the first 2D version was far too hard (a bot lost an uncommon koi in about 2 seconds), because in 2D the fish's jumps outran the net. The fix was to cap fish speed below the net's top speed, start the net and fish closer together, add a short grace period, and slow the drain slightly. After tuning, a bot playing with arrow keys reliably caught common, uncommon and rare fish and sometimes lost the legendary.
-
-### Changes I made myself
-
-> ✏️ TODO
 
 ---
 
@@ -113,9 +100,6 @@ i also want to implement an aquarium feature, where players can place their fish
 - **Fish:** 37 new catches, bringing the total to 72. Every location now has fish at every time of day. New pixel critters include a seahorse, octopus, cloud whale, and recoloured snow and lava crabs.
 - **LeBron James:** a pixel LeBron (headband, beard, #23 jersey, basketball) with his own rarity, "The GOAT". He can turn up anywhere at any time, but rarely, and is worth 2,323 coins.
 
-### Changes I made myself
-
-> ✏️ TODO
 
 ---
 
@@ -133,10 +117,6 @@ make a dev mode where i can select the fish that i want to catch.
 - "Unlock map" first faked 150 perch catches into the Fishdex. It was changed to a proper `devUnlocked` save flag so the Fishdex stays honest.
 - Testing caught a real snag: after ticking the "Instant bites" checkbox, Space toggled the checkbox instead of casting. The panel now drops focus after each change, and Space is ignored while a dropdown is focused.
 
-### Changes I made myself
-
-> ✏️ TODO
-
 ---
 
 ## Session 6: LeBron can't be sold (2026-09-28, Claude Code / Claude Opus 5.5)
@@ -151,10 +131,6 @@ the player cannot sell lebron james but they can keep him in the tank forever. a
 
 - **Can he be caught?** Yes. The `weight: 0` is on the "GOAT" rarity tier, but LeBron's own entry has `weight: 0.35`, which overrides the tier. It works out to about 1 in 200 to 1 in 285 rolls depending on location and time of day. 30,000 real in-game rolls gave 1 in 240. Rod luck doesn't change his odds. A comment in `data.js` now explains the 0.
 - **Unsellable:** added `unsellable: true` to LeBron and blocked selling at every point: the catch card (no Sell button), the bucket ("Priceless", and "Sell all" skips him), the tank ("Here forever"), and the game functions themselves, so even a forced sell just keeps him. With the bucket and tank both full, Escape no longer throws him away; you have to choose Release deliberately.
-
-### Changes I made myself
-
-> ✏️ TODO
 
 ---
 
@@ -171,10 +147,6 @@ the player should not be able to see the fish when they are catching it, keep it
 - **Mystery shadow:** the chase panel now draws a generic dark fish shadow instead of the fish's sprite. It deliberately doesn't use the fish's own silhouette, which would still give some away (especially LeBron). Its size scales with rarity to match the shadows in the water. The real fish is revealed when it arcs onto the dock.
 - **Dead code:** removed the leftover `miniFish` helper from the tension-reel era.
 - **Dev bug found while testing:** "Win reel" set the catch bar to exactly 100%, but the game drains the bar before checking for a catch. So it only worked when the fish happened to be inside the net. The AI's first theory was that the test script was flaky; state logging showed the real cause. The button now triggers the catch directly.
-
-### Changes I made myself
-
-> ✏️ TODO
 
 ---
 
@@ -199,10 +171,6 @@ the user should also be able to customize their boat in the shop
 - **Thumbnails:** the first version showed the whole boat at thumbnail size, so small decorations were unreadable. Each thumbnail now zooms in on the part that item changes.
 - **Phone bug found while testing:** on phones the dev panel sat on top of menus and covered the "Start fishing!" button. It now sits underneath menus.
 
-### Changes I made myself
-
-> ✏️ TODO
-
 ---
 
 ## Session 9: silly boat styles (2026-09-29, Claude Code / Claude Opus 5.5)
@@ -218,10 +186,6 @@ i want the boat base to have more unique options, like a duck parade boat or a s
 - **Styles:** added a "Style" part to the boat with nine options: rowboat, cardboard box (soggy at the bottom), banana, watermelon slice, clawfoot bathtub (bubbles and a dripping faucet), teacup on a saucer (steam included), giant sneaker, swan boat, and duck parade (a big rubber duck with three ducklings bobbing behind).
 - **How they're drawn:** each style has a back half (behind the angler) and a front half (in front), all built around the same rim line, so sails, flags and decorations work on every one.
 - **Colours:** hull and stripe colours paint the rowboat, bathtub, teacup and sneaker. For the other styles the shop explains that the style has its own colours. The rubber-duck decoration moves over on the swan and duck boats so it doesn't sit on their heads.
-
-### Changes I made myself
-
-> ✏️ TODO
 
 ---
 
@@ -254,10 +218,6 @@ service url: https://tiny-tides-backend.onrender.com
   - It pinned `psycopg[binary]==3.2.3` (copied from Tally), which had no package for this Mac's Python 3.9. Its first local test "passed" only because the install had silently failed and the output was cut off; the server never started. It then switched to Python 3.11 (what Render runs) and bumped psycopg.
   - The first version of the login form wiped everything you'd typed whenever it showed an error, so the second attempt sent empty fields. The two-device test caught it.
 
-### Changes I made myself
-
-> ✏️ TODO
-
 ---
 
 ## Session 11: all multiplayer features (2026-09-29, Claude Code / Claude Opus 5.5)
@@ -287,9 +247,6 @@ implement all multiplayer features now
 - **Testing:** two browser profiles against a local backend ran the whole loop: befriend, visit, see each other fish, follow the host, gift, host leaves (napping), go home. A phone-sized check covered the layout too.
 - **Where the AI got it wrong:** its first version put the login token in the WebSocket URL (`?token=...`). The server log from the test run showed full tokens printed on every connection, which on Render would let anyone who reads the logs act as that player. The token now goes in the first message after connecting, and a test checks that missing or forged tokens are rejected.
 
-### Changes I made myself
-
-> ✏️ TODO
 
 ## Session 12: going live, login up front, and rarity-based difficulty (2026-09-30, Claude Code / Claude Opus 5.5)
 
@@ -544,7 +501,3 @@ make it possible to gift lebrons, and make it so that it notifies the user more 
 - **Majestic legendaries:** every legendary sprite now gets a golden crest along the top, flowing golden tail streamers, a band of shine across the body, a two-tone golden glow and sparkles. The catch card adds golden rays, a gold frame and a gentle floating shimmer, and legendary Fishdex cards get a gold border.
 - **Chat over the fishing view:** the chat panel moved inside the fishing view as a see-through overlay in the top-left sky, clear of your angler and the dock, so you can read it while you fish. On phones it sits under the scene. Clicking or typing in it never casts.
   - **Where the AI got it wrong:** the first version was full height and covered the angler, and clicks on the panel cast the line. It was also squashed to 64px, because an old `align-self: center` stopped it from stretching. All three were caught by screenshots and a click test.
-
-### Changes I made myself
-
-> ✏️ TODO
