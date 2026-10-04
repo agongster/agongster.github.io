@@ -600,11 +600,37 @@ function pickTank(anchor, { fish = null, exclude = null } = {}) {
 // With one tank there's nothing to pick.
 const chooseTank = async (anchor, opts) => (save.tanks.length > 1 ? pickTank(anchor, opts) : mainTank());
 
+// ======================================================= gifts for you ==
+// Gifts that arrived while you were away. Shown once nothing else is open
+// (so it waits until you're past the title screen).
+let giftNotice = null;
+function showGiftNotice(items) {
+  giftNotice = (giftNotice || []).concat(items);
+}
+
+function openGiftNotice() {
+  const items = giftNotice;
+  giftNotice = null;
+  $('#giftnotice-list').innerHTML = items.map(g => {
+    const note = g.note ? `<div class="fmeta">"${escapeHTML(g.note)}"</div>` : '';
+    if (g.fish) {
+      const sp = FISH_BY_ID[g.fish.id];
+      return `<li><img src="${fishDataUrl(sp)}" alt="" />
+        <div><div class="fname">A ${sp.name} from @${escapeHTML(g.from)}</div>
+          <div class="fmeta">${g.fish.size} cm · ${RARITY[sp.rarity].label} · now in ${escapeHTML(g.where)}</div>${note}</div></li>`;
+    }
+    return `<li><span class="giftnotice-coins"><span class="coin-icon" aria-hidden="true"></span></span>
+      <div><div class="fname">${g.amount} coins from @${escapeHTML(g.from)}</div>${note}</div></li>`;
+  }).join('');
+  openModal('modal-giftnotice');
+  Sound.sfx.catch('rare');
+}
+
 // ============================================================= fish gifts ==
 // A Gift button on fish in your bucket and tank, once you're logged in.
-// (LeBron stays with you forever.)
+// (LeBron can't be sold, but he can be given to a friend.)
 function giftFishButton(c) {
-  if (typeof Online === 'undefined' || !Online.loggedIn() || isUnsellable(c)) return '';
+  if (typeof Online === 'undefined' || !Online.loggedIn()) return '';
   return `<button class="btn plain" data-giftfish="${c.uid}" aria-label="Gift your ${FISH_BY_ID[c.id].name} to a friend">Gift</button>`;
 }
 
@@ -838,7 +864,7 @@ function renderDex() {
         <img src="${fishDataUrl(sp, true)}" alt="Undiscovered fish silhouette" />
         <span class="dname">???</span><span class="dmeta">${r.label}</span><div class="chips">${chips}</div></div>`;
     }
-    return `<div class="dex-card" style="border-top-color:${r.color}">
+    return `<div class="dex-card${sp.rarity === 'legendary' || sp.rarity === 'goat' ? ' legend' : ''}" style="border-top-color:${r.color}">
       <img src="${fishDataUrl(sp)}" alt="${sp.name}" />
       <span class="dname">${sp.name}</span>
       <span class="dmeta">${r.label} · best ${d.best} cm · caught ×${d.count}</span>
@@ -925,7 +951,7 @@ function renderTank() {
       <img src="${fishDataUrl(sp)}" alt="" />
       <div><div class="fname">${sp.name}</div>
         <div class="fmeta">${c.size} cm · <span class="stars" aria-label="${c.stars} of 3 stars">${starText(c.stars)}</span> · ${RARITY[sp.rarity].label}</div></div>
-      ${tankView ? '' : sp.unsellable ? '<span class="priceless">Here forever</span>'
+      ${tankView ? '' : sp.unsellable ? `<span class="row-actions">${save.tanks.length > 1 ? `<button class="btn mint" data-movefish="${c.uid}" aria-label="Move ${sp.name} to another tank">Move...</button>` : ''}${giftFishButton(c)}<span class="priceless">Priceless</span></span>`
         : `<span class="row-actions">${save.tanks.length > 1 ? `<button class="btn mint" data-movefish="${c.uid}" aria-label="Move ${sp.name} to another tank">Move...</button>` : ''}${giftFishButton(c)}<button class="btn gold" data-tanksell="${c.uid}" aria-label="Sell ${sp.name} for ${c.value} coins">Sell ${coinHTML(c.value)}</button></span>`}
     </li>`;
   }).join('') : `<li class="empty" style="display:block">${tankView ? 'This tank is empty.' : t.uid === save.mainTank ? 'This tank is empty. Tap "Tank" on a catch to keep it here.' : 'This tank is empty. Make it your main tank to fill it with new catches.'}</li>`;
@@ -1543,6 +1569,7 @@ function showCatchCard(c) {
   const sp = FISH_BY_ID[c.id];
   const r = RARITY[sp.rarity];
   $('#catch-img').src = fishDataUrl(sp);
+  $('#modal-catch .catch-panel').classList.toggle('legendary', sp.rarity === 'legendary' || sp.rarity === 'goat');
   $('#catch-img').alt = sp.name;
   $('#catch-new').hidden = !c.isNew;
   $('#catch-rarity').textContent = r.label;
@@ -1608,6 +1635,7 @@ function uiTick() {
     if (walking) back.textContent = `Sail back to ${LOCATIONS.find(l => l.id === backSpot()).name}`;
     if (!chasing && !walking) $$('#dpad button').forEach(b => b.classList.remove('pressed'));
   }
+  if (giftNotice && !openId && save.started) openGiftNotice();
   drawPreview();
   drawBoatPreview();
   drawMap();
@@ -1625,6 +1653,7 @@ function canvasPoint(e) {
 function bindHold(el, aimed) {
   el.addEventListener('pointerdown', e => {
     if (openId || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    if (e.target.closest && e.target.closest('#chat-panel')) return;  // typing, not casting
     e.preventDefault();
     Sound.init();
     try { el.setPointerCapture(e.pointerId); } catch (err) { /* not supported */ }
@@ -1643,7 +1672,7 @@ function bindHold(el, aimed) {
 bindHold($('#stage'), true);
 bindHold($('#action-btn'), false);
 $('#stage').addEventListener('pointermove', e => {
-  if (openId) return;
+  if (openId || (e.target.closest && e.target.closest('#chat-panel'))) return;
   if (G.state === 'reeling' && G.steer) G.steer = canvasPoint(e);
   else if (e.pointerType === 'mouse' && G.state === 'idle') setAim(canvasPoint(e));
 });

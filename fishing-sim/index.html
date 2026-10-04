@@ -40,20 +40,20 @@
     </header>
 
     <div id="social-bar" class="social-bar" hidden></div>
-    <div id="chat-panel" class="chat-panel" hidden>
-      <p id="chat-who" class="chat-who"></p>
-      <ul id="chat-log" class="chat-log" aria-live="polite" aria-label="Chat messages"></ul>
-      <form id="chat-form" class="chat-form" autocomplete="off">
-        <input id="chat-input" maxlength="150" placeholder="Say something nice..." aria-label="Chat message" enterkeyhint="send" />
-        <button class="btn mint" type="submit">Send</button>
-      </form>
-    </div>
 
     <main id="stage" aria-label="Fishing spot. Tap the water to cast, tap when a fish bites, then steer the net with the arrow keys to chase the fish.">
       <canvas id="scene" width="320" height="180"></canvas>
       <div id="prompt" aria-live="polite"></div>
       <div id="toasts" aria-live="polite"></div>
       <div id="player-tags" aria-hidden="true"></div>
+      <div id="chat-panel" class="chat-panel" hidden>
+        <p id="chat-who" class="chat-who"></p>
+        <ul id="chat-log" class="chat-log" aria-live="polite" aria-label="Chat messages"></ul>
+        <form id="chat-form" class="chat-form" autocomplete="off">
+          <input id="chat-input" maxlength="150" placeholder="Say something nice..." aria-label="Chat message" enterkeyhint="send" />
+          <button class="btn mint" type="submit">Send</button>
+        </form>
+      </div>
     </main>
 
     <div id="action-row">
@@ -272,6 +272,19 @@
         <button class="btn" id="btn-bucket-sell-all">Sell all</button>
       </div>
       <ul id="bucket-list" class="fish-list"></ul>
+    </div>
+  </div>
+
+  <!-- Gifts that arrived while you were away -->
+  <div class="modal" id="modal-giftnotice" role="dialog" aria-modal="true" aria-labelledby="giftnotice-h" hidden>
+    <div class="panel giftnotice-panel">
+      <header class="panel-head">
+        <h2 id="giftnotice-h">You got gifts!</h2>
+        <button class="close-btn" data-close aria-label="Close">X</button>
+      </header>
+      <p class="tank-hint">While you were away, your friends sent you:</p>
+      <ul id="giftnotice-list" class="fish-list"></ul>
+      <footer class="panel-foot"><button class="btn big gold" id="btn-giftnotice-ok" data-close>Yay, thank you!</button></footer>
     </div>
   </div>
 

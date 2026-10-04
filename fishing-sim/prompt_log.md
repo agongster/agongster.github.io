@@ -424,6 +424,18 @@ can you make things slightly less expensive? make the aurora rod 10000 and the o
 when player is home they should be able to sail back to where they just were directly instead of just clicking on the map, like some kind of "go back" button. also, please make the legendary fish slightly easier to catch with the better rods, like the bar should go down slightly slower the better the rod is for more rare fish
 ```
 
+```
+yes
+```
+
+```
+how many people can the render free tier support concurrently on the backend server?
+```
+
+```
+make it possible to gift lebrons, and make it so that it notifies the user more clearly when they are gifted something but log on later on. also, make the legendary fish more special-looking, like their art should be more impressive and more majestic-looking. make the chat appear overlaid on the left side of the fishing screen panel so that the user can see it more easily while fishing.
+```
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -526,6 +538,12 @@ when player is home they should be able to sail back to where they just were dir
   - **Order check:** the AI checked that prices still go up within each list. The Bunny would have been cheaper than the Capybara before it, so it's 850, and the GOAT poster moved after the now-cheaper Fireplace.
 - **Sail back:** going home remembers the fishing spot you left. At home, a **Sail back to [spot]** button under the big button takes you straight there. At a friend's home it goes back to where you were, or to where they're fishing, and older saves default to Sunset Dock.
 - **Big-fish grip:** each rod has a new stat that slows how fast the bar drains when a big fish slips out of the net. It's 0 on the Twig, rising to 34% on the GOAT Rod. It applies fully to legendaries, half to rares, and 60% to LeBron (so he stays special). The Shop lists it as "Big-fish grip". In the simulation, Star on legendaries went from 90% to 100%, Bamboo on rares from 22% to 27%, and Star on LeBron from 20% to 47% (the full effect would have given 73%, which felt like too much).
+- **Render capacity (question only):** the AI measured the server's cost per action on the real code: about 380 ms of CPU per login (bcrypt), 5 ms per save upload, 2 ms per friends refresh, and under 0.1 ms per live message. Scaled to Render's free tier (0.1 CPU, 512 MB), that's roughly 40-60 players at once comfortably and about 100 before lag. The real limits are mass logins (several seconds each), waking from sleep, and the free hours shared with the Tally service.
+- **Gifting LeBron:** LeBron still can't be sold, but he can now be gifted, from the bucket or a tank (server: he's off the "can't gift" list; a test now checks he arrives). His tank row also got the Move and Gift buttons.
+- **"You got gifts!":** gifts that arrived while you were away used to show as quick toasts that were easy to miss. Now, when the game loads or you log in, a window lists each gift: the fish (with its picture) and where it went, or the coins, plus the sender's note. It waits until you're past the title screen. Gifts that arrive mid-game still get a toast.
+- **Majestic legendaries:** every legendary sprite now gets a golden crest along the top, flowing golden tail streamers, a band of shine across the body, a two-tone golden glow and sparkles. The catch card adds golden rays, a gold frame and a gentle floating shimmer, and legendary Fishdex cards get a gold border.
+- **Chat over the fishing view:** the chat panel moved inside the fishing view as a see-through overlay in the top-left sky, clear of your angler and the dock, so you can read it while you fish. On phones it sits under the scene. Clicking or typing in it never casts.
+  - **Where the AI got it wrong:** the first version was full height and covered the angler, and clicks on the panel cast the line. It was also squashed to 64px, because an old `align-self: center` stopped it from stretching. All three were caught by screenshots and a click test.
 
 ### Changes I made myself
 

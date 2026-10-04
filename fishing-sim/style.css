@@ -846,3 +846,35 @@ kbd {
 .tank-picker button:hover:not(:disabled), .tank-picker button:focus-visible { background: #fff3c4; }
 .tank-picker button:disabled { opacity: .5; cursor: not-allowed; }
 .tank-picker button span { color: var(--plum-2); font-size: 13px; }
+
+/* "You got gifts!" */
+.giftnotice-panel { width: min(100%, 460px); }
+.giftnotice-coins { display: flex; align-items: center; justify-content: center; width: 76px; }
+.giftnotice-coins .coin-icon { transform: scale(2.2); }
+
+/* legendary catches: golden rays, a golden frame, and a twinkle */
+.catch-panel.legendary { box-shadow: 0 0 0 4px #ffd23f, 0 0 0 8px var(--ink), 0 0 30px 10px rgba(255, 210, 63, .55); }
+.catch-panel.legendary .catch-rays { background: repeating-conic-gradient(from 0deg, rgba(255, 210, 63, .5) 0 10deg, rgba(255, 243, 160, .15) 10deg 20deg); }
+.catch-panel.legendary .catch-img { filter: drop-shadow(0 0 6px rgba(255, 220, 90, .9)); animation: majestic 1.6s ease-in-out infinite; }
+@keyframes majestic { 50% { transform: translateY(-4px) scale(1.03); filter: drop-shadow(0 0 10px rgba(255, 240, 160, 1)); } }
+.dex-card.legend { box-shadow: 0 0 0 2px #ffd23f, 0 0 12px rgba(255, 210, 63, .6); }
+@media (prefers-reduced-motion: reduce) { .catch-panel.legendary .catch-img { animation: none; } }
+
+/* Chat floats over the top-left of the fishing view, see-through, so you
+   can keep fishing while you read. On small screens it sits under the view. */
+#stage .chat-panel {
+  /* the top-left sky: clear of your angler and the dock below */
+  position: absolute; left: 6px; top: 6px; z-index: 3;
+  width: min(33%, 260px); height: 50%; margin: 0; align-self: stretch;
+  background: rgba(255, 248, 236, .82); border: 3px solid var(--mint);
+  backdrop-filter: blur(2px);
+}
+#stage .chat-panel.alone { border-top: 3px solid var(--mint); margin-top: 0; }
+#stage .chat-log { flex: 1; max-height: none; min-height: 0; font-size: 14px; }
+#stage .chat-form { padding: 4px; }
+#stage .chat-form input { font-size: 15px; padding: 3px 6px; }
+#stage .chat-form .btn { padding: 2px 8px; font-size: 14px; }
+@media (max-width: 640px) {
+  #stage .chat-panel { position: static; width: auto; border-width: 3px 0 0; background: var(--cream); backdrop-filter: none; }
+  #stage .chat-log { max-height: 110px; }
+}

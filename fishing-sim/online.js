@@ -197,7 +197,7 @@ const Online = (() => {
     } else {
       setStatus('saved');
     }
-    claimGifts();
+    claimGifts({ announce: true });
     loadFriends();
   }
 
@@ -267,7 +267,7 @@ const Online = (() => {
     render();
     renderPill();
     window.dispatchEvent(new Event('tt-login'));
-    claimGifts();
+    claimGifts({ announce: true });
     loadFriends();
   }
 
@@ -322,7 +322,9 @@ const Online = (() => {
   }
 
   // -------------------------------------------------------------- gifts --
-  async function claimGifts() {
+  // announce: gifts that piled up while you were away get a proper window
+  // (on load and login); ones that arrive mid-game just get a toast
+  async function claimGifts({ announce = false } = {}) {
     if (!session) return;
     if (!(await pushNow())) return;
     const r = await api('/api/gifts/claim', { method: 'POST' });
@@ -330,6 +332,7 @@ const Online = (() => {
     if (!r.ok || (!r.data.claimed.length && !fish.length)) return;
     // The server already put the fish in our save (we'd just uploaded, so it
     // matches what we have); copy them into the same place with the same uid.
+    const notice = [];
     for (const g of fish) {
       const f = g.fish;
       if (!f || !FISH_BY_ID[f.id]) continue;
@@ -338,13 +341,17 @@ const Online = (() => {
       if (![...save.bucket, ...allTankFish()].some(c => c.uid === f.uid)) into.push({ uid: f.uid, id: f.id, size: f.size, stars: f.stars, value: f.value });
       save.nextUid = Math.max(save.nextUid, f.uid + 1);
       const sp = FISH_BY_ID[f.id];
-      toast(`@${g.username} sent you a ${sp.name}${g.note ? `: "${g.note}"` : '!'} It's in ${g.where === 'bucket' ? 'your bucket' : tank.name}.`);
+      const where = g.where === 'bucket' ? 'your bucket' : tank.name;
+      notice.push({ from: g.username, fish: f, note: g.note, where });
+      if (!announce) toast(`@${g.username} sent you a ${sp.name}${g.note ? `: "${g.note}"` : '!'} It's in ${where}.`);
     }
     applyServerCoins(r.data.coins, r.data.version);
     if (r.data.claimed.length) Sound.sfx.coin(); else Sound.sfx.buy();
     for (const g of r.data.claimed) {
-      toast(`@${g.username} sent you ${g.amount} coins${g.note ? `: "${g.note}"` : '!'}`, 'coin');
+      notice.push({ from: g.username, amount: g.amount, note: g.note });
+      if (!announce) toast(`@${g.username} sent you ${g.amount} coins${g.note ? `: "${g.note}"` : '!'}`, 'coin');
     }
+    if (announce && notice.length) showGiftNotice(notice);
     gifts = null;
   }
 

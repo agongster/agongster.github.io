@@ -884,6 +884,67 @@ const MAP_ART = {
 
 const fishCache = new Map();
 
+// Legendary fish get the royal treatment: a band of light across the body,
+// little golden crest spikes along the top, a two-tone golden glow around the
+// outline, and twinkling star sparkles at the corners.
+function majestic(src) {
+  const pad = 6, w = src.width + pad * 2, h = src.height + pad * 2;
+  const c = makeCanvas(w, h), g = c.getContext('2d');
+  g.drawImage(src, pad, pad);
+  const img = g.getImageData(0, 0, w, h), d = img.data;
+  const idx = (x, y) => (y * w + x) * 4;
+  const solid = (x, y) => x >= 0 && y >= 0 && x < w && y < h && d[idx(x, y) + 3] > 0;
+  const [or, og, ob] = hexToRgb(OUTLINE);
+  const isOutline = i => d[i] === or && d[i + 1] === og && d[i + 2] === ob;
+  const put = (x, y, hex, a = 255) => { if (x < 0 || y < 0 || x >= w || y >= h) return; const [r, gg, b] = hexToRgb(hex); const i = idx(x, y); d[i] = r; d[i + 1] = gg; d[i + 2] = b; d[i + 3] = a; };
+  // 1. a shine: lighten a diagonal band of body pixels
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = idx(x, y);
+    if (!d[i + 3] || isOutline(i)) continue;
+    const band = (x - y * 0.9) - w * 0.38;
+    if (band > 0 && band < 3) { d[i] += (255 - d[i]) * 0.45; d[i + 1] += (255 - d[i + 1]) * 0.45; d[i + 2] += (255 - d[i + 2]) * 0.45; }
+  }
+  // 2. a crest of golden spikes along the top, tallest in the middle
+  for (const [fx, tall] of [[0.32, 2], [0.41, 3], [0.5, 4], [0.59, 3], [0.68, 2]]) {
+    const x = Math.round(w * fx);
+    let top = -1;
+    for (let y = 0; y < h; y++) if (solid(x, y)) { top = y; break; }
+    if (top < 2) continue;
+    for (let k = 1; k <= Math.min(tall, top); k++) put(x, top - k, k === tall ? '#fff3a0' : '#ffd23f');
+  }
+  // 3. flowing streamers off the tail (fish face right, so the tail is on the left)
+  let left = -1, mid = Math.round(h / 2);
+  for (let x = 0; x < w && left < 0; x++) for (let y = 0; y < h; y++) if (solid(x, y)) { left = x; mid = y; break; }
+  if (left > 1) {
+    for (const dir of [-1, 1]) {
+      for (let k = 1; k <= Math.min(left, 5); k++) {
+        const y = mid + dir * Math.round(k * 0.8) + (k > 3 ? dir : 0);
+        put(left - k, y, k >= 4 ? '#fff3a0' : '#ffd23f');
+      }
+    }
+  }
+  // 4. the glow: gold right around the outline, then a softer dithered halo
+  const was = new Uint8ClampedArray(d);
+  const solidWas = (x, y) => x >= 0 && y >= 0 && x < w && y < h && was[idx(x, y) + 3] > 0;
+  const ring1 = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (solidWas(x, y)) continue;
+    if (solidWas(x - 1, y) || solidWas(x + 1, y) || solidWas(x, y - 1) || solidWas(x, y + 1)) ring1.push([x, y]);
+  }
+  for (const [x, y] of ring1) put(x, y, '#e8b830', 235);
+  const now = new Uint8ClampedArray(d);
+  const solidNow = (x, y) => x >= 0 && y >= 0 && x < w && y < h && now[idx(x, y) + 3] > 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (solidNow(x, y) || (x + y) % 2) continue;
+    if (solidNow(x - 1, y) || solidNow(x + 1, y) || solidNow(x, y - 1) || solidNow(x, y + 1)) put(x, y, '#fff3a0', 150);
+  }
+  // 5. sparkles
+  const star = (x, y) => { put(x, y, '#ffffff'); put(x - 1, y, '#fff3a0', 200); put(x + 1, y, '#fff3a0', 200); put(x, y - 1, '#fff3a0', 200); put(x, y + 1, '#fff3a0', 200); };
+  star(2, 2); star(w - 3, h - 3);
+  g.putImageData(img, 0, 0);
+  return c;
+}
+
 function fishSprite(sp, dark = false) {
   const key = sp.id + (dark ? '#dark' : '');
   if (fishCache.has(key)) return fishCache.get(key);
@@ -896,6 +957,7 @@ function fishSprite(sp, dark = false) {
     else if (sp.shape === 'puffer') c = drawPuffer(sp);
     else c = drawFishBody(sp);
     addOutline(c);
+    if (sp.rarity === 'legendary') c = majestic(c);
   }
   fishCache.set(key, c);
   return c;
