@@ -4,7 +4,7 @@
 ## Tools used
 
 - **Claude Code** (VS Code extension), model **Claude Opus 5.5**: built the first playable version (all files in this folder), tested it in a headless browser, and drafted the technical notes in the README.
-- ✏️ TODO: add any other tools you use (a chat window for brainstorming, another model for debugging, etc.).
+
 
 ## Which tool for which job
 
@@ -393,6 +393,22 @@ how many people can the render free tier support concurrently on the backend ser
 make it possible to gift lebrons, and make it so that it notifies the user more clearly when they are gifted something but log on later on. also, make the legendary fish more special-looking, like their art should be more impressive and more majestic-looking. make the chat appear overlaid on the left side of the fishing screen panel so that the user can see it more easily while fishing.
 ```
 
+```
+yes
+```
+
+```
+real quick--walk me through how everything works at a high level. how are the sprites made, how is the multiplayer implemented, what is being done where, etc.
+```
+
+```
+ok i should add a new region, with more maps and new fish. i want 10 new regions.
+```
+
+```
+can you increase the unlocks at variables? it should go up to requiring 1000 fish caught
+```
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -501,3 +517,11 @@ make it possible to gift lebrons, and make it so that it notifies the user more 
 - **Majestic legendaries:** every legendary sprite now gets a golden crest along the top, flowing golden tail streamers, a band of shine across the body, a two-tone golden glow and sparkles. The catch card adds golden rays, a gold frame and a gentle floating shimmer, and legendary Fishdex cards get a gold border.
 - **Chat over the fishing view:** the chat panel moved inside the fishing view as a see-through overlay in the top-left sky, clear of your angler and the dock, so you can read it while you fish. On phones it sits under the scene. Clicking or typing in it never casts.
   - **Where the AI got it wrong:** the first version was full height and covered the angler, and clicks on the panel cast the line. It was also squashed to 64px, because an old `align-self: center` stopped it from stretching. All three were caught by screenshots and a click test.
+- **Walkthrough (question only):** the AI explained the architecture: the game is plain JavaScript files sharing globals, drawn on a 320x180 canvas, with every sprite built from code (descriptions, letter grids and layered drawing, then outlines and the legendary treatment). The server is FastAPI plus Postgres, with REST for stored things and in-memory WebSocket rooms that relay player updates.
+- **The Far Seas:** the AI read "a new region with 10 new regions" as one new region with 10 new fishing spots (each with its own fish).
+  - **The spots,** unlocking from 200 to 1,000 fish caught (first set at 180 to 580, then raised on request): Mangrove Maze, Sunken Ruins, Mushroom Marsh, Oasis Springs, Seastack Shallows, Lantern Harbor, Candy Shore, Waterfall Jungle, Crystal Grotto and Starfall Sea.
+  - **Scenery:** each has its own colour tint, a landmark on the horizon (stilted mangroves, stone columns, glowing mushrooms, dunes and a pyramid, rock pillars, a lit pagoda, gumdrop hills, an animated waterfall, crystal spires, an observatory under a comet) and foreground effects (roots and all-day fireflies, bubbles, spores, heat shimmer, kelp, floating lanterns, sprinkles, spray and a rainbow, sparkles on the water, shooting stars).
+  - **Fish:** 100 new species, 10 per spot (4 common, 3 uncommon, 2 rare, 1 legendary), priced a step above the home waters (legendaries 1,900 to 3,200). The total is now 272. Junk and LeBron turn up there too.
+  - **Map:** a **Home Waters / The Far Seas** tab pair, each with its own chart (the Far Seas in deeper blue, each island with a little icon) and list, and the map opens on the region you're in.
+  - **Checks:** no duplicate ids or names, and every spot has common fish at every time of day. Screenshots of all ten spots at golden hour and at night, and rolling 400 fish at Candy Shore gave only Candy Shore's fish (plus junk and LeBron). No server change was needed.
+  - **Where the AI got it wrong:** a rename using `sed`'s `\b` silently did nothing on macOS, which would have left the scenery calling a function that no longer existed. It was caught by counting the replacements and redone with perl.

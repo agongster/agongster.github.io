@@ -1,6 +1,6 @@
 # Tiny Tides
 
-A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock (and later sail to six more islands) while the sky loops from sunrise to night, collect 172 kinds of fish (plus junk, and LeBron James), keep your favourites in an aquarium, sell the rest, and spend the coins on outfits, buddies, rods, bigger buckets and bigger tanks.
+A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock (and later sail to 16 more spots across two regions) while the sky loops from sunrise to night, collect 272 kinds of fish (plus junk, and LeBron James), keep your favourites in an aquarium, sell the rest, and spend the coins on outfits, buddies, rods, bigger buckets and bigger tanks.
 
 **Play it:** https://agongster.github.io/fishing-sim/
 **Code:** this folder of [agongster.github.io](https://github.com/agongster/agongster.github.io)
@@ -91,7 +91,7 @@ I directed the individual features of the game, while Claude came up with genera
 | File | What's in it |
 | --- | --- |
 | `index.html` | Page structure: HUD, the canvas stage, and the modals (title, shop/creator, tank, Fishdex, catch card). |
-| `data.js` | **All game content**: the six sky palettes, the seven locations (unlock requirement, colour tint, scenery), every fish (price, rarity, location, time of day, difficulty, colours, flavour text), cosmetics, rods, buckets, tanks and tank props. The easiest file to edit. |
+| `data.js` | **All game content**: the six sky palettes, the 17 locations in two regions (unlock requirement, colour tint, scenery), every fish (price, rarity, location, time of day, difficulty, colours, flavour text), cosmetics, rods, buckets, tanks and tank props. The easiest file to edit. |
 | `sprites.js` | Pixel-art generation: colour helpers, the angler renderer, buddy and junk pixel maps, the procedural fish generator, and the automatic outline pass. |
 | `audio.js` | Web Audio synthesised sound effects and a generative lullaby that changes chords with the time of day. |
 | `game.js` | Save/load, the scene renderer, the fishing state machine, economy, and the main loop. |

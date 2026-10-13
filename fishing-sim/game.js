@@ -1328,6 +1328,7 @@ function drawSkyThings(g, pal, loc) {
 }
 
 function drawLandmark(g, pal, loc) {
+  if (FAR_LANDMARKS[loc.landmark]) return FAR_LANDMARKS[loc.landmark](g, pal);
   if (loc.landmark === 'volcano') return drawVolcano(g, pal);
   if (loc.landmark === 'floating') return drawFloatingIslands(g, pal);
   if (loc.landmark === 'icebergs') {
@@ -1388,6 +1389,151 @@ function drawSakura(g, pal) {
     ellipse(g, x + 5, base - hgt, Math.round(5 * size), Math.round(2 * size), pink);
   }
 }
+
+// ------------------------------------------------- the Far Seas' landmarks --
+// Each draws its own hills, then the thing on the horizon. farTone() fades a colour
+// into the distance (and the dark, at night) the way the other spots do.
+const farTone = (pal, c, k = 0.35) => lerpColor(c, pal.hills, k + pal.night * 0.35);
+const nearHills = (g, pal, col = pal.hills, fromX = 0, toX = W) => {
+  g.fillStyle = col;
+  for (let x = fromX; x < toX; x++) if (HILLS_NEAR[x]) g.fillRect(x, HORIZON - HILLS_NEAR[x], 1, HILLS_NEAR[x]);
+};
+const FAR_LANDMARKS = {
+  // trees on tangled stilt roots
+  mangroves(g, pal) {
+    nearHills(g, pal, pal.hills, 0, 190);
+    const leaf = farTone(pal, '#4f8a4a'), leafHi = farTone(pal, '#6faa5a'), wood = farTone(pal, '#6a4a30');
+    for (const [x, h, r] of [[212, 16, 10], [240, 22, 13], [272, 18, 11], [300, 14, 9]]) {
+      for (let dx = -8; dx <= 8; dx += 4) curve(g, x, HORIZON - h + 6, x + dx * 0.4, HORIZON - 4, x + dx, HORIZON, wood);
+      rect(g, x - 1, HORIZON - h, 3, h - 4, wood);
+      ellipse(g, x, HORIZON - h - 2, r, 6, leaf);
+      ellipse(g, x - 3, HORIZON - h - 4, r * 0.6, 3, leafHi);
+    }
+  },
+  // old stone columns standing in the sea, and a fallen arch
+  columns(g, pal) {
+    nearHills(g, pal, pal.hills, 0, 180);
+    const stone = farTone(pal, '#e8dcc4', 0.3), shadeC = farTone(pal, '#b8a888', 0.3);
+    for (const [x, h, broken] of [[208, 22, true], [228, 32, false], [262, 34, false], [288, 26, true], [306, 14, true]]) {
+      rect(g, x - 3, HORIZON - h, 7, h, stone);
+      rect(g, x + 2, HORIZON - h, 2, h, shadeC);
+      rect(g, x - 1, HORIZON - h + 2, 1, h - 3, shadeC);
+      if (!broken) rect(g, x - 5, HORIZON - h - 3, 11, 3, stone);
+      else { rect(g, x - 3, HORIZON - h - 1, 3, 1, stone); rect(g, x + 1, HORIZON - h - 2, 2, 2, stone); }
+    }
+    rect(g, 226, HORIZON - 38, 40, 3, stone); rect(g, 226, HORIZON - 35, 40, 1, shadeC);
+  },
+  // giant mushrooms on the shore that glow after dark
+  mushrooms(g, pal) {
+    nearHills(g, pal);
+    for (const [x, h, r, cap] of [[214, 14, 8, '#e0403a'], [236, 24, 12, '#9a6ae0'], [264, 18, 10, '#4ac0b0'], [292, 28, 14, '#e070b0']]) {
+      const c = farTone(pal, cap, 0.2), stem = farTone(pal, '#f0e4d0', 0.25);
+      if (pal.night > 0.2) disc(g, x, HORIZON - h, r + 6, rgba(cap, 0.18 * pal.night));
+      rect(g, x - 2, HORIZON - h, 4, h, stem);
+      ellipse(g, x, HORIZON - h, r, Math.round(r * 0.45), c);
+      for (const [dx, dy] of [[-r * 0.5, -1], [r * 0.2, -2], [r * 0.55, 0]]) rect(g, x + dx, HORIZON - h + dy, 2, 1, farTone(pal, '#ffffff', 0.2));
+    }
+  },
+  // sand dunes, a little pyramid, and a palm by the spring
+  dunes(g, pal) {
+    const sand = farTone(pal, '#f0c880', 0.25), sandShade = farTone(pal, '#d8a860', 0.25);
+    for (let x = 0; x < W; x++) {
+      const h = Math.max(0, Math.round(8 + 6 * Math.sin(x * 0.03) + 4 * Math.sin(x * 0.071 + 1)));
+      g.fillStyle = sand; g.fillRect(x, HORIZON - h, 1, h);
+      if (Math.sin(x * 0.03) < -0.2) { g.fillStyle = sandShade; g.fillRect(x, HORIZON - h, 1, 2); }
+    }
+    for (let r = 0; r < 22; r++) { rect(g, 262 - (22 - r), HORIZON - 12 - r, (22 - r), 1, sand); rect(g, 262, HORIZON - 12 - r, 22 - r, 1, sandShade); }
+    const trunk = farTone(pal, '#8a5a3a'), leaf = farTone(pal, '#4f9a5a');
+    curve(g, 222, HORIZON - 6, 224, HORIZON - 16, 228, HORIZON - 26, trunk);
+    for (const [dx, dy] of [[-8, 4], [8, 4], [0, -4], [-5, 7], [6, 6]]) curve(g, 228, HORIZON - 26, 228 + dx * 0.6, HORIZON - 29, 228 + dx + Math.sin(G.time + dx) * 0.6, HORIZON - 26 + dy, leaf);
+  },
+  // tall rock pillars with grass on top, and gulls
+  seastacks(g, pal) {
+    nearHills(g, pal, pal.hills, 0, 170);
+    const rock = farTone(pal, '#8a8090'), rockHi = farTone(pal, '#a8a0b0'), grass = farTone(pal, '#6aa860');
+    for (const [x, w, h] of [[214, 12, 30], [242, 16, 44], [270, 10, 24], [296, 14, 36]]) {
+      for (let y = 0; y < h; y++) rect(g, x - w / 2 + Math.round(Math.sin(y * 0.4 + x) * 1), HORIZON - y, w, 1, y % 7 === 3 ? rockHi : rock);
+      rect(g, x - w / 2, HORIZON - h - 1, w, 2, grass);
+    }
+    for (let i = 0; i < 3; i++) {
+      const bx = 226 + i * 30 + Math.sin(G.time * 0.6 + i) * 6, by = HORIZON - 54 + Math.sin(G.time * 1.3 + i * 2) * 3;
+      g.fillStyle = farTone(pal, '#fff4e0', 0.2); g.fillRect(Math.round(bx) - 2, Math.round(by), 2, 1); g.fillRect(Math.round(bx) + 1, Math.round(by), 2, 1); g.fillRect(Math.round(bx), Math.round(by) + 1, 1, 1);
+    }
+  },
+  // a pagoda whose windows glow in the evening
+  pagoda(g, pal) {
+    nearHills(g, pal);
+    const roof = farTone(pal, '#c0303a', 0.25), wall = farTone(pal, '#f0dcc0', 0.25), lit = pal.night > 0.15 ? '#ffd27a' : farTone(pal, '#6a4a3a', 0.3);
+    const x = 262;
+    [[22, 9], [18, 8], [14, 7], [10, 6]].forEach(([w, h], i) => {
+      const y = HORIZON - 6 - i * 10;
+      rect(g, x - w / 2 + 2, y - h + 2, w - 4, h - 2, wall);
+      rect(g, x - 2, y - h + 4, 4, 3, lit);
+      rect(g, x - w / 2 - 3, y - h, w + 6, 2, roof);
+      rect(g, x - w / 2 - 4, y - h + 1, 2, 1, roof); rect(g, x + w / 2 + 2, y - h + 1, 2, 1, roof);
+    });
+    rect(g, x - 1, HORIZON - 50, 2, 6, roof);
+    if (pal.night > 0.2) disc(g, x, HORIZON - 26, 18, rgba('#ffd27a', 0.12 * pal.night));
+  },
+  // gumdrop hills, candy cane trees and a giant lollipop
+  candy(g, pal) {
+    [[20, 16, '#8fe0a0'], [70, 12, '#ffb0d8'], [130, 18, '#ffe070'], [196, 14, '#b89cff'], [240, 20, '#7ad0f0'], [300, 15, '#ff9ec4']].forEach(([cx, r, col]) => {
+      const c = farTone(pal, col, 0.2);
+      for (let dx = -r; dx <= r; dx++) { const h = Math.round(Math.sqrt(r * r - dx * dx)); rect(g, cx + dx, HORIZON - h, 1, h, c); }
+      rect(g, cx - r * 0.4, HORIZON - r * 0.8, 2, 1, farTone(pal, '#ffffff', 0.2));
+    });
+    for (const x of [218, 282]) {
+      for (let y = 0; y < 24; y++) rect(g, x, HORIZON - y, 2, 1, (Math.floor(y / 3) % 2) ? farTone(pal, '#e0303a', 0.2) : farTone(pal, '#ffffff', 0.2));
+      for (let k = 0; k < 6; k++) rect(g, x + 2 + k, HORIZON - 24 - Math.round(Math.sin((k / 6) * Math.PI) * 4), 2, 2, (k % 2) ? farTone(pal, '#e0303a', 0.2) : farTone(pal, '#ffffff', 0.2));
+    }
+    rect(g, 258, HORIZON - 30, 2, 30, farTone(pal, '#ffffff', 0.25));
+    for (let r = 7; r > 0; r -= 2) disc(g, 259, HORIZON - 34, r, farTone(pal, r % 4 === 3 ? '#ff6a9a' : '#ffe070', 0.2));
+  },
+  // a cliff with a roaring waterfall and jungle on top
+  waterfall(g, pal) {
+    nearHills(g, pal, pal.hills, 0, 210);
+    const cliff = farTone(pal, '#6a7a6a'), cliffHi = farTone(pal, '#8a9a80'), leaf = farTone(pal, '#3f8a4a'), leafHi = farTone(pal, '#5aaa5a');
+    for (let x = 214; x < W; x++) {
+      const h = Math.round(44 + 4 * Math.sin(x * 0.2) - Math.max(0, 230 - x) * 2);
+      if (h > 0) { rect(g, x, HORIZON - h, 1, h, (x % 9 === 0) ? cliffHi : cliff); }
+    }
+    for (const [x, r] of [[226, 9], [244, 11], [292, 12], [310, 9]]) { ellipse(g, x, HORIZON - 46, r, 5, leaf); ellipse(g, x - 2, HORIZON - 48, r * 0.6, 3, leafHi); }
+    for (let x = 262; x < 276; x++) {
+      for (let y = HORIZON - 44; y < HORIZON; y++) {
+        const k = (y + G.time * 40 + (x % 3) * 7) % 9;
+        g.fillStyle = k < 2 ? farTone(pal, '#ffffff', 0.15) : farTone(pal, '#a8e0f0', 0.2);
+        g.fillRect(x, y, 1, 1);
+      }
+    }
+    ellipse(g, 269, HORIZON - 1, 12, 3, farTone(pal, '#ffffff', 0.2));
+  },
+  // huge crystal spires that glow after dark
+  crystals(g, pal) {
+    nearHills(g, pal);
+    for (const [x, w, h, col] of [[212, 8, 22, '#b89cff'], [226, 6, 14, '#7ae0ff'], [248, 12, 40, '#c8a8ff'], [266, 8, 26, '#7ae0ff'], [292, 10, 32, '#ff9ed8'], [306, 6, 16, '#b89cff']]) {
+      const c = farTone(pal, col, 0.2), hi = farTone(pal, '#ffffff', 0.2);
+      if (pal.night > 0.2) disc(g, x, HORIZON - h / 2, h * 0.6, rgba(col, 0.13 * pal.night));
+      for (let y = 0; y < h; y++) {
+        const ww = Math.max(1, Math.round(w * Math.min(1, (h - y) / (h * 0.45))));
+        rect(g, x - ww / 2, HORIZON - y, ww, 1, c);
+        if (ww > 2) rect(g, x - ww / 2, HORIZON - y, 1, 1, hi);
+      }
+    }
+  },
+  // a tiny island observatory under a comet
+  comet(g, pal) {
+    nearHills(g, pal, pal.hills, 0, 200);
+    const isle = farTone(pal, '#5a5a8a'), dome = farTone(pal, '#e0e0f0', 0.2);
+    ellipse(g, 270, HORIZON - 2, 30, 6, isle);
+    rect(g, 262, HORIZON - 16, 16, 10, farTone(pal, '#c8c8e0', 0.2));
+    for (let dy = 0; dy < 8; dy++) { const half = Math.round(Math.sqrt(64 - dy * dy)); rect(g, 270 - half, HORIZON - 16 - dy, half * 2, 1, dome); }
+    rect(g, 272, HORIZON - 26, 8, 2, farTone(pal, '#4a4a6a', 0.2));
+    // the comet, slowly crossing the sky
+    const t = (G.time * 0.02) % 1, cx = 40 + t * 200, cy = 20 + t * 10;
+    for (let i = 0; i < 24; i++) { g.fillStyle = `rgba(200,220,255,${(0.5 * (1 - i / 24)).toFixed(2)})`; g.fillRect(Math.round(cx - i * 1.4), Math.round(cy - i * 0.35), 2, 1); }
+    disc(g, cx, cy, 2, '#ffffff');
+  },
+};
 
 function drawVolcano(g, pal) {
   const cx = 250, top = HORIZON - 36;
@@ -2090,6 +2236,103 @@ function drawRod(g) {
   if (rod.sparkle && Math.sin(G.time * 4) > 0.3) rect(g, tip.x - 1, tip.y - 1, 1, 1, rod.sparkle);
 }
 
+// ----------------------------------------------- the Far Seas' foregrounds --
+const FAR_PROPS = {
+  roots(g, pal) {
+    const wood = lerpColor('#5a3a26', '#1a1830', pal.night * 0.7);
+    for (const [x, h] of [[278, 26], [292, 34], [306, 22], [316, 30]]) {
+      for (const dx of [-8, -3, 3, 8]) curve(g, x, H - h, x + dx * 0.4, H - 6, x + dx, H, wood);
+      rect(g, x - 1, H - h - 8, 3, 10, wood);
+    }
+  },
+  bubbles(g, pal) {
+    for (const f of SNOW) {
+      const span = H - HORIZON - 6, y = H - ((f.y + G.time * f.v * 0.8) % span);
+      const x = 140 + (f.x % 180) + Math.sin(G.time * 2 + f.p) * 2;
+      g.fillStyle = 'rgba(230,250,255,0.55)';
+      if (f.p > 3) { g.fillRect(Math.round(x), Math.round(y) - 1, 2, 1); g.fillRect(Math.round(x) - 1, Math.round(y), 1, 1); g.fillRect(Math.round(x) + 2, Math.round(y), 1, 1); g.fillRect(Math.round(x), Math.round(y) + 1, 2, 1); }
+      else g.fillRect(Math.round(x), Math.round(y), 1, 1);
+    }
+  },
+  spores(g, pal) {
+    for (const f of SNOW) {
+      const y = H - ((f.y + G.time * f.v * 0.5) % H), x = (f.x + Math.sin(G.time * 0.7 + f.p) * 6 + W) % W;
+      const a = (0.35 + 0.35 * Math.sin(G.time * 2 + f.p * 2)) * (0.6 + pal.night * 0.6);
+      g.fillStyle = f.p > 3 ? `rgba(180,255,200,${a.toFixed(2)})` : `rgba(220,180,255,${a.toFixed(2)})`;
+      g.fillRect(Math.round(x), Math.round(y), 1, 1);
+    }
+  },
+  shimmer(g, pal) {
+    if (pal.night > 0.6) return;
+    for (let i = 0; i < 4; i++) {
+      const y = HORIZON - 4 + i * 3;
+      for (let x = 0; x < W; x += 6) { g.fillStyle = 'rgba(255,240,200,0.12)'; g.fillRect(x + Math.round(Math.sin(G.time * 4 + x * 0.2 + i) * 2), y, 4, 1); }
+    }
+  },
+  kelp(g, pal) {
+    const cols = ['#5a7a2a', '#7a8a3a', '#4a6a2a'].map(c => lerpColor(c, '#1a2030', pal.night * 0.7));
+    [[270, 40], [282, 54], [296, 46], [308, 60], [318, 38]].forEach(([x, h], i) => {
+      for (let y = 0; y < h; y++) {
+        const sway = Math.round(Math.sin(G.time * 1.2 + x * 0.1 + y * 0.12) * (y / h) * 5);
+        g.fillStyle = cols[i % 3];
+        g.fillRect(x + sway, H - y, 2, 1);
+        if (y % 8 === 4) g.fillRect(x + sway + (y % 16 === 4 ? 2 : -3), H - y, 3, 2);
+      }
+    });
+  },
+  lanterns(g, pal) {
+    [[160, 128], [196, 142], [232, 120], [258, 152], [290, 134], [222, 166]].forEach(([x, y], i) => {
+      const bob = Math.round(Math.sin(G.time * 1.5 + i) * 1.2), lx = Math.round(x + Math.sin(G.time * 0.2 + i) * 6);
+      disc(g, lx + 2, y + bob, 7, rgba('#ffb060', 0.12 + pal.night * 0.25));
+      rect(g, lx, y - 4 + bob, 5, 5, pal.night > 0.3 ? '#ffd27a' : '#ff8a5a');
+      rect(g, lx, y - 5 + bob, 5, 1, '#c0303a'); rect(g, lx, y + 1 + bob, 5, 1, '#c0303a');
+      rect(g, lx - 1, y + 3 + bob, 7, 1, rgba('#ffd27a', 0.4));
+    });
+  },
+  sprinkles(g, pal) {
+    const cols = ['#ff6a7a', '#ffe070', '#7ad0f0', '#8fe0a0', '#b89cff', '#ffffff'];
+    for (const f of SNOW) {
+      const y = (f.y + G.time * f.v * 0.8) % H, x = (f.x + Math.sin(G.time + f.p) * 3 + W) % W;
+      g.fillStyle = cols[Math.floor(f.p) % cols.length];
+      if (f.p % 2 > 1) g.fillRect(Math.round(x), Math.round(y), 2, 1); else g.fillRect(Math.round(x), Math.round(y), 1, 2);
+    }
+  },
+  spray(g, pal) {
+    for (const f of SNOW) {
+      const y = HORIZON - 10 + ((f.y + G.time * f.v * 0.6) % 40), x = 250 + (f.x % 40) + Math.sin(G.time + f.p) * 4;
+      g.fillStyle = 'rgba(240,250,255,0.5)';
+      g.fillRect(Math.round(x), Math.round(y), 1, 1);
+    }
+    if (pal.night < 0.4) {
+      const cols = ['#ff6a7a', '#ffa850', '#ffe070', '#8fe0a0', '#7ab0f0', '#b89cff'];
+      cols.forEach((c, i) => { for (let a = 0; a <= 20; a++) { const t = Math.PI * (a / 20); g.fillStyle = rgba(c, 0.18 * (1 - pal.night * 2)); g.fillRect(Math.round(268 + Math.cos(t) * (26 - i)), Math.round(HORIZON - 4 - Math.sin(t) * (22 - i)), 1, 1); } });
+    }
+  },
+  glints(g, pal) {
+    for (const f of SNOW) {
+      const tw = Math.sin(G.time * 3 + f.p * 4);
+      if (tw < 0.6) continue;
+      const x = 120 + (f.x % 200), y = HORIZON + 6 + (f.y % (H - HORIZON - 10));
+      g.fillStyle = `rgba(230,220,255,${((tw - 0.6) * 2).toFixed(2)})`;
+      g.fillRect(Math.round(x), Math.round(y), 1, 1); g.fillRect(Math.round(x) - 1, Math.round(y), 3, 1); g.fillRect(Math.round(x), Math.round(y) - 1, 1, 3);
+    }
+  },
+  shooting(g, pal) {
+    for (let k = 0; k < 3; k++) {
+      const t = (G.time * (0.18 + k * 0.05) + k * 0.37) % 1;
+      if (t > 0.35) continue;
+      const p = t / 0.35, x = 60 + k * 90 + p * 70, y = 10 + k * 12 + p * 50;
+      for (let i = 0; i < 12; i++) { g.fillStyle = `rgba(255,248,220,${(0.8 * (1 - i / 12) * (1 - p)).toFixed(2)})`; g.fillRect(Math.round(x - i * 1.2), Math.round(y - i), 1, 1); }
+    }
+    for (const f of SNOW) {
+      if (f.p > 1.5) continue;
+      const a = 0.4 + 0.4 * Math.sin(G.time * 2 + f.x);
+      g.fillStyle = `rgba(255,243,160,${a.toFixed(2)})`;
+      g.fillRect(Math.round(f.x), Math.round(HORIZON + 4 + (f.y % 70)), 1, 1);
+    }
+  },
+};
+
 function drawFrontProps(g, pal, loc) {
   if (loc.props === 'reeds' || loc.props === 'lilies') {
     const reedCol = lerpColor('#4f7a48', '#1a2438', pal.night * 0.85);
@@ -2148,9 +2391,12 @@ function drawFrontProps(g, pal, loc) {
       g.fillRect(Math.round(x), Math.round(y), 1, 1);
     }
   }
-  if (pal.night > 0.3 && !['ice', 'embers', 'mist'].includes(loc.props)) {
+  if (FAR_PROPS[loc.props]) FAR_PROPS[loc.props](g, pal);
+  // fireflies come out at night (and all day long in the mangroves)
+  const flies = loc.props === 'roots' ? Math.max(0.6, pal.night) : pal.night;
+  if (flies > 0.3 && !['ice', 'embers', 'mist', 'shooting', 'sprinkles'].includes(loc.props)) {
     for (const f of FIREFLIES) {
-      const a = (pal.night - 0.3) * (0.5 + 0.5 * Math.sin(G.time * 3 + f.p));
+      const a = (flies - 0.3) * (0.5 + 0.5 * Math.sin(G.time * 3 + f.p));
       const x = f.x + Math.sin(G.time * f.a + f.p) * 12, y = f.y + Math.cos(G.time * f.b + f.p) * 6;
       g.fillStyle = `rgba(255,230,120,${(a * 0.25).toFixed(2)})`;
       g.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3);

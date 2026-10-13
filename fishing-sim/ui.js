@@ -1453,6 +1453,8 @@ $('#decor-grid').addEventListener('click', e => {
 
 // ==================================================================== map ==
 function openMap() {
+  const here = LOCATIONS.find(l => l.id === worldLocationId());
+  mapRegion = here ? regionOf(here) : mapRegion;
   save.newSpot = false;
   persist();
   refreshHUD();
@@ -1461,8 +1463,12 @@ function openMap() {
   Sound.sfx.open();
 }
 
+// which region's chart the map is showing
+let mapRegion = 'home';
+
 function renderMap() {
   const count = fishCaughtCount();
+  $('#map-tabs').innerHTML = REGIONS.map(r => `<button role="tab" data-region="${r.id}" aria-selected="${r.id === mapRegion}">${r.name}</button>`).join('');
   $('#map-count').textContent = G.visit ? `@${G.visit.host}'s sea` : `${count} fish caught`;
   const unlocked = worldUnlocked();
   const atHomeNow = worldLocationId() === 'home';
@@ -1472,7 +1478,7 @@ function renderMap() {
       <span class="desc">${G.visit ? 'Walk around their room and peek into their tanks.' : 'Your room and all your tanks. Walk around, decorate, and show your friends.'}</span>
       ${atHomeNow ? '<button class="btn plain" disabled>You are here</button>'
         : `<button class="btn mint" data-sail="home" ${canTravel() ? '' : 'disabled'}>${canTravel() ? 'Go home' : 'Finish reeling first'}</button>`}</li>`;
-  $('#map-list').innerHTML = homeRow + LOCATIONS.map(loc => {
+  $('#map-list').innerHTML = homeRow + LOCATIONS.filter(loc => regionOf(loc) === mapRegion).map(loc => {
     const here = loc.id === worldLocationId();
     const open = unlocked.includes(loc.id);
     const hostHere = G.visit && G.visit.hostLocation === loc.id;
@@ -1495,6 +1501,14 @@ function renderMap() {
   }).join('');
 }
 
+$('#map-tabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-region]');
+  if (!b) return;
+  mapRegion = b.dataset.region;
+  Sound.sfx.click();
+  renderMap();
+});
+
 $('#map-list').addEventListener('click', e => {
   const b = e.target.closest('[data-sail]');
   if (!b) return;
@@ -1509,7 +1523,9 @@ function drawMap() {
   g.imageSmoothingEnabled = false;
   const t = performance.now() / 1000;
   const R = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), w, h); };
-  for (let y = 0; y < 100; y += 4) R(0, y, 160, 4, lerpColor('#5ab0b8', '#3a6a9a', y / 100));
+  const farSeas = mapRegion === 'far';
+  const spots = LOCATIONS.filter(l => regionOf(l) === mapRegion);
+  for (let y = 0; y < 100; y += 4) R(0, y, 160, 4, farSeas ? lerpColor('#4a7ab8', '#2a2a6a', y / 100) : lerpColor('#5ab0b8', '#3a6a9a', y / 100));
   for (let i = 0; i < 40; i++) {
     const x = (i * 37 + t * 3) % 170 - 5, y = (i * 23) % 96 + 2;
     R(x, y, 3, 1, 'rgba(255,255,255,0.25)');
@@ -1517,8 +1533,8 @@ function drawMap() {
   R(0, 0, 160, 1, '#2a1a2e'); R(0, 99, 160, 1, '#2a1a2e');
   // dotted route
   g.fillStyle = 'rgba(255,244,224,0.8)';
-  for (let i = 0; i < LOCATIONS.length - 1; i++) {
-    const a = LOCATIONS[i].map, b = LOCATIONS[i + 1].map;
+  for (let i = 0; i < spots.length - 1; i++) {
+    const a = spots[i].map, b = spots[i + 1].map;
     const n = Math.round(Math.hypot(b.x - a.x, b.y - a.y) / 4);
     for (let k = 1; k < n; k++) {
       const x = lerp(a.x, b.x, k / n), y = lerp(a.y, b.y, k / n) + Math.sin(k) * 2;
@@ -1526,10 +1542,11 @@ function drawMap() {
     }
   }
   const unlocked = worldUnlocked();
-  for (const loc of LOCATIONS) {
+  for (const loc of spots) {
     const { x, y } = loc.map;
     const open = unlocked.includes(loc.id);
-    const sand = open ? '#f0d0a0' : '#8a90a8', green = open ? ({ dock: '#6aa860', lagoon: '#ff9ec4', cove: '#4fc0a0', bay: '#f4faff', blossom: '#ffc0d8', ember: '#6a4a5a', cloud: '#ffffff' })[loc.id] : '#6a7090';
+    const sand = open ? '#f0d0a0' : '#8a90a8', green = open ? ({ dock: '#6aa860', lagoon: '#ff9ec4', cove: '#4fc0a0', bay: '#f4faff', blossom: '#ffc0d8', ember: '#6a4a5a', cloud: '#ffffff',
+      mangrove: '#3f7a3a', ruins: '#e8dcc4', marsh: '#b89cff', oasis: '#40c0c8', kelp: '#6a8a4a', lantern: '#e0566e', candy: '#ff9ec4', falls: '#4ab0a0', crystal: '#7ae0ff', starfall: '#2a2a6a' })[loc.id] : '#6a7090';
     ellipse(g, x, y + 1, 14, 6, '#2a1a2e');
     ellipse(g, x, y, 13, 5, sand);
     ellipse(g, x - 2, y - 1, 8, 3, green);
@@ -1549,6 +1566,26 @@ function drawMap() {
     } else if (loc.id === 'ember') {
       for (let i = 0; i < 7; i++) R(x - 1 - i, y - 9 + i, 3 + i * 2, 1, '#5a3a4a');
       R(x - 1, y - 10, 3, 1, '#ff7a3c'); R(x + Math.round(Math.sin(t) * 2), y - 13 - Math.round((t * 3) % 4), 2, 2, 'rgba(220,210,230,0.8)');
+    } else if (loc.id === 'mangrove') {
+      R(x + 2, y - 6, 1, 5, '#5a3a2a'); ellipse(g, x + 2, y - 7, 4, 2, '#3f7a3a'); R(x + 1, y - 2, 3, 1, '#5a3a2a');
+    } else if (loc.id === 'ruins') {
+      R(x + 1, y - 7, 2, 6, '#f0e4cc'); R(x + 5, y - 5, 2, 4, '#f0e4cc'); R(x, y - 8, 4, 1, '#f0e4cc');
+    } else if (loc.id === 'marsh') {
+      R(x + 3, y - 5, 1, 4, '#f0e4d0'); ellipse(g, x + 3, y - 6, 4, 2, '#e0403a'); R(x + 1, y - 7, 1, 1, '#ffffff');
+    } else if (loc.id === 'oasis') {
+      for (let i = 0; i < 5; i++) R(x + 4 - i, y - 6 + i, 1 + i * 2, 1, '#e8c070');
+    } else if (loc.id === 'kelp') {
+      R(x + 2, y - 10, 4, 9, '#8a8090'); R(x + 2, y - 11, 4, 1, '#6aa860');
+    } else if (loc.id === 'lantern') {
+      R(x + 2, y - 4, 6, 3, '#c0303a'); R(x + 3, y - 7, 4, 3, '#c0303a'); R(x + 4, y - 5, 2, 1, '#ffd27a');
+    } else if (loc.id === 'candy') {
+      R(x + 3, y - 8, 1, 7, '#ffffff'); R(x + 3, y - 6, 1, 1, '#e0303a'); R(x + 3, y - 3, 1, 1, '#e0303a'); R(x + 4, y - 8, 2, 1, '#e0303a');
+    } else if (loc.id === 'falls') {
+      R(x + 1, y - 9, 7, 8, '#6a7a6a'); R(x + 3, y - 9, 2, 8, '#a8e0f0');
+    } else if (loc.id === 'crystal') {
+      R(x + 2, y - 8, 2, 7, '#c8a8ff'); R(x + 5, y - 5, 2, 4, '#7ae0ff'); R(x + 2, y - 8, 1, 1, '#ffffff');
+    } else if (loc.id === 'starfall') {
+      R(x + 2, y - 6, 4, 3, '#e0e0f0'); R(x + 4, y - 10 + Math.round(Math.sin(t * 2)), 1, 1, '#fff3a0'); R(x - 4, y - 12, 3, 1, 'rgba(255,248,220,0.7)');
     } else if (loc.id === 'cloud') {
       ellipse(g, x + 3, y - 9 + Math.round(Math.sin(t * 2)), 4, 1, '#8ad07a'); R(x + 1, y - 8 + Math.round(Math.sin(t * 2)), 4, 2, '#a89ab8');
     }
