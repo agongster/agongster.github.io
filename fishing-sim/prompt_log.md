@@ -409,6 +409,14 @@ ok i should add a new region, with more maps and new fish. i want 10 new regions
 can you increase the unlocks at variables? it should go up to requiring 1000 fish caught
 ```
 
+```
+ok go for it
+```
+
+```
+in the far seas i want more diverse fish types, i.e. the things you catch are not necessarily even fish, could be like alligators and other animals that would make sense to exist in these regions. update the regions with these new creatures. some of them can be fictional too, also have loch ness monster as legendary option maybe.
+```
+
 ### What the AI did in response
 
 - **Render:** by the second message the new version had deployed on its own. The AI confirmed every route was live and a real sign-up worked from the terminal (this left a test account, `deploycheck`, in the database). The sign-up error came from opening the game as a local file: the server only accepts the GitHub Pages site and `localhost`.
@@ -525,3 +533,9 @@ can you increase the unlocks at variables? it should go up to requiring 1000 fis
   - **Map:** a **Home Waters / The Far Seas** tab pair, each with its own chart (the Far Seas in deeper blue, each island with a little icon) and list, and the map opens on the region you're in.
   - **Checks:** no duplicate ids or names, and every spot has common fish at every time of day. Screenshots of all ten spots at golden hour and at night, and rolling 400 fish at Candy Shore gave only Candy Shore's fish (plus junk and LeBron). No server change was needed.
   - **Where the AI got it wrong:** a rename using `sed`'s `\b` silently did nothing on macOS, which would have left the scenery calling a function that no longer existed. It was caught by counting the replacements and redone with perl.
+- **Creatures in the Far Seas:** 29 of the 100 Far Seas fish were swapped for animals that fit each spot. Each one kept the rarity, price, time of day and difficulty of the fish it replaced, so the balance didn't change.
+  - **Real animals:** tree frogs, a baby alligator and a snapping turtle in the Mangrove Maze; a crab in a pot and a sea turtle in the Sunken Ruins; a sand toad, a baby hippo and a crocodile at Oasis Springs; a rock lobster, a sea otter and a seal pup at Seastack Shallows; a poison dart frog, a wild capybara and a caiman in the Waterfall Jungle; a crystal snail and an olm in the Crystal Grotto.
+  - **Made-up ones:** a baby kraken, a glowing newt, a mushroom-cap frog, a Will-o'-Wisp, a lantern turtle, a kappa, a gummy bear, a chocolate turtle, a shooting starfish, a cosmic turtle and an alien.
+  - **New legendaries:** the **Loch Ness Monster** at Seastack Shallows and **King Gator** (with a crown) in the Mangrove Maze. Both get the golden legendary treatment.
+  - **Art:** 13 new pixel grids (gator, king gator, turtle, hippo, lobster, seal, Nessie, kappa, gummy bear, snail, starfish, alien, wisp), plus the existing frog, capybara and otter buddy art. 38 of the 100 Far Seas catches are now non-fish. Crawlers walk along the tank floor instead of swimming.
+  - **Old saves:** anyone who already caught one of the replaced fish has it turned into its creature (in the bucket, tanks and Fishdex). Checked with a seeded save.

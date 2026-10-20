@@ -712,6 +712,193 @@ function buddySprite(id, blink = false) {
 
 // ------------------------------------------------------------------ fish --
 const MAP_ART = {
+  // ---- Far Seas creatures (they face right, like the fish)
+  gator: {
+    rows: [
+      '...........d.d.d.d.d...........',
+      '........ggggggggggggggggg..wk..',
+      'tt....ggggggggggggggggggggggggg.',
+      '.ttt.gggggggggggggggggggggggggggg',
+      '...tggllllllllllllllllllggwgwgwgw',
+      '.....ggg.gg........ggggggggggggg.',
+      '.....gg..g.........g...g.........',
+    ],
+    pal: { g: '#4f8a4a', d: '#3a6a3a', l: '#c8d890', w: '#ffffff', k: OUTLINE, t: '#4f8a4a' },
+  },
+  kinggator: {
+    rows: [
+      '...........................y.y.y.',
+      '...........................yyyyy.',
+      '...........d.d.d.d.d.......yryyy.',
+      '........ggggggggggggggggg..wk....',
+      'tt....ggggggggggggggggggggggggg..',
+      '.ttt.gggggggggggggggggggggggggggg',
+      '...tggllllllllllllllllllggwgwgwgw',
+      '.....ggg.gg........ggggggggggggg.',
+      '.....gg..g.........g...g.........',
+    ],
+    pal: { g: '#3a7a5a', d: '#2a5a4a', l: '#d8e0a0', w: '#ffffff', k: OUTLINE, t: '#3a7a5a', y: '#ffd23f', r: '#e0303a' },
+  },
+  turtle: {
+    rows: [
+      '.......ssss.......',
+      '.....sshhhhss.....',
+      '....shhsshhhhs.ll.',
+      '...shhsshhsshhslkl',
+      '...shhhhhhhhhhslll',
+      '..llssssssssssll..',
+      '..ll.ll....ll.ll..',
+    ],
+    pal: { s: '#5a7a3a', h: '#8aaa5a', l: '#b8c870', k: OUTLINE },
+  },
+  hippo: {
+    rows: [
+      '...............ee....',
+      '......bbbbbbbbbbbb...',
+      '....bbbbbbbbbbbbbbbb.',
+      '...bbbbbbbbbbbbbkbbbb',
+      '..bbbbbbbbbbbbbbbbbnbn',
+      '..bbbbbbbbbbbbbbbbbbbb',
+      '..bbbbbbbbbbbbbbbpppp.',
+      '...bbbbbbbbbbbbbbbbb..',
+      '...bbb..bb....bb..bbb.',
+      '...bb...bb....bb...bb.',
+    ],
+    pal: { b: '#9a8aa8', e: '#c8a0b0', k: OUTLINE, n: '#5a4a6a', p: '#ffb0c0' },
+  },
+  lobster: {
+    rows: [
+      '..............cc..',
+      '.............c..c.',
+      't.rrrrrrrr..cccc..',
+      'ttrrrrrrrrrrrkc...',
+      't.rrrrrrrrrrrrr...',
+      '..r.r.r.r..cccc...',
+      '.............c..c.',
+      '..............cc..',
+    ],
+    pal: { r: '#e0403a', c: '#ff6a50', t: '#c03030', k: OUTLINE },
+  },
+  seal: {
+    rows: [
+      '..........wwwww...',
+      '.........wwwwwwww.',
+      '........wwwwwkwkww',
+      '...wwwwwwwwwwwwwnw',
+      '.wwwwwwwwwwwwwwww.',
+      'ffwwwwwwwwwwwwww..',
+      'f..ww......ww.....',
+    ],
+    pal: { w: '#f0f0f8', k: OUTLINE, n: '#5a4a5a', f: '#c8c8d8' },
+  },
+  nessie: {
+    rows: [
+      '.......................hhh....',
+      '......................hhkhh...',
+      '......................hhhhhh..',
+      '......................hhh.....',
+      '.....................hhh......',
+      '.....................hhh......',
+      '....................hhh.......',
+      '...bbbbbb..........hhh........',
+      '..bbbbbbbbb.......hhhh........',
+      '.bbbbbbbbbbbbbbbbbbbbb........',
+      'tbbbbbbbbbbbbbbbbbbbbbbb......',
+      'ttbllllllllllllllllllbb.......',
+      '...ff.....ff......ff..........',
+    ],
+    pal: { b: '#4a7a6a', h: '#5a8a7a', l: '#8ab8a0', k: OUTLINE, f: '#3a6a5a', t: '#4a7a6a' },
+  },
+  kappa: {
+    rows: [
+      '....dddd......',
+      '...dwwwwd.....',
+      '...gggggg.....',
+      '..ggkggkgg....',
+      '..gggyyggg....',
+      '...gggggg.....',
+      '..ssggggss....',
+      '.ssssggggss...',
+      '.ssgggggggs...',
+      '..gg....gg....',
+      '..gg....gg....',
+    ],
+    pal: { d: '#d8d8e0', w: '#8fd8f0', g: '#6ab05a', k: OUTLINE, y: '#ffd23f', s: '#8a5a3a' },
+  },
+  gummy: {
+    rows: [
+      '.gg....gg.',
+      '.ggg..ggg.',
+      '.gggggggg.',
+      '.gkggggkg.',
+      '.ggghhggg.',
+      '..gggggg..',
+      'gggggggggg',
+      'gg.gggg.gg',
+      '..gggggg..',
+      '..gg..gg..',
+      '.ggg..ggg.',
+    ],
+    pal: { g: '#ff5a6a', h: '#ffb0b8', k: OUTLINE },
+  },
+  snail: {
+    rows: [
+      '.....ssss.....',
+      '....sshhss....',
+      '...sshsshhs...',
+      '...shsshhss.ee',
+      '...sshhhsss.b.',
+      '..bbbbbbbbbbbb',
+      '.bbbbbbbbbbbb.',
+    ],
+    pal: { s: '#b89cff', h: '#e8dcff', b: '#c8c0d8', e: '#7ae0ff' },
+  },
+  starfish: {
+    rows: [
+      '.....s.....',
+      '....sss....',
+      '....sds....',
+      'sssssssssss',
+      '.sssssssss.',
+      '..sskskss..',
+      '..sssssss..',
+      '.sss...sss.',
+      '.ss.....ss.',
+      'ss.......ss',
+    ],
+    pal: { s: '#ffd23f', d: '#fff3a0', k: OUTLINE },
+  },
+  alien: {
+    rows: [
+      '..a......a..',
+      '...a....a...',
+      '...gggggg...',
+      '..gggggggg..',
+      '.ggkkggkkgg.',
+      '.ggkkggkkgg.',
+      '..gggggggg..',
+      '...ggmmgg...',
+      '....gggg....',
+      '...gggggg...',
+      '..gg.gg.gg..',
+    ],
+    pal: { a: '#ff9ed8', g: '#9ae07a', k: OUTLINE, m: '#4a8a3a' },
+  },
+  wisp: {
+    rows: [
+      '....o.....',
+      '...oo.....',
+      '...ooo..o.',
+      '..oocoo.o.',
+      '..occcooo.',
+      '.occcccoo.',
+      '.ocecceco.',
+      '.occcccco.',
+      '..occcco..',
+      '...oooo...',
+    ],
+    pal: { o: '#7ae0c0', c: '#e8fff8', e: '#2a5a5a' },
+  },
   boot: {
     rows: [
       '..g.........',
@@ -944,6 +1131,11 @@ function majestic(src) {
   g.putImageData(img, 0, 0);
   return c;
 }
+
+// some catches reuse a buddy's art (with their own colours from data.js)
+MAP_ART.frog = { rows: BUDDY_ART.frog.rows, pal: BUDDY_ART.frog.pal };
+MAP_ART.capy = { rows: BUDDY_ART.capy.rows, pal: BUDDY_ART.capy.pal };
+MAP_ART.otter = { rows: BUDDY_ART.otter.rows, pal: BUDDY_ART.otter.pal };
 
 function fishSprite(sp, dark = false) {
   const key = sp.id + (dark ? '#dark' : '');

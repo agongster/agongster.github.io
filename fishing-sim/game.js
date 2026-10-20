@@ -83,6 +83,11 @@ function sanitizeSave(s) {
   s.look.hairColor = inRange(s.look.hairColor, HAIR_COLORS, DEFAULT_LOOK.hairColor);
   s.look.topColor = inRange(s.look.topColor, TOP_COLORS, DEFAULT_LOOK.topColor);
   if (!Array.isArray(s.owned)) s.owned = [];
+  // fish that were later swapped for a creature become that creature
+  const renamed = list => (Array.isArray(list) ? list : []).map(c => (c && RENAMED_FISH[c.id] ? { ...c, id: RENAMED_FISH[c.id] } : c));
+  s.bucket = renamed(s.bucket);
+  if (Array.isArray(s.tanks)) s.tanks.forEach(t => { if (t) t.fish = renamed(t.fish); });
+  if (s.dex && typeof s.dex === 'object') for (const [from, to] of Object.entries(RENAMED_FISH)) if (s.dex[from]) { s.dex[to] = s.dex[to] || s.dex[from]; delete s.dex[from]; }
   const validFish = c => c && FISH_BY_ID[c.id] && Number.isFinite(c.value);
   // (The bucket went away for a while and came back. Saves from that time
   // simply have no bucket, so they start with an empty tin pail.)

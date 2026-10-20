@@ -1,6 +1,6 @@
 # Tiny Tides
 
-A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock (and later sail to 16 more spots across two regions) while the sky loops from sunrise to night, collect 272 kinds of fish (plus junk, and LeBron James), keep your favourites in an aquarium, sell the rest, and spend the coins on outfits, buddies, rods, bigger buckets and bigger tanks.
+A cozy 2.5D pixel-art fishing sim. Design your angler, fish off a little dock (and later sail to 16 more spots across two regions) while the sky loops from sunrise to night, collect 272 kinds of fish and creatures (plus junk, and LeBron James), keep your favourites in an aquarium, sell the rest, and spend the coins on outfits, buddies, rods, bigger buckets and bigger tanks.
 
 **Play it:** https://agongster.github.io/fishing-sim/
 **Code:** this folder of [agongster.github.io](https://github.com/agongster/agongster.github.io)

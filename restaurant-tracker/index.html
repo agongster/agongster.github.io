@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Restaurant Tracker — a SQLite database of restaurants I've been to, running entirely in the browser."
+    />
+    <title>Restaurant Tracker | April Gong</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="rt-page">
+    <header class="site-header">
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="wordmark" href="../index.html#projects">&larr; April Gong</a>
+        <span class="page-title">Restaurant Tracker</span>
+        <button class="theme-toggle" type="button" aria-pressed="false">🌙 Night mode</button>
+      </nav>
+    </header>
+
+    <main class="rt-main">
+      <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+
+      <section class="rt-intro">
+        <p class="eyebrow">SQLite in the browser</p>
+        <h1>Restaurant Tracker</h1>
+        <p class="blurb">
+          A log of restaurants I've been to: name, cuisine, location, price range and rating.
+          Add, search, edit and delete entries below.
+        </p>
+        <p class="blurb small">
+          This page runs a real SQLite database in your browser with
+          <a href="https://sql.js.org/" target="_blank" rel="noopener">sql.js</a>, using the same
+          schema as my Python command-line version. Every query is parameterized. Changes are
+          saved in your browser only, and you can open or download a <code>restaurant.db</code>
+          file to move data to and from the Python app.
+        </p>
+      </section>
+
+      <p class="loading" id="loading">
+        <span class="spinner" aria-hidden="true"></span> Loading SQLite&hellip;
+      </p>
+
+      <div class="rt-grid" id="app" hidden>
+        <div class="rt-side">
+          <form class="card" id="restaurant-form" novalidate>
+            <h2 id="form-title">Add a restaurant</h2>
+            <input type="hidden" name="id" />
+            <label>
+              Name
+              <input type="text" name="name" maxlength="120" required placeholder="Noodle Bar" />
+            </label>
+            <label>
+              Cuisine <small>(optional)</small>
+              <input type="text" name="cuisine" maxlength="60" placeholder="Thai" list="cuisine-options" />
+              <datalist id="cuisine-options"></datalist>
+            </label>
+            <label>
+              Location <small>(optional)</small>
+              <input type="text" name="location" maxlength="120" placeholder="Oakland" />
+            </label>
+            <div class="field-row">
+              <label>
+                Price <small>(optional)</small>
+                <select name="price_range">
+                  <option value="">&mdash;</option>
+                  <option value="1">$</option>
+                  <option value="2">$$</option>
+                  <option value="3">$$$</option>
+                  <option value="4">$$$$</option>
+                </select>
+              </label>
+              <label>
+                Rating <small>(1&ndash;5)</small>
+                <input type="number" name="rating" min="1" max="5" step="0.5" placeholder="4.5" />
+              </label>
+            </div>
+            <p class="form-error" id="form-error" role="alert"></p>
+            <div class="form-actions">
+              <button class="button" type="submit" id="submit-button">
+                Add restaurant <span aria-hidden="true">&rarr;</span>
+              </button>
+              <button class="ghost-button" type="button" id="cancel-edit" hidden>Cancel</button>
+            </div>
+          </form>
+
+          <section class="card">
+            <h2>Database file</h2>
+            <p class="hint">
+              Open a <code>restaurant.db</code> made by the Python app, or download this one to use
+              there.
+            </p>
+            <div class="file-actions">
+              <label class="ghost-button file-button">
+                Open .db file
+                <input type="file" id="import-file" accept=".db,.sqlite,.sqlite3" />
+              </label>
+              <button class="ghost-button" type="button" id="export-button">Download .db</button>
+              <button class="ghost-button danger" type="button" id="reset-button">Reset to sample data</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="rt-content">
+          <section class="card">
+            <div class="card-head">
+              <h2>Restaurants</h2>
+              <p class="stats" id="stats"></p>
+            </div>
+            <div class="toolbar">
+              <label>
+                <span class="sr-only">Search by name</span>
+                <input type="search" id="search" placeholder="Search by name&hellip;" />
+              </label>
+              <label>
+                <span class="sr-only">Filter by cuisine</span>
+                <select id="cuisine-filter">
+                  <option value="">All cuisines</option>
+                </select>
+              </label>
+              <label>
+                <span class="sr-only">Sort by</span>
+                <select id="sort">
+                  <option value="name">Name A&ndash;Z</option>
+                  <option value="rating">Highest rated</option>
+                  <option value="price">Cheapest first</option>
+                  <option value="newest">Recently added</option>
+                </select>
+              </label>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Cuisine</th>
+                    <th scope="col">Location</th>
+                    <th scope="col">Price</th>
+                    <th scope="col">Rating</th>
+                    <th scope="col"><span class="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody id="rows"></tbody>
+              </table>
+            </div>
+            <p class="empty" id="empty" hidden>No restaurants match.</p>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <h2>Last query</h2>
+              <small>The SQL that just ran, with its parameters passed separately.</small>
+            </div>
+            <pre class="sql" id="last-sql">&ndash;</pre>
+            <p class="params">Parameters: <code id="last-params">[]</code></p>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer class="rt-footer">
+      <p>
+        Built by April Gong &mdash; schema shared with the Python CLI ·
+        <a href="../index.html#projects">back to portfolio</a>
+      </p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.10.3/dist/sql-wasm.js"></script>
+    <script src="app.js" defer></script>
+  </body>
+</html>
